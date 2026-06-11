@@ -734,11 +734,15 @@
 
     input.addEventListener("input", render);
 
+    // While the user has explicitly opened the editor to edit, a paste must NOT
+    // auto-collapse it; otherwise every paste collapses the input.
+    let editingInput = false;
+
     // Pasting with Ctrl/Cmd+V collapses the editor too (not just the button).
     // Defer one tick so the pasted text is in place before we collapse.
     input.addEventListener("paste", () => {
       setTimeout(() => {
-        if (input.value.trim()) collapseInput();
+        if (!editingInput && input.value.trim()) collapseInput();
       }, 0);
     });
 
@@ -1034,7 +1038,7 @@
         const text = await navigator.clipboard.readText();
         input.value = text;
         render();
-        // Collapse the editor after a paste — the rendered output is the focus.
+        // Explicit fresh paste via the button → always collapse (ends editing).
         if (text.trim()) collapseInput();
       } catch (err) {
         input.focus();
@@ -1043,10 +1047,12 @@
 
     function collapseInput() {
       document.getElementById("inputShell").classList.add("collapsed");
+      editingInput = false;
     }
 
     function expandInput() {
       document.getElementById("inputShell").classList.remove("collapsed");
+      editingInput = true; // opened to edit — keep open through pastes
       input.focus();
     }
 
@@ -1111,7 +1117,10 @@
     function clearAll() {
       input.value = "";
       render();
-      expandInput();
+      // Fresh start: open the editor but stay out of editing mode, so the next
+      // paste collapses it again.
+      document.getElementById("inputShell").classList.remove("collapsed");
+      editingInput = false;
       input.focus();
     }
 
