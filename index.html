@@ -90,19 +90,51 @@
     }
 
     button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       border: 0;
       border-radius: 12px;
       padding: 11px 16px;
       cursor: pointer;
       font-weight: 700;
       color: white;
-      background: var(--accent);
+      transition: filter 0.18s, transform 0.05s, box-shadow 0.18s;
     }
 
-    button.secondary {
+    button:hover {
+      filter: brightness(1.08);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button svg {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+    }
+
+    button.paste {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.32);
+    }
+
+    button.copy {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
+    }
+
+    button.clear {
       background: var(--panel-soft);
       color: var(--text);
       border: 1px solid var(--border);
+    }
+
+    button.clear:hover {
+      border-color: var(--danger);
+      color: var(--danger);
     }
 
     .preview {
@@ -242,9 +274,28 @@
       </div>
 
       <div class="toolbar">
-        <button onclick="pasteInput()">Paste</button>
-        <button class="secondary" onclick="copyOutput()">کپی خروجی</button>
-        <button class="secondary" onclick="clearAll()">پاک کردن</button>
+        <button class="paste" onclick="pasteInput()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="8" y="2" width="8" height="4" rx="1"></rect>
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+          </svg>
+          <span>Paste</span>
+        </button>
+        <button class="copy" onclick="copyOutput()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span>کپی خروجی</span>
+        </button>
+        <button class="clear" onclick="clearAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          <span>پاک کردن</span>
+        </button>
       </div>
     </header>
 
