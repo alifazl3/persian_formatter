@@ -339,6 +339,19 @@
       );
     }
 
+    function stripFence(block) {
+      const lines = block.split("\n");
+
+      if (/^\s*```/.test(lines[0] || "")) {
+        lines.shift();
+        if (lines.length && /^\s*```\s*$/.test(lines[lines.length - 1])) {
+          lines.pop();
+        }
+      }
+
+      return lines.join("\n").replace(/^\n+|\n+$/g, "");
+    }
+
     function isTitle(line) {
       const clean = line.trim();
 
@@ -392,7 +405,7 @@
         if (isCodeLike(block)) {
           return `
             <div class="block">
-              <div class="code">${decorate(block)}</div>
+              <div class="code">${decorate(stripFence(block))}</div>
             </div>
           `;
         }
