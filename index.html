@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pretty Text Viewer</title>
 
+  <!-- Syntax highlighting for code blocks (pinned, with graceful degradation). -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+
   <style>
     :root {
       --bg: #0f1117;
@@ -199,10 +203,25 @@
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 16px;
+      margin: 0;
       color: #d7e0ff;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 14px;
       line-height: 1.7;
+    }
+
+    /* Highlighted code: keep our container, let highlight.js paint the tokens. */
+    pre.code code {
+      display: block;
+      background: transparent;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+    }
+
+    pre.code .hljs,
+    pre.code code.hljs {
+      background: transparent;
     }
 
     .badge {
@@ -338,6 +357,12 @@
 
     input.addEventListener("input", render);
 
+    // highlight.js is deferred; once it (and the page) is ready, repaint any
+    // code that was already rendered.
+    window.addEventListener("load", () => {
+      if (input.value.trim()) render();
+    });
+
     function escapeHtml(text) {
       return text
         .replaceAll("&", "&amp;")
@@ -441,9 +466,24 @@
         const content = stripFence(block);
 
         if (isCodeBlock(content, lang)) {
+          // Box-drawing art is not a language — leave it plain so the
+          // highlighter does not mangle the ASCII table.
+          if (isBoxDrawing(content)) {
+            return `
+              <div class="block">
+                <div class="code">${decorate(content)}</div>
+              </div>
+            `;
+          }
+
+          // Real code: a known fence language is honored, otherwise the
+          // highlighter auto-detects. Escape here; highlightElement re-reads
+          // textContent and repaints, so there is no double-escaping.
+          const realLang = lang && !TEXTY_FENCES.includes(lang);
+          const langClass = realLang ? ` class="language-${lang}"` : "";
           return `
             <div class="block">
-              <div class="code">${decorate(content)}</div>
+              <pre class="code"><code${langClass}>${escapeHtml(content)}</code></pre>
             </div>
           `;
         }
@@ -478,6 +518,19 @@
           </div>
         `;
       }).join("");
+
+      highlightCode();
+    }
+
+    function highlightCode() {
+      if (!window.hljs) return;
+      preview.querySelectorAll("pre.code code").forEach(el => {
+        try {
+          hljs.highlightElement(el);
+        } catch (err) {
+          /* leave the block as plain escaped code on failure */
+        }
+      });
     }
 
     async function pasteInput() {
