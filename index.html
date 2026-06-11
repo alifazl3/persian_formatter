@@ -9,6 +9,11 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css" />
   <script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
 
+  <!-- Math rendering ($$…$$ / $…$ / \(…\)) via KaTeX + auto-render (pinned). -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
   <style>
     :root {
       --bg: #0f1117;
@@ -61,6 +66,47 @@
       letter-spacing: -0.04em;
     }
 
+    .head-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Small ghost button to collapse the header. */
+    .header-toggle {
+      padding: 4px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .header-toggle:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .header-toggle svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Pill shown when the header is collapsed; brings it back. */
+    .show-header-btn {
+      display: none;
+      align-self: flex-start;
+      background: var(--panel-soft);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+
+    .show-header-btn:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
     .hint {
       color: var(--muted);
       font-size: 14px;
@@ -85,6 +131,28 @@
     textarea:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 4px rgba(124, 156, 255, 0.12);
+    }
+
+    /* Input collapses after a paste; an edit button brings it back. */
+    .edit-input-btn {
+      display: none;
+      width: 100%;
+      justify-content: center;
+      background: var(--panel-soft);
+      color: var(--text);
+      border: 1px dashed var(--border);
+    }
+
+    .edit-input-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .input-shell.collapsed textarea {
+      display: none;
+    }
+
+    .input-shell.collapsed .edit-input-btn {
+      display: inline-flex;
     }
 
     .toolbar {
@@ -146,12 +214,68 @@
       color: var(--danger);
     }
 
+    .preview-shell {
+      position: relative;
+    }
+
     .preview {
       background: rgba(23, 26, 35, 0.8);
       border: 1px solid var(--border);
       border-radius: 22px;
       padding: 28px;
       overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    /* Lock toggle for the output — locked by default; unlock to edit. */
+    .lock-btn {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .lock-btn svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .lock-btn .ic-unlock {
+      display: none;
+    }
+
+    /* Editing state: open lock, accent border, edit affordance. */
+    .preview-shell.editing .lock-btn {
+      color: var(--success);
+      border-color: var(--success);
+    }
+
+    .preview-shell.editing .lock-btn .ic-lock {
+      display: none;
+    }
+
+    .preview-shell.editing .lock-btn .ic-unlock {
+      display: inline;
+    }
+
+    .preview-shell.editing .preview {
+      border-color: var(--success);
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+    }
+
+    #preview[contenteditable="true"] {
+      outline: none;
+      cursor: text;
     }
 
     /* Blocks are separated by spacing, not dividers — the bold headings, boxed
@@ -195,6 +319,65 @@
       unicode-bidi: plaintext;
     }
 
+    /* Markdown tables */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .md-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 14px;
+    }
+
+    .md-table th,
+    .md-table td {
+      border-bottom: 1px solid var(--border);
+      border-inline-start: 1px solid var(--border);
+      padding: 9px 14px;
+      text-align: right;
+      unicode-bidi: plaintext;
+    }
+
+    .md-table th:first-child,
+    .md-table td:first-child {
+      border-inline-start: 0;
+    }
+
+    .md-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .md-table thead th {
+      background: var(--panel-soft);
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .md-table tbody tr:nth-child(even) td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Inline markdown shared by prose and table cells */
+    .inline-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: 0.9em;
+      direction: ltr;
+      unicode-bidi: embed;
+    }
+
+    .paragraph strong,
+    .md-table strong,
+    .list strong {
+      color: #ffffff;
+    }
+
     .code {
       direction: ltr;
       text-align: left;
@@ -211,13 +394,11 @@
       line-height: 1.7;
     }
 
-    /* Highlighted code: keep our container, let highlight.js paint the tokens. */
+    /* Highlighted code: keep our container, let highlight.js paint the tokens.
+       Every code box reserves a top strip for the copy button + language badge. */
     pre.code {
       position: relative;
-    }
-
-    pre.code.has-lang {
-      padding-top: 40px;
+      padding-top: 44px;
     }
 
     pre.code code {
@@ -226,6 +407,54 @@
       padding: 0;
       font: inherit;
       color: inherit;
+    }
+
+    /* Per-box copy button, top-left (start of the LTR code box). */
+    .code-copy {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: normal;
+      cursor: pointer;
+    }
+
+    .code-copy:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .code-copy svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .code-copy .ic-check {
+      display: none;
+      color: var(--success);
+    }
+
+    .code-copy.copied {
+      color: var(--success);
+      border-color: var(--success);
+    }
+
+    .code-copy.copied .ic-copy {
+      display: none;
+    }
+
+    .code-copy.copied .ic-check {
+      display: inline;
     }
 
     pre.code .hljs,
@@ -327,9 +556,23 @@
 
 <body>
   <main class="app">
-    <header>
-      <div>
-        <h1>Pretty Text Viewer</h1>
+    <button id="showHeaderBtn" class="show-header-btn" type="button" onclick="toggleHeader()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+      <span>نمایش هدر</span>
+    </button>
+
+    <header id="appHeader">
+      <div class="head-text">
+        <div class="head-title-row">
+          <h1>Pretty Text Viewer</h1>
+          <button class="header-toggle" type="button" onclick="toggleHeader()" title="بستن هدر">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+        </div>
         <div class="hint">متن خام را Paste کن؛ پایین تمیز، بخش‌بندی‌شده و خوانا نمایش داده می‌شود.</div>
       </div>
 
@@ -366,10 +609,33 @@
       </div>
     </header>
 
-    <textarea id="input" placeholder="متن به‌هم‌ریخته را اینجا Paste کن..."></textarea>
+    <div class="input-shell" id="inputShell">
+      <textarea id="input" placeholder="متن به‌هم‌ریخته را اینجا Paste کن..."></textarea>
+      <button class="edit-input-btn" type="button" onclick="expandInput()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <span>ویرایش ورودی</span>
+      </button>
+    </div>
 
-    <section id="preview" class="preview">
-      <div class="empty">هنوز متنی وارد نشده است.</div>
+    <section class="preview-shell" id="previewShell">
+      <button id="lockBtn" class="lock-btn" type="button" onclick="toggleLock()" title="برای ویرایش خروجی، قفل را باز کنید">
+        <svg class="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="11" width="16" height="10" rx="2"></rect>
+          <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+        </svg>
+        <svg class="ic-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="11" width="16" height="10" rx="2"></rect>
+          <path d="M8 11V7a4 4 0 0 1 7.5-1.9"></path>
+        </svg>
+        <span class="lock-label">قفل</span>
+      </button>
+
+      <section id="preview" class="preview">
+        <div class="empty">هنوز متنی وارد نشده است.</div>
+      </section>
     </section>
 
     <footer class="footer">
@@ -400,6 +666,14 @@
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;");
     }
+
+    // Copy button markup for code boxes (copy icon + a check shown after copy).
+    const CODE_COPY_BTN =
+      '<button class="code-copy" type="button" onclick="copyCode(this)" title="کپی کد">' +
+        '<svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>' +
+        '<svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+        '<span class="copy-text">کپی</span>' +
+      '</button>';
 
     // Texty fence tags (or a bare ``` fence) carry no real language, so the
     // content decides whether it is actual code or just Persian prose.
@@ -474,6 +748,68 @@
         .replaceAll("❌", '<span class="bad">❌</span>');
     }
 
+    // decorate + lightweight inline markdown (**bold**, `code`). Asterisks and
+    // backticks survive escapeHtml, so this stays safe.
+    function inlineMd(text) {
+      return decorate(text)
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+    }
+
+    function splitRow(line) {
+      let s = line.trim();
+      if (s.startsWith("|")) s = s.slice(1);
+      if (s.endsWith("|")) s = s.slice(0, -1);
+      return s.split("|").map(cell => cell.trim());
+    }
+
+    // A markdown table = a header row followed by a separator row made only of
+    // -, :, | and spaces (e.g. |----|:--:|).
+    function isTable(lines) {
+      if (lines.length < 2) return false;
+      const sep = lines[1].trim();
+      return (
+        lines[0].includes("|") &&
+        sep.includes("|") &&
+        sep.includes("-") &&
+        /^\|?[\s:|-]+\|?$/.test(sep)
+      );
+    }
+
+    function renderTable(lines) {
+      const aligns = splitRow(lines[1]).map(c => {
+        const left = c.startsWith(":");
+        const right = c.endsWith(":");
+        return left && right ? "center" : right ? "right" : left ? "left" : "";
+      });
+      const head = splitRow(lines[0]);
+      const cols = head.length;
+      const alignAttr = i => (aligns[i] ? ` style="text-align:${aligns[i]}"` : "");
+      const pad = row => {
+        const cells = row.slice(0, cols);
+        while (cells.length < cols) cells.push("");
+        return cells;
+      };
+
+      const thead = `<tr>${pad(head).map((c, i) => `<th${alignAttr(i)}>${inlineMd(c)}</th>`).join("")}</tr>`;
+      const body = lines
+        .slice(2)
+        .filter(line => line.includes("|"))
+        .map(line => `<tr>${pad(splitRow(line)).map((c, i) => `<td${alignAttr(i)}>${inlineMd(c)}</td>`).join("")}</tr>`)
+        .join("");
+
+      return `
+        <div class="block">
+          <div class="table-wrap">
+            <table class="md-table">
+              <thead>${thead}</thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
     function splitBlocks(text) {
       return text
         .replace(/\r/g, "")
@@ -497,38 +833,42 @@
         const content = stripFence(block);
 
         if (isCodeBlock(content, lang)) {
-          // Box-drawing art is not a language — leave it plain so the
-          // highlighter does not mangle the ASCII table.
+          // Box-drawing art is not a language — mark it plain so the highlighter
+          // skips it (it would mangle the ASCII table). Still gets a copy button.
           if (isBoxDrawing(content)) {
             return `
               <div class="block">
-                <div class="code">${decorate(content)}</div>
+                <pre class="code plain">${CODE_COPY_BTN}<code>${decorate(content)}</code></pre>
               </div>
             `;
           }
 
           // Real code: a known fence language is honored, otherwise the
-          // highlighter auto-detects. Escape here; highlightElement re-reads
+          // highlighter auto-detects. Escape here; highlightCode re-reads
           // textContent and repaints, so there is no double-escaping.
           const realLang = lang && !TEXTY_FENCES.includes(lang);
           const dataLang = realLang ? ` data-lang="${lang}"` : "";
           return `
             <div class="block">
-              <pre class="code"${dataLang}><span class="lang"></span><code>${escapeHtml(content)}</code></pre>
+              <pre class="code"${dataLang}><span class="lang"></span>${CODE_COPY_BTN}<code>${escapeHtml(content)}</code></pre>
             </div>
           `;
         }
 
-        // Prose family (Persian-first): titles, lists, paragraphs — all rendered
-        // RTL. Work on the fence-stripped content so ```text wrappers vanish.
+        // Prose family (Persian-first): tables, titles, lists, paragraphs — all
+        // rendered RTL. Work on the fence-stripped content so ```text vanishes.
         const lines = content.split("\n").map(l => l.trimEnd());
         const first = lines[0].trim();
+
+        if (isTable(lines)) {
+          return renderTable(lines);
+        }
 
         if (isTitle(first) && lines.length > 1) {
           return `
             <div class="block">
-              <div class="title">${decorate(first.replace(/:$/, ""))}</div>
-              <div class="paragraph">${decorate(lines.slice(1).join("\n"))}</div>
+              <div class="title">${inlineMd(first.replace(/:$/, ""))}</div>
+              <div class="paragraph">${inlineMd(lines.slice(1).join("\n"))}</div>
             </div>
           `;
         }
@@ -537,7 +877,7 @@
           return `
             <div class="block">
               <ul class="list">
-                ${lines.map(line => `<li>${decorate(line.replace(/^[-•*]\s+/, ""))}</li>`).join("")}
+                ${lines.map(line => `<li>${inlineMd(line.replace(/^[-•*]\s+/, ""))}</li>`).join("")}
               </ul>
             </div>
           `;
@@ -545,17 +885,36 @@
 
         return `
           <div class="block">
-            <div class="paragraph">${decorate(content)}</div>
+            <div class="paragraph">${inlineMd(content)}</div>
           </div>
         `;
       }).join("");
 
       highlightCode();
+      renderMath();
+    }
+
+    function renderMath() {
+      if (!window.renderMathInElement) return;
+      try {
+        renderMathInElement(preview, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "$", right: "$", display: false }
+          ],
+          throwOnError: false,
+          strict: false
+        });
+      } catch (err) {
+        /* leave the formula as plain text on failure */
+      }
     }
 
     function highlightCode() {
       if (!window.hljs) return;
-      preview.querySelectorAll("pre.code").forEach(pre => {
+      preview.querySelectorAll("pre.code:not(.plain)").forEach(pre => {
         const code = pre.querySelector("code");
         const label = pre.querySelector(".lang");
         if (!code) return;
@@ -587,10 +946,20 @@
         const text = await navigator.clipboard.readText();
         input.value = text;
         render();
-        input.focus();
+        // Collapse the editor after a paste — the rendered output is the focus.
+        if (text.trim()) collapseInput();
       } catch (err) {
         input.focus();
       }
+    }
+
+    function collapseInput() {
+      document.getElementById("inputShell").classList.add("collapsed");
+    }
+
+    function expandInput() {
+      document.getElementById("inputShell").classList.remove("collapsed");
+      input.focus();
     }
 
     async function copyInput() {
@@ -599,16 +968,92 @@
       await navigator.clipboard.writeText(text);
     }
 
+    // The output text without the UI chrome (per-box copy buttons, lang badges).
+    function outputText() {
+      const clone = preview.cloneNode(true);
+      clone.querySelectorAll(".code-copy, .lang").forEach(el => el.remove());
+      clone.removeAttribute("id");
+      clone.style.position = "absolute";
+      clone.style.left = "-99999px";
+      document.body.appendChild(clone);
+      const text = clone.innerText.trim();
+      document.body.removeChild(clone);
+      return text;
+    }
+
     async function copyOutput() {
-      const text = preview.innerText.trim();
+      const text = outputText();
       if (!text) return;
       await navigator.clipboard.writeText(text);
+    }
+
+    async function copyCode(btn) {
+      const pre = btn.closest("pre.code");
+      const code = pre && pre.querySelector("code");
+      if (!code) return;
+
+      try {
+        await navigator.clipboard.writeText(code.innerText);
+        const label = btn.querySelector(".copy-text");
+        const prev = label ? label.textContent : "";
+        btn.classList.add("copied");
+        if (label) label.textContent = "کپی شد";
+        setTimeout(() => {
+          btn.classList.remove("copied");
+          if (label) label.textContent = prev;
+        }, 1200);
+      } catch (err) {
+        /* clipboard unavailable */
+      }
+    }
+
+    let outputEditable = false;
+
+    function toggleLock() {
+      outputEditable = !outputEditable;
+      preview.setAttribute("contenteditable", outputEditable ? "true" : "false");
+      document.getElementById("previewShell").classList.toggle("editing", outputEditable);
+
+      const label = document.querySelector(".lock-label");
+      if (label) label.textContent = outputEditable ? "باز" : "قفل";
+
+      if (outputEditable) preview.focus();
     }
 
     function clearAll() {
       input.value = "";
       render();
+      expandInput();
+      input.focus();
     }
+
+    // Header collapse, persisted across sessions in localStorage.
+    const HEADER_KEY = "pf:headerHidden";
+
+    function setHeaderHidden(hidden) {
+      document.getElementById("appHeader").style.display = hidden ? "none" : "";
+      document.getElementById("showHeaderBtn").style.display = hidden ? "inline-flex" : "none";
+      try {
+        localStorage.setItem(HEADER_KEY, hidden ? "1" : "0");
+      } catch (err) {
+        /* localStorage unavailable (private mode) — ignore */
+      }
+    }
+
+    function toggleHeader() {
+      const visible = document.getElementById("appHeader").style.display !== "none";
+      setHeaderHidden(visible);
+    }
+
+    (function initHeader() {
+      let hidden = false;
+      try {
+        hidden = localStorage.getItem(HEADER_KEY) === "1";
+      } catch (err) {
+        /* ignore */
+      }
+      setHeaderHidden(hidden);
+    })();
   </script>
 </body>
 </html>
