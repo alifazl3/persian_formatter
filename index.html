@@ -215,7 +215,7 @@
       </div>
 
       <div class="toolbar">
-        <button onclick="render()">تمیز کن</button>
+        <button onclick="pasteInput()">Paste</button>
         <button class="secondary" onclick="copyOutput()">کپی خروجی</button>
         <button class="secondary" onclick="clearAll()">پاک کردن</button>
       </div>
@@ -335,6 +335,17 @@
           </div>
         `;
       }).join("");
+    }
+
+    async function pasteInput() {
+      try {
+        const text = await navigator.clipboard.readText();
+        input.value = text;
+        render();
+        input.focus();
+      } catch (err) {
+        input.focus();
+      }
     }
 
     async function copyOutput() {
