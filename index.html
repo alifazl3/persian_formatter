@@ -121,6 +121,11 @@
       box-shadow: 0 4px 14px rgba(99, 102, 241, 0.32);
     }
 
+    button.copy-input {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.28);
+    }
+
     button.copy {
       background: linear-gradient(135deg, #10b981, #059669);
       box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
@@ -164,6 +169,10 @@
     .paragraph {
       color: var(--text);
       white-space: pre-wrap;
+      /* Each line picks its own base direction from its first strong character,
+         so mixed Persian/English lines stay readable (punctuation, «», → land
+         on the correct side). */
+      unicode-bidi: plaintext;
     }
 
     .list {
@@ -178,6 +187,7 @@
       border-radius: 12px;
       padding: 10px 14px;
       margin-bottom: 8px;
+      unicode-bidi: plaintext;
     }
 
     .code {
@@ -281,6 +291,13 @@
           </svg>
           <span>Paste</span>
         </button>
+        <button class="copy-input" onclick="copyInput()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span>کپی ورودی</span>
+        </button>
         <button class="copy" onclick="copyOutput()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="9" y="9" width="13" height="13" rx="2"></rect>
@@ -328,28 +345,49 @@
         .replaceAll(">", "&gt;");
     }
 
-    function isCodeLike(text) {
-      return (
-        text.includes("┌") ||
-        text.includes("├") ||
-        text.includes("└") ||
-        text.includes("│") ||
-        text.includes("```") ||
-        /^[\s]*[-✔◼✅⏺※✻]/m.test(text)
-      );
+    // Texty fence tags (or a bare ``` fence) carry no real language, so the
+    // content decides whether it is actual code or just Persian prose.
+    const TEXTY_FENCES = ["", "text", "txt", "plain", "plaintext", "md", "markdown"];
+
+    function fenceLang(block) {
+      const match = (block.split("\n")[0] || "").match(/^\s*```([A-Za-z0-9_+#-]*)/);
+      return match ? match[1].toLowerCase() : null;
     }
 
+    function persianRatio(text) {
+      const letters = text.match(/[A-Za-z؀-ۿ]/g) || [];
+      if (!letters.length) return 0;
+      const persian = text.match(/[؀-ۿ]/g) || [];
+      return persian.length / letters.length;
+    }
+
+    function isBoxDrawing(text) {
+      return /[─-╿]/.test(text);
+    }
+
+    // Decide whether a block is real code (LTR monospace) or prose. A fenced
+    // block with a real language tag (```js) is always code; box-drawing art is
+    // always code; otherwise we only treat it as code when it is barely Persian.
+    function isCodeBlock(content, lang) {
+      const isFenced = lang !== null;
+      const realLang = isFenced && lang && !TEXTY_FENCES.includes(lang);
+
+      if (isBoxDrawing(content)) return true;
+      if (realLang) return true;
+      if (isFenced && persianRatio(content) < 0.2) return true;
+      return false;
+    }
+
+    // Drop every standalone fence line (```、```js、```text …) wherever it sits.
+    // splitBlocks may separate an opening and closing fence into different
+    // blocks when the fenced content has blank lines, so position-based removal
+    // is not enough — strip any line that is purely a fence.
     function stripFence(block) {
-      const lines = block.split("\n");
-
-      if (/^\s*```/.test(lines[0] || "")) {
-        lines.shift();
-        if (lines.length && /^\s*```\s*$/.test(lines[lines.length - 1])) {
-          lines.pop();
-        }
-      }
-
-      return lines.join("\n").replace(/^\n+|\n+$/g, "");
+      return block
+        .split("\n")
+        .filter(line => !/^\s*```[A-Za-z0-9_+#-]*\s*$/.test(line))
+        .join("\n")
+        .replace(/^\n+|\n+$/g, "");
     }
 
     function isTitle(line) {
@@ -399,16 +437,21 @@
       const blocks = splitBlocks(raw);
 
       preview.innerHTML = blocks.map(block => {
-        const lines = block.split("\n").map(l => l.trimEnd());
-        const first = lines[0].trim();
+        const lang = fenceLang(block);
+        const content = stripFence(block);
 
-        if (isCodeLike(block)) {
+        if (isCodeBlock(content, lang)) {
           return `
             <div class="block">
-              <div class="code">${decorate(stripFence(block))}</div>
+              <div class="code">${decorate(content)}</div>
             </div>
           `;
         }
+
+        // Prose family (Persian-first): titles, lists, paragraphs — all rendered
+        // RTL. Work on the fence-stripped content so ```text wrappers vanish.
+        const lines = content.split("\n").map(l => l.trimEnd());
+        const first = lines[0].trim();
 
         if (isTitle(first) && lines.length > 1) {
           return `
@@ -431,7 +474,7 @@
 
         return `
           <div class="block">
-            <div class="paragraph">${decorate(block)}</div>
+            <div class="paragraph">${decorate(content)}</div>
           </div>
         `;
       }).join("");
@@ -446,6 +489,12 @@
       } catch (err) {
         input.focus();
       }
+    }
+
+    async function copyInput() {
+      const text = input.value.trim();
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
     }
 
     async function copyOutput() {
