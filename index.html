@@ -734,6 +734,14 @@
 
     input.addEventListener("input", render);
 
+    // Pasting with Ctrl/Cmd+V collapses the editor too (not just the button).
+    // Defer one tick so the pasted text is in place before we collapse.
+    input.addEventListener("paste", () => {
+      setTimeout(() => {
+        if (input.value.trim()) collapseInput();
+      }, 0);
+    });
+
     // highlight.js is deferred; once it (and the page) is ready, repaint any
     // code that was already rendered.
     window.addEventListener("load", () => {
