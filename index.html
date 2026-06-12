@@ -746,10 +746,41 @@
       }, 0);
     });
 
+    // On load, try to read the clipboard and pre-fill the input. We keep the
+    // editor open so the user can review/edit, and only collapse once they
+    // press Enter to confirm. Browsers gate clipboard reads behind a user
+    // gesture, so this often no-ops on a bare load — that's intentional.
+    let pendingAutoPaste = false;
+    async function autoPasteFromClipboard() {
+      if (input.value.trim()) return; // don't clobber existing text
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text.trim()) return;
+        input.value = text;
+        render();
+        expandInput();        // keep open & focused for review
+        pendingAutoPaste = true;
+      } catch (err) {
+        /* clipboard unavailable or permission denied — ignore */
+      }
+    }
+
+    // After an auto-paste, the first Enter confirms and collapses the input
+    // (instead of inserting a newline). Scoped to pendingAutoPaste so normal
+    // editing keeps its newline behaviour.
+    input.addEventListener("keydown", (e) => {
+      if (pendingAutoPaste && e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        pendingAutoPaste = false;
+        collapseInput();
+      }
+    });
+
     // highlight.js is deferred; once it (and the page) is ready, repaint any
     // code that was already rendered.
     window.addEventListener("load", () => {
       if (input.value.trim()) render();
+      autoPasteFromClipboard();
     });
 
     function escapeHtml(text) {
