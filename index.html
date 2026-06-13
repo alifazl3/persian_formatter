@@ -139,7 +139,19 @@
     }
 
     .app.mode-sidebar h1 {
-      font-size: 22px;
+      font-size: 20px;
+    }
+
+    /* In the narrow right sidebar, put the title on its own full-width line and
+       let the toggle buttons wrap onto the row below (instead of squeezing into
+       the title and forcing it to wrap mid-word). */
+    .app.mode-sidebar .head-title-row {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .app.mode-sidebar .head-title-row h1 {
+      flex-basis: 100%;
     }
 
     .app.mode-sidebar .toolbar {
