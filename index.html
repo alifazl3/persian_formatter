@@ -942,9 +942,11 @@
     }
 
     // Render prose lines, grouping consecutive bullet lines into a <ul> and
-    // everything else into paragraphs. Handles the common LLM pattern of an
-    // intro line followed by bullets (which neither a pure list nor a single
-    // paragraph would render correctly).
+    // emitting every other line as its own paragraph. LLM logs put one logical
+    // step per line with single newlines (no blank line between them), but
+    // splitBlocks only breaks on blank lines — so without per-line paragraphs
+    // here the whole text merges into one run-on paragraph. Also handles the
+    // common intro-line-then-bullets pattern.
     function isBulletLine(line) {
       return /^[-•*]\s+/.test(line.trim());
     }
@@ -961,12 +963,9 @@
           }
           html += `<ul class="list">${items.map(it => `<li>${inlineMd(it)}</li>`).join("")}</ul>`;
         } else {
-          const para = [];
-          while (i < lines.length && !isBulletLine(lines[i])) {
-            para.push(lines[i]);
-            i++;
-          }
-          html += `<div class="paragraph">${inlineMd(para.join("\n"))}</div>`;
+          const line = lines[i].trim();
+          if (line) html += `<div class="paragraph">${inlineMd(line)}</div>`;
+          i++;
         }
       }
       return html;
