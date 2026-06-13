@@ -6,7 +6,7 @@
   <title>Pretty Text Viewer</title>
 
   <!-- Syntax highlighting for code blocks (pinned, with graceful degradation). -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css" />
+  <link id="hljsTheme" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css" />
   <script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
 
   <!-- Math rendering ($$…$$ / $…$ / \(…\)) via KaTeX + auto-render (pinned). -->
@@ -27,6 +27,28 @@
       --warning: #f59e0b;
       --danger: #ef4444;
       --code: #10131a;
+      --code-text: #d7e0ff;
+      --strong: #ffffff;
+      --row-alt: rgba(255, 255, 255, 0.02);
+      --glow: rgba(124, 156, 255, 0.12);
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --panel-soft: #eef1f7;
+      --text: #1f2430;
+      --muted: #5b6472;
+      --border: #d9dee8;
+      --accent: #4f6ef7;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --code: #f3f4f8;
+      --code-text: #1f2430;
+      --strong: #0b1020;
+      --row-alt: rgba(0, 0, 0, 0.03);
+      --glow: rgba(79, 110, 247, 0.10);
     }
 
     * {
@@ -37,7 +59,7 @@
       margin: 0;
       min-height: 100vh;
       background:
-        radial-gradient(circle at top left, rgba(124, 156, 255, 0.12), transparent 32%),
+        radial-gradient(circle at top left, var(--glow), transparent 32%),
         var(--bg);
       color: var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -191,6 +213,24 @@
       height: 15px;
     }
 
+    /* Theme toggle shows the icon for the theme you'd switch TO:
+       dark mode → sun (go light); light mode → moon (go dark). */
+    .theme-toggle .ic-moon {
+      display: none;
+    }
+
+    .theme-toggle .ic-sun {
+      display: inline;
+    }
+
+    :root[data-theme="light"] .theme-toggle .ic-sun {
+      display: none;
+    }
+
+    :root[data-theme="light"] .theme-toggle .ic-moon {
+      display: inline;
+    }
+
     .hint {
       color: var(--muted);
       font-size: 14px;
@@ -214,7 +254,7 @@
 
     textarea:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(124, 156, 255, 0.12);
+      box-shadow: 0 0 0 4px var(--glow);
     }
 
     /* Input collapses after a paste; an edit button brings it back. */
@@ -303,7 +343,7 @@
     }
 
     .preview {
-      background: rgba(23, 26, 35, 0.8);
+      background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 22px;
       padding: 28px;
@@ -376,7 +416,7 @@
       font-size: 20px;
       font-weight: 800;
       margin-bottom: 10px;
-      color: #ffffff;
+      color: var(--strong);
     }
 
     .paragraph {
@@ -435,11 +475,11 @@
     .md-table thead th {
       background: var(--panel-soft);
       font-weight: 800;
-      color: #ffffff;
+      color: var(--strong);
     }
 
     .md-table tbody tr:nth-child(even) td {
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--row-alt);
     }
 
     /* Inline markdown shared by prose and table cells */
@@ -457,7 +497,7 @@
     .paragraph strong,
     .md-table strong,
     .list strong {
-      color: #ffffff;
+      color: var(--strong);
     }
 
     .code {
@@ -470,7 +510,7 @@
       border-radius: 16px;
       padding: 16px;
       margin: 0;
-      color: #d7e0ff;
+      color: var(--code-text);
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 14px;
       line-height: 1.7;
@@ -649,6 +689,16 @@
               <line x1="15" y1="3" x2="15" y2="21"></line>
             </svg>
             <span class="layout-label">ساید‌بار</span>
+          </button>
+          <button class="layout-toggle theme-toggle" type="button" onclick="toggleTheme()" title="تغییر تم (روشن / تیره)">
+            <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+            </svg>
+            <span class="theme-label">روشن</span>
           </button>
         </div>
         <div class="hint">متن خام را Paste کن؛ پایین تمیز، بخش‌بندی‌شده و خوانا نمایش داده می‌شود.</div>
@@ -1219,6 +1269,46 @@
         /* ignore */
       }
       setLayout(mode);
+    })();
+
+    // Light / dark theme, persisted in localStorage. The highlight.js stylesheet
+    // is swapped so code tokens stay legible in both themes.
+    const THEME_KEY = "pf:theme";
+    const HLJS_THEMES = {
+      dark: "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css",
+      light: "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-light.min.css"
+    };
+
+    function setTheme(theme) {
+      const light = theme === "light";
+      document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+
+      const hljsLink = document.getElementById("hljsTheme");
+      if (hljsLink) hljsLink.href = light ? HLJS_THEMES.light : HLJS_THEMES.dark;
+
+      const label = document.querySelector(".theme-label");
+      if (label) label.textContent = light ? "تیره" : "روشن";
+
+      try {
+        localStorage.setItem(THEME_KEY, light ? "light" : "dark");
+      } catch (err) {
+        /* localStorage unavailable — ignore */
+      }
+    }
+
+    function toggleTheme() {
+      const isLight = document.documentElement.getAttribute("data-theme") === "light";
+      setTheme(isLight ? "dark" : "light");
+    }
+
+    (function initTheme() {
+      let theme = "dark";
+      try {
+        if (localStorage.getItem(THEME_KEY) === "light") theme = "light";
+      } catch (err) {
+        /* ignore */
+      }
+      setTheme(theme);
     })();
   </script>
 </body>
