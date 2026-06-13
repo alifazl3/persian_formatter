@@ -18,12 +18,14 @@ export class ShareService {
   }
 
   async getShare(id: string): Promise<Share> {
+    // Read-only by design: opening a shared link must never write to the
+    // database. A viewer who only reads — or edits the text locally — leaves
+    // the stored share untouched. Persisting changes requires a fresh share
+    // (a new POST), which creates a new immutable record with its own id.
     const share = await this.repository.findById(id);
     if (!share) {
       throw new NotFoundError("Share not found");
     }
-    // Fire-and-forget would lose errors; await keeps the count consistent.
-    await this.repository.incrementViewCount(id);
     return share;
   }
 

@@ -1,11 +1,12 @@
 import { Pool, QueryResultRow } from "pg";
 import { Share } from "../domain/share";
 
-/** Data-access contract for shares — the service depends on this, not on pg. */
+/** Data-access contract for shares — the service depends on this, not on pg.
+ * Shares are immutable once created; there is intentionally no update/mutate
+ * method, so reading a share never changes stored state. */
 export interface ShareRepository {
   create(id: string, content: string): Promise<Share>;
   findById(id: string): Promise<Share | null>;
-  incrementViewCount(id: string): Promise<void>;
 }
 
 /** Raw row shape as returned by Postgres (snake_case columns). */
@@ -51,12 +52,5 @@ export class PgShareRepository implements ShareRepository {
     );
     const row = rows[0];
     return row ? toShare(row) : null;
-  }
-
-  async incrementViewCount(id: string): Promise<void> {
-    await this.pool.query(
-      `UPDATE shares SET view_count = view_count + 1 WHERE id = $1`,
-      [id]
-    );
   }
 }
