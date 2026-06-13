@@ -4,3 +4,6 @@
 .vscode
 .idea
 README.md
+server/node_modules
+server/dist
+docker-compose.yml

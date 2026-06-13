@@ -327,6 +327,16 @@
       box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
     }
 
+    button.share {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.28);
+    }
+
+    button.share[disabled] {
+      opacity: 0.6;
+      cursor: progress;
+    }
+
     button.clear {
       background: var(--panel-soft);
       color: var(--text);
@@ -336,6 +346,69 @@
     button.clear:hover {
       border-color: var(--danger);
       color: var(--danger);
+    }
+
+    /* Share link toast: appears bottom-center after a successful share. */
+    .share-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: min(92vw, 560px);
+      padding: 12px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .share-toast[hidden] {
+      display: none;
+    }
+
+    .share-toast-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .share-link {
+      flex: 1;
+      min-width: 0;
+      background: var(--code);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      outline: none;
+    }
+
+    .share-copy {
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+
+    .share-close {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .share-close:hover {
+      color: var(--text);
+      border-color: var(--accent);
     }
 
     .preview-shell {
@@ -712,6 +785,16 @@
           </svg>
           <span>Paste</span>
         </button>
+        <button class="share" id="shareBtn" onclick="shareCurrent()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+          <span>اشتراک‌گذاری</span>
+        </button>
         <button class="copy-input" onclick="copyInput()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="9" y="9" width="13" height="13" rx="2"></rect>
@@ -775,6 +858,13 @@
       </a>
     </footer>
   </main>
+
+  <div id="shareToast" class="share-toast" hidden>
+    <span class="share-toast-label">لینک اشتراک</span>
+    <input id="shareLink" class="share-link" type="text" readonly dir="ltr" />
+    <button class="share-copy" type="button" onclick="copyShareLink()">کپی</button>
+    <button class="share-close" type="button" onclick="hideShareToast()" title="بستن" aria-label="بستن">×</button>
+  </div>
 
   <script>
     const input = document.getElementById("input");
@@ -1309,6 +1399,82 @@
         /* ignore */
       }
       setTheme(theme);
+    })();
+
+    // --- Sharing: persist the current text on the server, get a short link ---
+
+    async function shareCurrent() {
+      const content = input.value.trim();
+      if (!content) return;
+
+      const btn = document.getElementById("shareBtn");
+      btn.setAttribute("disabled", "true");
+      try {
+        const res = await fetch("/api/shares", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content })
+        });
+        if (!res.ok) throw new Error("share request failed");
+
+        const data = await res.json();
+        const url = `${location.origin}/s/${data.id}`;
+        showShareToast(url);
+        try {
+          await navigator.clipboard.writeText(url);
+        } catch (err) {
+          /* clipboard blocked — the link is still shown for manual copy */
+        }
+      } catch (err) {
+        showShareToast("خطا در ساخت لینک اشتراک. سرور در دسترس است؟", true);
+      } finally {
+        btn.removeAttribute("disabled");
+      }
+    }
+
+    function showShareToast(text, isError) {
+      const toast = document.getElementById("shareToast");
+      const linkInput = document.getElementById("shareLink");
+      linkInput.value = text;
+      linkInput.style.display = isError ? "none" : "";
+      document.querySelector(".share-copy").style.display = isError ? "none" : "";
+      document.querySelector(".share-toast-label").textContent = isError ? "" : "لینک اشتراک";
+      toast.hidden = false;
+      if (!isError) {
+        linkInput.focus();
+        linkInput.select();
+      }
+    }
+
+    function hideShareToast() {
+      document.getElementById("shareToast").hidden = true;
+    }
+
+    async function copyShareLink() {
+      const linkInput = document.getElementById("shareLink");
+      linkInput.select();
+      try {
+        await navigator.clipboard.writeText(linkInput.value);
+      } catch (err) {
+        document.execCommand("copy");
+      }
+    }
+
+    // If we landed on /s/:id, load that shared document into the editor.
+    (function loadSharedFromUrl() {
+      const match = location.pathname.match(/^\/s\/([A-Za-z0-9_-]+)$/);
+      if (!match) return;
+
+      fetch(`/api/shares/${match[1]}`)
+        .then(res => (res.ok ? res.json() : Promise.reject(new Error("not found"))))
+        .then(data => {
+          input.value = data.content;
+          render();
+          collapseInput();
+        })
+        .catch(() => {
+          preview.innerHTML = '<div class="empty">این لینک اشتراک پیدا نشد یا منقضی شده است.</div>';
+        });
     })();
   </script>
 </body>
