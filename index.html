@@ -876,7 +876,15 @@
     function inlineMd(text) {
       return decorate(text)
         .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-        .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+        // Real inline code here is always Latin/identifier text. A "span" made
+        // of mis-paired backticks often swallows Persian prose (or wraps a lone
+        // "/"): if the content has Persian letters or no alphanumerics at all,
+        // it isn't code — drop the backticks and keep the text literal.
+        .replace(/`([^`]+)`/g, (m, code) =>
+          !/[؀-ۿ]/.test(code) && /[A-Za-z0-9]/.test(code)
+            ? `<code class="inline-code">${code}</code>`
+            : code
+        );
     }
 
     function splitRow(line) {
@@ -931,6 +939,37 @@
           </div>
         </div>
       `;
+    }
+
+    // Render prose lines, grouping consecutive bullet lines into a <ul> and
+    // everything else into paragraphs. Handles the common LLM pattern of an
+    // intro line followed by bullets (which neither a pure list nor a single
+    // paragraph would render correctly).
+    function isBulletLine(line) {
+      return /^[-•*]\s+/.test(line.trim());
+    }
+
+    function renderProseLines(lines) {
+      let html = "";
+      let i = 0;
+      while (i < lines.length) {
+        if (isBulletLine(lines[i])) {
+          const items = [];
+          while (i < lines.length && isBulletLine(lines[i])) {
+            items.push(lines[i].trim().replace(/^[-•*]\s+/, ""));
+            i++;
+          }
+          html += `<ul class="list">${items.map(it => `<li>${inlineMd(it)}</li>`).join("")}</ul>`;
+        } else {
+          const para = [];
+          while (i < lines.length && !isBulletLine(lines[i])) {
+            para.push(lines[i]);
+            i++;
+          }
+          html += `<div class="paragraph">${inlineMd(para.join("\n"))}</div>`;
+        }
+      }
+      return html;
     }
 
     function splitBlocks(text) {
@@ -991,24 +1030,14 @@
           return `
             <div class="block">
               <div class="title">${inlineMd(first.replace(/:$/, ""))}</div>
-              <div class="paragraph">${inlineMd(lines.slice(1).join("\n"))}</div>
-            </div>
-          `;
-        }
-
-        if (lines.every(line => /^[-•*]\s+/.test(line.trim()))) {
-          return `
-            <div class="block">
-              <ul class="list">
-                ${lines.map(line => `<li>${inlineMd(line.replace(/^[-•*]\s+/, ""))}</li>`).join("")}
-              </ul>
+              ${renderProseLines(lines.slice(1))}
             </div>
           `;
         }
 
         return `
           <div class="block">
-            <div class="paragraph">${inlineMd(content)}</div>
+            ${renderProseLines(lines)}
           </div>
         `;
       }).join("");
