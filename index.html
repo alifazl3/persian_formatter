@@ -382,10 +382,9 @@
     .paragraph {
       color: var(--text);
       white-space: pre-wrap;
-      /* Each line picks its own base direction from its first strong character,
-         so mixed Persian/English lines stay readable (punctuation, «», → land
-         on the correct side). */
-      unicode-bidi: plaintext;
+      /* Base direction (dir attribute) is set per line from the dominant script,
+         so a mostly-Persian line that merely starts with an English word still
+         reads RTL. text-align follows the direction automatically. */
     }
 
     .list {
@@ -400,7 +399,6 @@
       border-radius: 12px;
       padding: 10px 14px;
       margin-bottom: 8px;
-      unicode-bidi: plaintext;
     }
 
     /* Markdown tables */
@@ -814,6 +812,13 @@
       return persian.length / letters.length;
     }
 
+    // Base direction from the dominant script, not the first character. A line
+    // with any meaningful Persian content reads RTL even if it opens with an
+    // English word (e.g. "dump را داخل ..."); pure command/English lines read LTR.
+    function dirAttr(text) {
+      return persianRatio(text) >= 0.3 ? ' dir="rtl"' : ' dir="ltr"';
+    }
+
     function isBoxDrawing(text) {
       return /[─-╿]/.test(text);
     }
@@ -961,10 +966,10 @@
             items.push(lines[i].trim().replace(/^[-•*]\s+/, ""));
             i++;
           }
-          html += `<ul class="list">${items.map(it => `<li>${inlineMd(it)}</li>`).join("")}</ul>`;
+          html += `<ul class="list">${items.map(it => `<li${dirAttr(it)}>${inlineMd(it)}</li>`).join("")}</ul>`;
         } else {
           const line = lines[i].trim();
-          if (line) html += `<div class="paragraph">${inlineMd(line)}</div>`;
+          if (line) html += `<div class="paragraph"${dirAttr(line)}>${inlineMd(line)}</div>`;
           i++;
         }
       }
@@ -1028,7 +1033,7 @@
         if (isTitle(first) && lines.length > 1) {
           return `
             <div class="block">
-              <div class="title">${inlineMd(first.replace(/:$/, ""))}</div>
+              <div class="title"${dirAttr(first)}>${inlineMd(first.replace(/:$/, ""))}</div>
               ${renderProseLines(lines.slice(1))}
             </div>
           `;
