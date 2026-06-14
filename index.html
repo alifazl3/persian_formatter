@@ -339,6 +339,11 @@
       box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
     }
 
+    button.upload {
+      background: linear-gradient(135deg, #14b8a6, #0d9488);
+      box-shadow: 0 4px 14px rgba(20, 184, 166, 0.28);
+    }
+
     button.share {
       background: linear-gradient(135deg, #f59e0b, #f97316);
       box-shadow: 0 4px 14px rgba(245, 158, 11, 0.28);
@@ -797,6 +802,15 @@
           </svg>
           <span>Paste</span>
         </button>
+        <button class="upload" type="button" onclick="document.getElementById('fileInput').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>بارگذاری فایل</span>
+        </button>
+        <input type="file" id="fileInput" hidden onchange="handleFileUpload(event)" />
         <button class="share" id="shareBtn" onclick="shareCurrent()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="18" cy="5" r="3"></circle>
@@ -1259,6 +1273,24 @@
       } catch (err) {
         input.focus();
       }
+    }
+
+    // Read an uploaded file entirely in the browser and drop its text into the
+    // editor. The file is NEVER uploaded to the server — only its text is read.
+    function handleFileUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        input.value = typeof reader.result === "string" ? reader.result : "";
+        render();
+        if (input.value.trim()) collapseInput();
+      };
+      reader.readAsText(file);
+
+      // Reset so selecting the same file again still fires onchange.
+      event.target.value = "";
     }
 
     function collapseInput() {
