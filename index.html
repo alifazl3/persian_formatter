@@ -1159,8 +1159,28 @@
         .filter(Boolean);
     }
 
+    // Drop Arabic diacritics (kasra, fatha, …) that sit on a NON-Arabic base —
+    // e.g. a stray "defaultِ" pasted from a terminal renders as a tofu box.
+    // Marks on real Arabic/Persian letters (e.g. "دامنهٔ") are kept.
+    const HARAKAT = /[ً-ٰٟ]/;
+    const ARABIC_BASE = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
+
+    function stripOrphanHarakat(text) {
+      let out = "";
+      let lastBase = "";
+      for (const ch of text) {
+        if (HARAKAT.test(ch)) {
+          if (ARABIC_BASE.test(lastBase)) out += ch;
+        } else {
+          out += ch;
+          lastBase = ch;
+        }
+      }
+      return out;
+    }
+
     function render() {
-      const raw = input.value.trim();
+      const raw = stripOrphanHarakat(input.value).trim();
 
       if (!raw) {
         preview.innerHTML = '<div class="empty">هنوز متنی وارد نشده است.</div>';
