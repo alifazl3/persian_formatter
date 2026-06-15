@@ -898,6 +898,20 @@
 
     input.addEventListener("input", render);
 
+    // Persist the editor text locally so an accidental refresh never loses it.
+    const DRAFT_KEY = "pf:draft";
+
+    function saveDraft() {
+      try {
+        if (input.value) localStorage.setItem(DRAFT_KEY, input.value);
+        else localStorage.removeItem(DRAFT_KEY);
+      } catch (err) {
+        /* localStorage unavailable — ignore */
+      }
+    }
+
+    input.addEventListener("input", saveDraft);
+
     // While the user has explicitly opened the editor to edit, a paste must NOT
     // auto-collapse it; otherwise every paste collapses the input.
     let editingInput = false;
@@ -1268,6 +1282,7 @@
         const text = await navigator.clipboard.readText();
         input.value = text;
         render();
+        saveDraft();
         // Explicit fresh paste via the button → always collapse (ends editing).
         if (text.trim()) collapseInput();
       } catch (err) {
@@ -1285,6 +1300,7 @@
       reader.onload = () => {
         input.value = typeof reader.result === "string" ? reader.result : "";
         render();
+        saveDraft();
         if (input.value.trim()) collapseInput();
       };
       reader.readAsText(file);
@@ -1365,6 +1381,7 @@
     function clearAll() {
       input.value = "";
       render();
+      saveDraft();
       // Fresh start: open the editor but stay out of editing mode, so the next
       // paste collapses it again.
       document.getElementById("inputShell").classList.remove("collapsed");
@@ -1504,21 +1521,36 @@
       }
     }
 
-    // If we landed on /s/:id, load that shared document into the editor.
-    (function loadSharedFromUrl() {
+    // On load: a /s/:id link loads the shared document; otherwise restore the
+    // locally saved draft so an accidental refresh keeps the text you were reading.
+    (function initContent() {
       const match = location.pathname.match(/^\/s\/([A-Za-z0-9_-]+)$/);
-      if (!match) return;
 
-      fetch(`/api/shares/${match[1]}`)
-        .then(res => (res.ok ? res.json() : Promise.reject(new Error("not found"))))
-        .then(data => {
-          input.value = data.content;
-          render();
-          collapseInput();
-        })
-        .catch(() => {
-          preview.innerHTML = '<div class="empty">این لینک اشتراک پیدا نشد یا منقضی شده است.</div>';
-        });
+      if (match) {
+        fetch(`/api/shares/${match[1]}`)
+          .then(res => (res.ok ? res.json() : Promise.reject(new Error("not found"))))
+          .then(data => {
+            input.value = data.content;
+            render();
+            collapseInput();
+          })
+          .catch(() => {
+            preview.innerHTML = '<div class="empty">این لینک اشتراک پیدا نشد یا منقضی شده است.</div>';
+          });
+        return;
+      }
+
+      let draft = "";
+      try {
+        draft = localStorage.getItem(DRAFT_KEY) || "";
+      } catch (err) {
+        /* ignore */
+      }
+      if (draft.trim()) {
+        input.value = draft;
+        render();
+        collapseInput();
+      }
     })();
   </script>
 </body>
