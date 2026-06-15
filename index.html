@@ -627,6 +627,62 @@
       color: var(--strong);
     }
 
+    /* Markdown headings, blockquotes, rules, links */
+    .md-h {
+      font-weight: 800;
+      color: var(--strong);
+      line-height: 1.4;
+      margin: 8px 0 4px;
+    }
+
+    .md-h1 { font-size: 25px; }
+    .md-h2 { font-size: 21px; }
+    .md-h3 { font-size: 18px; }
+    .md-h4, .md-h5, .md-h6 { font-size: 16px; }
+
+    .md-quote {
+      margin: 8px 0;
+      padding: 8px 14px;
+      border-inline-start: 3px solid var(--accent);
+      background: var(--panel-soft);
+      border-radius: 8px;
+      color: var(--text);
+      unicode-bidi: plaintext;
+    }
+
+    .md-hr {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 14px 0;
+    }
+
+    .md-link {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    /* Raw view (parsing off) */
+    .raw-view {
+      margin: 0;
+      white-space: pre-wrap;
+      unicode-bidi: plaintext;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    button.raw-toggle {
+      background: var(--panel-soft);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button.raw-toggle.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     .code {
       direction: ltr;
       text-align: left;
@@ -880,6 +936,13 @@
           </svg>
           <span>پاک کردن</span>
         </button>
+        <button class="raw-toggle" id="rawToggle" type="button" onclick="toggleRaw()" title="نمایش خام / پارس‌شده">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+          <span class="raw-label">خام</span>
+        </button>
       </div>
     </header>
 
@@ -1103,6 +1166,11 @@
     // backticks survive escapeHtml, so this stays safe.
     function inlineMd(text) {
       return decorate(text)
+        // Markdown links [label](url) — skip javascript: URLs for safety.
+        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) =>
+          /^\s*javascript:/i.test(url)
+            ? m
+            : `<a class="md-link" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`)
         .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
         // Real inline code here is always Latin/identifier text. A "span" made
         // of mis-paired backticks often swallows Persian prose (or wraps a lone
@@ -1192,7 +1260,19 @@
           html += `<ul class="list">${items.map(it => `<li${dirAttr(it)}>${inlineMd(it)}</li>`).join("")}</ul>`;
         } else {
           const line = lines[i].trim();
-          if (line) html += `<div class="paragraph"${dirAttr(line)}>${inlineMd(line)}</div>`;
+          const heading = line.match(/^(#{1,6})\s+(.*\S)\s*#*$/);
+          const quote = line.match(/^>\s?(.*)$/);
+
+          if (heading) {
+            const level = heading[1].length;
+            html += `<div class="md-h md-h${level}"${dirAttr(heading[2])}>${inlineMd(heading[2])}</div>`;
+          } else if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) {
+            html += `<hr class="md-hr" />`;
+          } else if (quote) {
+            html += `<blockquote class="md-quote"${dirAttr(quote[1])}>${inlineMd(quote[1])}</blockquote>`;
+          } else if (line) {
+            html += `<div class="paragraph"${dirAttr(line)}>${inlineMd(line)}</div>`;
+          }
           i++;
         }
       }
@@ -1227,11 +1307,28 @@
       return out;
     }
 
+    let rawMode = false;
+
+    function toggleRaw() {
+      rawMode = !rawMode;
+      const btn = document.getElementById("rawToggle");
+      if (btn) btn.classList.toggle("active", rawMode);
+      const label = document.querySelector(".raw-label");
+      if (label) label.textContent = rawMode ? "پارس‌شده" : "خام";
+      render();
+    }
+
     function render() {
       const raw = stripOrphanHarakat(input.value).trim();
 
       if (!raw) {
         preview.innerHTML = '<div class="empty">هنوز متنی وارد نشده است.</div>';
+        return;
+      }
+
+      // Raw mode: show the text verbatim, no markdown/code/math parsing.
+      if (rawMode) {
+        preview.innerHTML = `<pre class="raw-view">${escapeHtml(raw)}</pre>`;
         return;
       }
 
