@@ -778,6 +778,122 @@
       color: var(--accent);
     }
 
+    /* Collapsible, colored JSON viewer */
+    .jsonview {
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .json-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-soft);
+    }
+
+    .json-tag {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-inline-end: auto;
+    }
+
+    .json-bar button {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: none;
+    }
+
+    .json-bar button:hover {
+      filter: none;
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .json-tree {
+      direction: ltr;
+      text-align: left;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .json-children {
+      display: block;
+      padding-inline-start: 1.4em;
+      border-inline-start: 1px solid var(--border);
+      margin-inline-start: 0.3em;
+    }
+
+    .json-close {
+      display: block;
+    }
+
+    .json-ellipsis {
+      display: none;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .json-node.collapsed > .json-children,
+    .json-node.collapsed > .json-close {
+      display: none;
+    }
+
+    .json-node.collapsed > .json-ellipsis {
+      display: inline;
+    }
+
+    .json-toggle {
+      display: inline-block;
+      width: 1.1em;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      color: var(--muted);
+    }
+
+    .json-toggle::before {
+      content: "\25BE"; /* ▾ */
+      font-size: 0.8em;
+    }
+
+    .json-node.collapsed > .json-toggle::before {
+      content: "\25B8"; /* ▸ */
+    }
+
+    .json-open,
+    .json-ellipsis {
+      cursor: pointer;
+    }
+
+    .json-open,
+    .json-close,
+    .json-brace,
+    .json-comma,
+    .json-colon {
+      color: var(--muted);
+    }
+
+    .json-key { color: var(--accent); }
+    .json-str { color: #4eaf78; }
+    .json-num { color: #c98a52; }
+    .json-bool { color: #b07ce0; }
+    .json-null { color: var(--muted); }
+
     .code {
       direction: ltr;
       text-align: left;
@@ -1408,6 +1524,107 @@
         .replaceAll(">", "&gt;");
     }
 
+    function escapeAttr(text) {
+      return escapeHtml(text).replaceAll('"', "&quot;");
+    }
+
+    // ---- Collapsible, colored JSON viewer ----
+
+    // Returns the parsed object/array if the block is JSON, else undefined.
+    function tryParseJson(content, lang) {
+      const t = content.trim();
+      const looksJson =
+        (t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"));
+      if (lang !== "json" && !looksJson) return undefined;
+      try {
+        const v = JSON.parse(t);
+        return v !== null && typeof v === "object" ? v : undefined;
+      } catch (err) {
+        return undefined;
+      }
+    }
+
+    function jsonValueHtml(v) {
+      if (v === null) return '<span class="json-null">null</span>';
+      const t = typeof v;
+      if (t === "number") return `<span class="json-num">${escapeHtml(String(v))}</span>`;
+      if (t === "boolean") return `<span class="json-bool">${v}</span>`;
+      if (t === "string") return `<span class="json-str">${escapeHtml(JSON.stringify(v))}</span>`;
+      return jsonContainerHtml(v);
+    }
+
+    function jsonContainerHtml(v) {
+      const isArr = Array.isArray(v);
+      const open = isArr ? "[" : "{";
+      const close = isArr ? "]" : "}";
+      const keys = isArr ? v.map((_, i) => i) : Object.keys(v);
+      if (keys.length === 0) {
+        return `<span class="json-brace">${open}${close}</span>`;
+      }
+      const entries = keys
+        .map((k, idx) => {
+          const last = idx === keys.length - 1;
+          const keyHtml = isArr
+            ? ""
+            : `<span class="json-key">${escapeHtml(JSON.stringify(k))}</span><span class="json-colon">: </span>`;
+          const comma = last ? "" : '<span class="json-comma">,</span>';
+          return `<div class="json-entry">${keyHtml}${jsonValueHtml(v[k])}${comma}</div>`;
+        })
+        .join("");
+      return (
+        `<span class="json-node">` +
+        `<span class="json-toggle"></span><span class="json-open">${open}</span>` +
+        `<span class="json-ellipsis">… ${close}</span>` +
+        `<span class="json-children">${entries}</span>` +
+        `<span class="json-close">${close}</span>` +
+        `</span>`
+      );
+    }
+
+    function renderJsonBlock(data) {
+      const pretty = JSON.stringify(data, null, 2);
+      return `
+        <div class="block">
+          <div class="jsonview" data-json="${escapeAttr(pretty)}">
+            <div class="json-bar">
+              <span class="json-tag">JSON</span>
+              <button type="button" onclick="jsonExpandAll(this)">باز کردن همه</button>
+              <button type="button" onclick="jsonCollapseAll(this)">بستن همه</button>
+              <button type="button" onclick="copyJson(this)">کپی</button>
+            </div>
+            <div class="json-tree" dir="ltr">${jsonValueHtml(data)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function jsonExpandAll(btn) {
+      btn.closest(".jsonview").querySelectorAll(".json-node").forEach(n => n.classList.remove("collapsed"));
+    }
+
+    function jsonCollapseAll(btn) {
+      btn.closest(".jsonview").querySelectorAll(".json-node").forEach(n => n.classList.add("collapsed"));
+    }
+
+    async function copyJson(btn) {
+      const data = btn.closest(".jsonview").getAttribute("data-json") || "";
+      try {
+        await navigator.clipboard.writeText(data);
+        btn.textContent = "کپی شد";
+        setTimeout(() => { btn.textContent = "کپی"; }, 1200);
+      } catch (err) {
+        /* clipboard unavailable */
+      }
+    }
+
+    // Toggle a JSON node when its arrow/brace is clicked (event delegation).
+    preview.addEventListener("click", (e) => {
+      const hit = e.target.closest(".json-toggle, .json-open, .json-ellipsis");
+      if (!hit || !preview.contains(hit)) return;
+      const node = hit.closest(".json-node");
+      if (node) node.classList.toggle("collapsed");
+    });
+
     // Copy button markup for code boxes (copy icon + a check shown after copy).
     const CODE_COPY_BTN =
       '<button class="code-copy" type="button" onclick="copyCode(this)" title="کپی کد">' +
@@ -1671,6 +1888,12 @@
       preview.innerHTML = blocks.map(block => {
         const lang = fenceLang(block);
         const content = stripFence(block);
+
+        // JSON gets a collapsible, colored tree viewer instead of plain code.
+        const jsonData = tryParseJson(content, lang);
+        if (jsonData !== undefined) {
+          return renderJsonBlock(jsonData);
+        }
 
         if (isCodeBlock(content, lang)) {
           // Box-drawing art is not a language — mark it plain so the highlighter
