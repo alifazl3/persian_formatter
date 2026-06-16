@@ -1649,11 +1649,14 @@
       return persian.length / letters.length;
     }
 
-    // Base direction from the dominant script, not the first character. A line
-    // with any meaningful Persian content reads RTL even if it opens with an
-    // English word (e.g. "dump را داخل ..."); pure command/English lines read LTR.
+    // A Persian sentence is RTL no matter how much Latin code/identifiers/paths
+    // it embeds — so a line with any real Persian content reads RTL; only lines
+    // with no (or negligible) Persian (commands, code, paths) read LTR. Counting
+    // characters would wrongly flip Persian sentences full of `product_id`-style
+    // tokens or long file paths to LTR.
     function dirAttr(text) {
-      return persianRatio(text) >= 0.3 ? ' dir="rtl"' : ' dir="ltr"';
+      const persian = (text.match(/[؀-ۿ]/g) || []).length;
+      return persian >= 2 ? ' dir="rtl"' : ' dir="ltr"';
     }
 
     function isBoxDrawing(text) {
