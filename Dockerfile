@@ -33,8 +33,10 @@ ENV PUBLIC_DIR=/app/public
 COPY --from=prod-deps /app/server/node_modules ./node_modules
 COPY --from=build /app/server/dist ./dist
 COPY server/package.json ./
-# The static frontend lives in its own dir so only index.html is served.
+# The static frontend lives in its own dir so only these assets are served.
 COPY index.html /app/public/index.html
+# PWA assets (manifest, service worker, icons).
+COPY manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png apple-touch-icon.png /app/public/
 # Go→WASM date converter assets, served at /date.wasm and /wasm_exec.js.
 COPY --from=wasm /out/date.wasm /app/public/date.wasm
 COPY --from=wasm /out/wasm_exec.js /app/public/wasm_exec.js
