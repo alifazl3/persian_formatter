@@ -157,11 +157,68 @@
     .app.mode-sidebar .toolbar {
       flex-direction: column;
       align-items: stretch;
+      gap: 16px;
+    }
+
+    /* Sidebar tools: grouped sections with a quiet, uniform palette. */
+    .app.mode-sidebar .tool-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .app.mode-sidebar .tool-group + .tool-group {
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .app.mode-sidebar .tool-group-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 4px;
+      padding-inline-start: 2px;
     }
 
     .app.mode-sidebar .toolbar button {
       width: 100%;
-      justify-content: center;
+      justify-content: flex-start;
+      gap: 10px;
+      background: var(--panel-soft);
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 12px;
+    }
+
+    .app.mode-sidebar .toolbar button svg {
+      color: var(--muted);
+    }
+
+    .app.mode-sidebar .toolbar button:hover {
+      filter: none;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .app.mode-sidebar .toolbar button:hover svg,
+    .app.mode-sidebar .toolbar button.raw-toggle.active,
+    .app.mode-sidebar .toolbar button.raw-toggle.active svg {
+      color: var(--accent);
+    }
+
+    .app.mode-sidebar .toolbar button.raw-toggle.active {
+      border-color: var(--accent);
+    }
+
+    .app.mode-sidebar .toolbar button.clear:hover,
+    .app.mode-sidebar .toolbar button.clear:hover svg {
+      color: var(--danger);
+      border-color: var(--danger);
     }
 
     @media (max-width: 820px) {
@@ -180,15 +237,6 @@
       .app.mode-sidebar .head-text,
       .app.mode-sidebar .toolbar {
         position: static;
-      }
-
-      .app.mode-sidebar .toolbar {
-        flex-direction: row;
-        flex-wrap: wrap;
-      }
-
-      .app.mode-sidebar .toolbar button {
-        width: auto;
       }
     }
 
@@ -295,6 +343,16 @@
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
+    }
+
+    /* In header mode the groups dissolve into the flat button row and their
+       labels are hidden; sidebar mode turns them into labeled sections. */
+    .tool-group {
+      display: contents;
+    }
+
+    .tool-group-label {
+      display: none;
     }
 
     button {
@@ -888,61 +946,73 @@
       </div>
 
       <div class="toolbar">
-        <button class="paste" onclick="pasteInput()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="8" y="2" width="8" height="4" rx="1"></rect>
-            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-          </svg>
-          <span>Paste</span>
-        </button>
-        <button class="upload" type="button" onclick="document.getElementById('fileInput').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <span>بارگذاری فایل</span>
-        </button>
         <input type="file" id="fileInput" hidden onchange="handleFileUpload(event)" />
-        <button class="share" id="shareBtn" onclick="shareCurrent()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="18" cy="5" r="3"></circle>
-            <circle cx="6" cy="12" r="3"></circle>
-            <circle cx="18" cy="19" r="3"></circle>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-          </svg>
-          <span>اشتراک‌گذاری</span>
-        </button>
-        <button class="copy-input" onclick="copyInput()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-          <span>کپی ورودی</span>
-        </button>
-        <button class="copy" onclick="copyOutput()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-          <span>کپی خروجی</span>
-        </button>
-        <button class="clear" onclick="clearAll()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 6h18"></path>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
-          <span>پاک کردن</span>
-        </button>
-        <button class="raw-toggle" id="rawToggle" type="button" onclick="toggleRaw()" title="نمایش خام / پارس‌شده">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="16 18 22 12 16 6"></polyline>
-            <polyline points="8 6 2 12 8 18"></polyline>
-          </svg>
-          <span class="raw-label">خام</span>
-        </button>
+
+        <div class="tool-group">
+          <span class="tool-group-label">ورودی</span>
+          <button class="paste" onclick="pasteInput()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="8" y="2" width="8" height="4" rx="1"></rect>
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            </svg>
+            <span>Paste</span>
+          </button>
+          <button class="upload" type="button" onclick="document.getElementById('fileInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span>بارگذاری فایل</span>
+          </button>
+        </div>
+
+        <div class="tool-group">
+          <span class="tool-group-label">کپی و اشتراک</span>
+          <button class="copy-input" onclick="copyInput()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>کپی ورودی</span>
+          </button>
+          <button class="copy" onclick="copyOutput()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>کپی خروجی</span>
+          </button>
+          <button class="share" id="shareBtn" onclick="shareCurrent()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            <span>اشتراک‌گذاری</span>
+          </button>
+        </div>
+
+        <div class="tool-group">
+          <span class="tool-group-label">نمایش</span>
+          <button class="raw-toggle" id="rawToggle" type="button" onclick="toggleRaw()" title="نمایش خام / پارس‌شده">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <span class="raw-label">خام</span>
+          </button>
+          <button class="clear" onclick="clearAll()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span>پاک کردن</span>
+          </button>
+        </div>
       </div>
     </header>
 
