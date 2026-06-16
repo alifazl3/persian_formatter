@@ -942,74 +942,62 @@
       border-color: var(--accent);
     }
 
-    /* Features list (in the header text / right sidebar) */
-    .features {
+    /* Tabs (in the header text / right sidebar): Formatter ⇄ Date */
+    .tabs {
+      display: flex;
+      gap: 6px;
       margin-top: 14px;
-    }
-
-    .features-label {
-      display: block;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .feature-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 12px;
-      border-radius: 12px;
       background: var(--panel-soft);
       border: 1px solid var(--border);
-      color: var(--text);
-      text-decoration: none;
+      border-radius: 12px;
+      padding: 4px;
+    }
+
+    .tab {
+      flex: 1;
+      background: transparent;
+      color: var(--muted);
+      border: 0;
+      border-radius: 9px;
+      padding: 8px 10px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
+      justify-content: center;
+      box-shadow: none;
     }
 
-    .feature-btn svg {
-      width: 17px;
-      height: 17px;
-      color: var(--accent);
+    .tab:hover {
+      filter: none;
+      color: var(--text);
     }
 
-    .feature-btn:hover {
-      border-color: var(--accent);
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
     }
 
-    /* Date-converter view */
-    .dateapp {
-      max-width: 1000px;
-      margin: 0 auto;
-      display: grid;
+    /* Date-converter view (a tab inside the main app, in the center column) */
+    .date-view {
+      display: none;
+      grid-area: input;
       gap: 22px;
     }
 
-    .date-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      flex-wrap: wrap;
+    .app.tab-date .date-view {
+      display: grid;
     }
 
-    .date-back {
-      color: var(--muted);
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 13px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 14px;
-      background: var(--panel-soft);
+    /* On the Date tab, hide the formatter center + its tools. */
+    .app.tab-date .input-shell,
+    .app.tab-date .preview-shell,
+    .app.tab-date .toolbar {
+      display: none;
     }
 
-    .date-back:hover {
-      color: var(--text);
-      border-color: var(--accent);
+    /* In sidebar mode let the date view use the freed tools column too. */
+    .app.mode-sidebar.tab-date .date-view {
+      grid-column: 2 / 4;
+      grid-row: 1 / 3;
     }
 
     .date-io {
@@ -1030,7 +1018,7 @@
       color: var(--muted);
     }
 
-    .dateapp textarea {
+    .date-view textarea {
       width: 100%;
       min-height: 120px;
       resize: vertical;
@@ -1045,7 +1033,7 @@
       outline: none;
     }
 
-    .dateapp textarea:focus {
+    .date-view textarea:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 4px var(--glow);
     }
@@ -1167,17 +1155,9 @@
           </button>
         </div>
         <div class="hint">متن خام را Paste کن؛ پایین تمیز، بخش‌بندی‌شده و خوانا نمایش داده می‌شود.</div>
-        <div class="features">
-          <span class="features-label">ابزارها</span>
-          <a class="feature-btn" href="/date" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span>تبدیل تاریخ</span>
-          </a>
+        <div class="tabs" role="tablist">
+          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="switchTab('format')">پرشین فرمتر</button>
+          <button class="tab" id="tabDate" type="button" role="tab" onclick="switchTab('date')">تاریخ</button>
         </div>
       </div>
 
@@ -1281,6 +1261,48 @@
       </section>
     </section>
 
+    <section class="date-view" id="dateView">
+      <div class="date-io">
+        <div class="date-col">
+          <label for="dateIn">ورودی</label>
+          <textarea id="dateIn" autocomplete="off" dir="ltr" placeholder="مثلاً 1403/06/25 یا 2024-09-15"></textarea>
+          <div class="date-meta" id="dateInMeta"></div>
+        </div>
+        <div class="date-col">
+          <label for="dateOut">خروجی</label>
+          <textarea id="dateOut" dir="ltr" readonly placeholder="نتیجه اینجا نمایش داده می‌شود"></textarea>
+          <div class="date-meta" id="dateOutMeta"></div>
+        </div>
+      </div>
+
+      <details class="date-config">
+        <summary>تنظیمات فرمت</summary>
+        <div class="date-config-grid">
+          <label>تقویم ورودی
+            <select id="cfgFrom">
+              <option value="auto">تشخیص خودکار</option>
+              <option value="jalali">شمسی</option>
+              <option value="gregorian">میلادی</option>
+            </select>
+          </label>
+          <label>تقویم خروجی
+            <select id="cfgTo">
+              <option value="auto">برعکسِ ورودی</option>
+              <option value="jalali">شمسی</option>
+              <option value="gregorian">میلادی</option>
+            </select>
+          </label>
+          <label>فرمت ورودی
+            <input id="cfgInFmt" type="text" dir="ltr" placeholder="auto — مثل dd/mm/yyyy" />
+          </label>
+          <label>فرمت خروجی
+            <input id="cfgOutFmt" type="text" dir="ltr" placeholder="مثل ورودی — مثل yyyy-mm-dd" />
+          </label>
+        </div>
+        <div class="date-config-hint">فرمت = ترتیب و تعداد کاراکتر (d/dd, m/mm, yy/yyyy) و جداکننده. اگر ترتیب روز/ماه مبهم شد، فرمت ورودی را اینجا ست کن.</div>
+      </details>
+    </section>
+
     <footer class="footer">
       <a class="repo-link" href="https://github.com/alifazl3/persian_formatter" target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true">
@@ -1291,55 +1313,6 @@
     </footer>
   </main>
 
-  <main class="dateapp" id="dateApp" hidden>
-    <header class="date-head">
-      <div>
-        <h1>تبدیل تاریخ</h1>
-        <div class="hint">تاریخ را با هر فرمتی بنویس؛ فرمت و تقویمش تشخیص داده می‌شود و به تقویم دیگر تبدیل می‌شود.</div>
-      </div>
-      <a class="date-back" href="/">بازگشت</a>
-    </header>
-
-    <div class="date-io">
-      <div class="date-col">
-        <label for="dateIn">ورودی</label>
-        <textarea id="dateIn" autocomplete="off" dir="ltr" placeholder="مثلاً 1403/06/25 یا 2024-09-15"></textarea>
-        <div class="date-meta" id="dateInMeta"></div>
-      </div>
-      <div class="date-col">
-        <label for="dateOut">خروجی</label>
-        <textarea id="dateOut" dir="ltr" readonly placeholder="نتیجه اینجا نمایش داده می‌شود"></textarea>
-        <div class="date-meta" id="dateOutMeta"></div>
-      </div>
-    </div>
-
-    <details class="date-config">
-      <summary>تنظیمات فرمت</summary>
-      <div class="date-config-grid">
-        <label>تقویم ورودی
-          <select id="cfgFrom">
-            <option value="auto">تشخیص خودکار</option>
-            <option value="jalali">شمسی</option>
-            <option value="gregorian">میلادی</option>
-          </select>
-        </label>
-        <label>تقویم خروجی
-          <select id="cfgTo">
-            <option value="auto">برعکسِ ورودی</option>
-            <option value="jalali">شمسی</option>
-            <option value="gregorian">میلادی</option>
-          </select>
-        </label>
-        <label>فرمت ورودی
-          <input id="cfgInFmt" type="text" dir="ltr" placeholder="auto — مثل dd/mm/yyyy" />
-        </label>
-        <label>فرمت خروجی
-          <input id="cfgOutFmt" type="text" dir="ltr" placeholder="مثل ورودی — مثل yyyy-mm-dd" />
-        </label>
-      </div>
-      <div class="date-config-hint">فرمت = ترتیب و تعداد کاراکتر (d/dd, m/mm, yy/yyyy) و جداکننده. اگر ترتیب روز/ماه مبهم شد، فرمت ورودی را اینجا ست کن.</div>
-    </details>
-  </main>
 
   <div id="shareToast" class="share-toast" hidden>
     <span class="share-toast-label">لینک اشتراک</span>
@@ -2108,10 +2081,6 @@
     }
 
     function initDateApp() {
-      document.querySelector(".app").style.display = "none";
-      document.getElementById("dateApp").hidden = false;
-      document.title = "تبدیل تاریخ — Pretty Text Viewer";
-
       const dateIn = document.getElementById("dateIn");
       const dateOut = document.getElementById("dateOut");
       const inMeta = document.getElementById("dateInMeta");
@@ -2184,7 +2153,41 @@
         });
     }
 
-    if (location.pathname === "/date") initDateApp();
+    // Two in-place tabs in the right sidebar: Persian Formatter ⇄ Date.
+    let dateInited = false;
+
+    function switchTab(name) {
+      const app = document.querySelector(".app");
+      const isDate = name === "date";
+      app.classList.toggle("tab-date", isDate);
+      document.getElementById("tabFormat").classList.toggle("active", !isDate);
+      document.getElementById("tabDate").classList.toggle("active", isDate);
+      document.title = isDate ? "تبدیل تاریخ — Pretty Text Viewer" : "Pretty Text Viewer";
+
+      // Keep the URL in sync for /  ⇄ /date (don't rewrite a /s/:id share link).
+      const path = isDate ? "/date" : "/";
+      if (location.pathname !== path && (location.pathname === "/" || location.pathname === "/date")) {
+        history.pushState({}, "", path);
+      }
+
+      if (isDate) {
+        if (!dateInited) {
+          dateInited = true;
+          initDateApp(); // lazily loads the WASM engine the first time
+        } else {
+          document.getElementById("dateIn").focus();
+        }
+      } else {
+        input.focus();
+      }
+    }
+
+    window.addEventListener("popstate", () => {
+      switchTab(location.pathname === "/date" ? "date" : "format");
+    });
+
+    // Open the right tab on load (/date deep-link opens the Date tab in place).
+    switchTab(location.pathname === "/date" ? "date" : "format");
 
     // PWA: register the service worker for offline use.
     if ("serviceWorker" in navigator) {
