@@ -119,8 +119,8 @@
     /* Sidebar mode: header removed; text becomes the right sidebar, tools the
        left sidebar, with the input/output stacked in the center. */
     .app.mode-sidebar {
-      max-width: 1320px;
-      grid-template-columns: 230px minmax(0, 1fr) 230px;
+      max-width: 1300px;
+      grid-template-columns: 230px minmax(0, 1fr) 190px;
       grid-template-areas:
         "text input tools"
         "text preview tools"
@@ -160,11 +160,12 @@
       gap: 16px;
     }
 
-    /* Sidebar tools: grouped sections with a quiet, uniform palette. */
+    /* Sidebar tools: compact icon-only buttons grouped into sections, each with
+       a quiet "dusty" accent and a label that appears as a tooltip on hover. */
     .app.mode-sidebar .tool-group {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .app.mode-sidebar .tool-group + .tool-group {
@@ -174,51 +175,77 @@
 
     .app.mode-sidebar .tool-group-label {
       display: block;
+      flex-basis: 100%;
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.06em;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       padding-inline-start: 2px;
     }
 
     .app.mode-sidebar .toolbar button {
-      width: 100%;
-      justify-content: flex-start;
-      gap: 10px;
-      background: var(--panel-soft);
-      color: var(--text);
-      border: 1px solid var(--border);
+      position: relative;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      justify-content: center;
       box-shadow: none;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 9px 12px;
+      color: var(--btn, var(--text));
+      background: color-mix(in srgb, var(--btn, var(--muted)) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--btn, var(--muted)) 24%, var(--border));
     }
 
     .app.mode-sidebar .toolbar button svg {
-      color: var(--muted);
+      width: 18px;
+      height: 18px;
+      color: var(--btn, var(--muted));
     }
 
     .app.mode-sidebar .toolbar button:hover {
       filter: none;
-      border-color: var(--accent);
-      color: var(--accent);
+      background: color-mix(in srgb, var(--btn, var(--accent)) 24%, transparent);
+      border-color: var(--btn, var(--accent));
     }
 
-    .app.mode-sidebar .toolbar button:hover svg,
-    .app.mode-sidebar .toolbar button.raw-toggle.active,
-    .app.mode-sidebar .toolbar button.raw-toggle.active svg {
-      color: var(--accent);
-    }
+    /* dusty, desaturated accents — used sparingly */
+    .app.mode-sidebar .toolbar button.paste { --btn: #7c7fb8; }
+    .app.mode-sidebar .toolbar button.upload { --btn: #5fa3a0; }
+    .app.mode-sidebar .toolbar button.copy-input { --btn: #5f8fb0; }
+    .app.mode-sidebar .toolbar button.copy { --btn: #6fa07a; }
+    .app.mode-sidebar .toolbar button.share { --btn: #c0925f; }
+    .app.mode-sidebar .toolbar button.raw-toggle { --btn: #8a8fa0; }
+    .app.mode-sidebar .toolbar button.clear { --btn: #bd7676; }
 
     .app.mode-sidebar .toolbar button.raw-toggle.active {
-      border-color: var(--accent);
+      background: color-mix(in srgb, var(--btn) 28%, transparent);
+      border-color: var(--btn);
     }
 
-    .app.mode-sidebar .toolbar button.clear:hover,
-    .app.mode-sidebar .toolbar button.clear:hover svg {
-      color: var(--danger);
-      border-color: var(--danger);
+    /* label → tooltip below the icon on hover */
+    .app.mode-sidebar .toolbar button span {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-4px);
+      white-space: nowrap;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s, transform 0.15s;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+      z-index: 20;
+    }
+
+    .app.mode-sidebar .toolbar button:hover span {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
 
     @media (max-width: 820px) {
