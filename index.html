@@ -932,6 +932,188 @@
       border-color: var(--accent);
     }
 
+    /* Features list (in the header text / right sidebar) */
+    .features {
+      margin-top: 14px;
+    }
+
+    .features-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .feature-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .feature-btn svg {
+      width: 17px;
+      height: 17px;
+      color: var(--accent);
+    }
+
+    .feature-btn:hover {
+      border-color: var(--accent);
+    }
+
+    /* Date-converter view */
+    .dateapp {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+    }
+
+    .date-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .date-back {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      background: var(--panel-soft);
+    }
+
+    .date-back:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .date-io {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .date-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .date-col label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .dateapp textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 18px;
+      line-height: 1.7;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      outline: none;
+    }
+
+    .dateapp textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--glow);
+    }
+
+    #dateOut {
+      background: var(--code);
+    }
+
+    .date-meta {
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 18px;
+      line-height: 1.6;
+    }
+
+    .date-meta .warn {
+      color: var(--warning);
+    }
+
+    .date-meta b {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .date-config {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 8px 16px;
+    }
+
+    .date-config summary {
+      cursor: pointer;
+      font-weight: 700;
+      padding: 8px 0;
+      color: var(--text);
+    }
+
+    .date-config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 8px 0 12px;
+    }
+
+    .date-config-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .date-config-grid select,
+    .date-config-grid input {
+      background: var(--panel-soft);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .date-config-grid select:focus,
+    .date-config-grid input:focus {
+      border-color: var(--accent);
+    }
+
+    .date-config-hint {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 0 0 10px;
+      line-height: 1.7;
+    }
+
     @media (max-width: 700px) {
       body {
         padding: 18px;
@@ -939,6 +1121,11 @@
 
       .preview {
         padding: 20px;
+      }
+
+      .date-io,
+      .date-config-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -970,6 +1157,18 @@
           </button>
         </div>
         <div class="hint">متن خام را Paste کن؛ پایین تمیز، بخش‌بندی‌شده و خوانا نمایش داده می‌شود.</div>
+        <div class="features">
+          <span class="features-label">ابزارها</span>
+          <a class="feature-btn" href="/date" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span>تبدیل تاریخ</span>
+          </a>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -1080,6 +1279,56 @@
         <span>alifazl3/persian_formatter</span>
       </a>
     </footer>
+  </main>
+
+  <main class="dateapp" id="dateApp" hidden>
+    <header class="date-head">
+      <div>
+        <h1>تبدیل تاریخ</h1>
+        <div class="hint">تاریخ را با هر فرمتی بنویس؛ فرمت و تقویمش تشخیص داده می‌شود و به تقویم دیگر تبدیل می‌شود.</div>
+      </div>
+      <a class="date-back" href="/">بازگشت</a>
+    </header>
+
+    <div class="date-io">
+      <div class="date-col">
+        <label for="dateIn">ورودی</label>
+        <textarea id="dateIn" autocomplete="off" dir="ltr" placeholder="مثلاً 1403/06/25 یا 2024-09-15"></textarea>
+        <div class="date-meta" id="dateInMeta"></div>
+      </div>
+      <div class="date-col">
+        <label for="dateOut">خروجی</label>
+        <textarea id="dateOut" dir="ltr" readonly placeholder="نتیجه اینجا نمایش داده می‌شود"></textarea>
+        <div class="date-meta" id="dateOutMeta"></div>
+      </div>
+    </div>
+
+    <details class="date-config">
+      <summary>تنظیمات فرمت</summary>
+      <div class="date-config-grid">
+        <label>تقویم ورودی
+          <select id="cfgFrom">
+            <option value="auto">تشخیص خودکار</option>
+            <option value="jalali">شمسی</option>
+            <option value="gregorian">میلادی</option>
+          </select>
+        </label>
+        <label>تقویم خروجی
+          <select id="cfgTo">
+            <option value="auto">برعکسِ ورودی</option>
+            <option value="jalali">شمسی</option>
+            <option value="gregorian">میلادی</option>
+          </select>
+        </label>
+        <label>فرمت ورودی
+          <input id="cfgInFmt" type="text" dir="ltr" placeholder="auto — مثل dd/mm/yyyy" />
+        </label>
+        <label>فرمت خروجی
+          <input id="cfgOutFmt" type="text" dir="ltr" placeholder="مثل ورودی — مثل yyyy-mm-dd" />
+        </label>
+      </div>
+      <div class="date-config-hint">فرمت = ترتیب و تعداد کاراکتر (d/dd, m/mm, yy/yyyy) و جداکننده. اگر ترتیب روز/ماه مبهم شد، فرمت ورودی را اینجا ست کن.</div>
+    </details>
   </main>
 
   <div id="shareToast" class="share-toast" hidden>
@@ -1815,6 +2064,8 @@
     // Otherwise the editor starts empty with the cursor in the input — nothing
     // is restored or pasted automatically.
     (function initContent() {
+      if (location.pathname === "/date") return; // handled by initDateApp
+
       const match = location.pathname.match(/^\/s\/([A-Za-z0-9_-]+)$/);
 
       if (match) {
@@ -1834,6 +2085,96 @@
       input.value = "";
       input.focus();
     })();
+
+    // ---- Date-converter view (/date), powered by Go compiled to WASM ----
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    function initDateApp() {
+      document.querySelector(".app").style.display = "none";
+      document.getElementById("dateApp").hidden = false;
+      document.title = "تبدیل تاریخ — Pretty Text Viewer";
+
+      const dateIn = document.getElementById("dateIn");
+      const dateOut = document.getElementById("dateOut");
+      const inMeta = document.getElementById("dateInMeta");
+      const outMeta = document.getElementById("dateOutMeta");
+      const cfgFrom = document.getElementById("cfgFrom");
+      const cfgTo = document.getElementById("cfgTo");
+      const cfgInFmt = document.getElementById("cfgInFmt");
+      const cfgOutFmt = document.getElementById("cfgOutFmt");
+
+      const calName = c => (c === "jalali" ? "شمسی" : c === "gregorian" ? "میلادی" : c);
+
+      function run() {
+        const value = dateIn.value.trim();
+        if (!value) {
+          dateOut.value = "";
+          inMeta.textContent = "";
+          outMeta.textContent = "";
+          return;
+        }
+        if (typeof window.goConvertDate !== "function") {
+          inMeta.textContent = "در حال بارگذاری موتور تبدیل…";
+          return;
+        }
+        const opts = {
+          from: cfgFrom.value,
+          to: cfgTo.value,
+          inputFormat: cfgInFmt.value.trim(),
+          outputFormat: cfgOutFmt.value.trim()
+        };
+        let res;
+        try {
+          res = JSON.parse(window.goConvertDate(value, JSON.stringify(opts)));
+        } catch (err) {
+          outMeta.textContent = "خطای داخلی";
+          return;
+        }
+        if (!res.ok) {
+          dateOut.value = "";
+          inMeta.innerHTML = res.inputFormat ? `فرمتِ خوانده‌شده: <b>${res.inputFormat}</b>` : "";
+          outMeta.innerHTML = `<span class="warn">تاریخ نامعتبر است</span>`;
+          return;
+        }
+        dateOut.value = res.output;
+        inMeta.innerHTML =
+          `فرمتِ خوانده‌شده: <b>${res.inputFormat}</b> · تقویم: <b>${calName(res.inputCalendar)}</b>` +
+          (res.orderAmbiguous
+            ? ` · <span class="warn">ترتیب روز/ماه مبهم بود؛ اگر اشتباه است فرمت ورودی را ست کن</span>`
+            : "");
+        outMeta.innerHTML = `فرمت خروجی: <b>${res.outputFormat}</b> · تقویم: <b>${calName(res.outputCalendar)}</b>`;
+      }
+
+      dateIn.addEventListener("input", run);
+      [cfgFrom, cfgTo].forEach(el => el.addEventListener("change", run));
+      [cfgInFmt, cfgOutFmt].forEach(el => el.addEventListener("input", run));
+      dateIn.focus();
+
+      loadScript("/wasm_exec.js")
+        .then(() => fetch("/date.wasm"))
+        .then(r => r.arrayBuffer())
+        .then(buf => {
+          const go = new Go();
+          return WebAssembly.instantiate(buf, go.importObject).then(result => go.run(result.instance));
+        })
+        .then(() => {
+          inMeta.textContent = "";
+          run();
+        })
+        .catch(() => {
+          inMeta.innerHTML = `<span class="warn">بارگذاری موتور تبدیل ناموفق بود</span>`;
+        });
+    }
+
+    if (location.pathname === "/date") initDateApp();
   </script>
 </body>
 </html>

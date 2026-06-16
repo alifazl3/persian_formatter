@@ -4,3 +4,8 @@
 # Editor
 .vscode/
 .idea/
+
+# Local secrets (never commit)
+.dokploy.secret
+.env
+.env.local

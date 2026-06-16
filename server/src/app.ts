@@ -16,7 +16,7 @@ export function createApp(shareHandler: ShareHandler): Application {
   // reads the id from the path and fetches the content from the API.
   const indexFile = path.join(config.publicDir, "index.html");
   app.use(express.static(config.publicDir, { index: false }));
-  app.get(["/", "/s/:id"], (_req, res) => {
+  app.get(["/", "/s/:id", "/date"], (_req, res) => {
     res.sendFile(indexFile);
   });
 

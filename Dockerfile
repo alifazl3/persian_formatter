@@ -1,3 +1,13 @@
+# --- build: compile the Go date-converter to WebAssembly ---
+FROM golang:1.24-alpine AS wasm
+WORKDIR /src
+COPY dateservice/go.mod dateservice/go.sum ./
+RUN go mod download
+COPY dateservice/ ./
+RUN GOOS=js GOARCH=wasm go build -o /out/date.wasm ./wasm \
+ && (cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" /out/ 2>/dev/null \
+     || cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" /out/)
+
 # --- build: compile TypeScript ---
 FROM node:20-alpine AS build
 WORKDIR /app/server
@@ -25,6 +35,9 @@ COPY --from=build /app/server/dist ./dist
 COPY server/package.json ./
 # The static frontend lives in its own dir so only index.html is served.
 COPY index.html /app/public/index.html
+# Go→WASM date converter assets, served at /date.wasm and /wasm_exec.js.
+COPY --from=wasm /out/date.wasm /app/public/date.wasm
+COPY --from=wasm /out/wasm_exec.js /app/public/wasm_exec.js
 
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
