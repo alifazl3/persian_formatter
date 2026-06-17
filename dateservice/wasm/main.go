@@ -1,12 +1,17 @@
 //go:build js && wasm
 
-// Command wasm exposes datecore.Convert to the browser as a global JS function
-// `goConvertDate(input, optionsJSON)` that returns a JSON string.
+// Command wasm exposes the date core to the browser as global JS functions:
+//
+//	goConvertDate(input, optionsJSON) — Jalali ⇄ Gregorian
+//	goConvertTime(optionsJSON)        — timezone/time conversion (DST-aware)
+//
+// Both return a JSON string.
 package main
 
 import (
 	"encoding/json"
 	"syscall/js"
+	_ "time/tzdata" // embed the full IANA tz database so DST is exact offline
 
 	"dateservice/datecore"
 )
@@ -29,7 +34,21 @@ func convert(_ js.Value, args []js.Value) any {
 	return string(b)
 }
 
+func convertTime(_ js.Value, args []js.Value) any {
+	var opt datecore.TimeOptions
+	if len(args) >= 1 && args[0].Type() == js.TypeString {
+		_ = json.Unmarshal([]byte(args[0].String()), &opt)
+	}
+
+	b, err := json.Marshal(datecore.ConvertTime(opt))
+	if err != nil {
+		return `{"ok":false,"error":"encode failed"}`
+	}
+	return string(b)
+}
+
 func main() {
 	js.Global().Set("goConvertDate", js.FuncOf(convert))
+	js.Global().Set("goConvertTime", js.FuncOf(convertTime))
 	select {} // keep the Go runtime alive for callbacks
 }

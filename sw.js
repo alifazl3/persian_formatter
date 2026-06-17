@@ -1,6 +1,6 @@
 // Service worker: offline app shell + asset caching. Bump CACHE on releases
 // that change cached static assets.
-const CACHE = "pf-v1";
+const CACHE = "pf-v2";
 const SHELL = [
   "/",
   "/manifest.webmanifest",
