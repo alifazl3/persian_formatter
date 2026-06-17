@@ -1247,6 +1247,80 @@
       margin-bottom: 1px;
     }
 
+    /* Unified date+time converter */
+    .conv-side {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .conv-side-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .conv-side-label {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      border-radius: 999px;
+      padding: 3px 14px;
+    }
+
+    .conv-row {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .conv-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .conv-field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .conv-grow {
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .conv-time {
+      flex: 0 0 92px;
+      min-width: 92px;
+    }
+
+    .conv-swap-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 2px 0;
+    }
+
+    .conv-swap-row::before,
+    .conv-swap-row::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .conv-swap-row .tz-swap {
+      transform: rotate(90deg);
+      margin-bottom: 0;
+    }
+
     /* Direction selector — segmented pill control */
     .date-dir {
       display: flex;
@@ -1647,89 +1721,87 @@
 
     <section class="date-view" id="dateView">
       <div class="date-card">
-        <div class="date-card-title">تبدیل تقویم</div>
-        <div class="date-dir" id="dateDir" role="group" aria-label="جهت تبدیل">
-          <button type="button" class="date-dir-btn active" data-from="auto" data-to="auto">تشخیص خودکار</button>
-          <button type="button" class="date-dir-btn" data-from="jalali" data-to="gregorian">شمسی به میلادی</button>
-          <button type="button" class="date-dir-btn" data-from="gregorian" data-to="jalali">میلادی به شمسی</button>
-        </div>
+        <div class="date-card-title">تبدیل تاریخ و ساعت</div>
 
-        <div class="date-field">
-          <div class="date-field-head">
-            <label for="dateIn">تاریخِ ورودی</label>
-            <button type="button" class="date-mini" id="dateToday">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
-              امروز
+        <div class="conv-side">
+          <div class="conv-side-head">
+            <span class="conv-side-label">از</span>
+            <button type="button" class="date-mini conv-now" id="dtNow">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+              اکنون
             </button>
           </div>
-          <input id="dateIn" type="text" autocomplete="off" dir="ltr" placeholder="مثلاً 1403/06/25 یا 2024-09-15" />
-          <div class="date-meta" id="dateInMeta"></div>
+          <div class="conv-row">
+            <div class="conv-field conv-grow">
+              <label for="dtDate">تاریخ <span class="tz-dim">(خالی = امروز)</span></label>
+              <input id="dtDate" class="date-input" type="text" autocomplete="off" dir="ltr" placeholder="1403/06/25 یا 2024-09-15" />
+            </div>
+            <div class="conv-field conv-time">
+              <label for="dtTime">ساعت <span class="tz-dim">(اختیاری)</span></label>
+              <input id="dtTime" class="date-input" type="text" autocomplete="off" dir="ltr" inputmode="numeric" placeholder="14:30" />
+            </div>
+          </div>
+          <div class="conv-row">
+            <div class="conv-field conv-grow">
+              <label for="dtFromCal">تقویم</label>
+              <select id="dtFromCal" class="date-select">
+                <option value="auto">تشخیص خودکار</option>
+                <option value="jalali">شمسی</option>
+                <option value="gregorian">میلادی</option>
+              </select>
+            </div>
+            <div class="conv-field conv-grow">
+              <label for="dtFromZone">منطقه‌ی زمانی</label>
+              <select id="dtFromZone" class="date-select"></select>
+            </div>
+          </div>
         </div>
 
-        <div class="date-result" id="dateResult">
-          <button type="button" class="date-copy" id="dateCopy" title="کپی نتیجه">
+        <div class="conv-swap-row">
+          <button type="button" class="tz-swap" id="dtSwap" title="جابه‌جایی مبدأ و مقصد" aria-label="جابه‌جایی">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+          </button>
+        </div>
+
+        <div class="conv-side">
+          <div class="conv-side-head">
+            <span class="conv-side-label">به</span>
+          </div>
+          <div class="conv-row">
+            <div class="conv-field conv-grow">
+              <label for="dtToCal">تقویم</label>
+              <select id="dtToCal" class="date-select">
+                <option value="auto">برعکسِ ورودی</option>
+                <option value="jalali">شمسی</option>
+                <option value="gregorian">میلادی</option>
+              </select>
+            </div>
+            <div class="conv-field conv-grow">
+              <label for="dtToZone">منطقه‌ی زمانی</label>
+              <select id="dtToZone" class="date-select"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="date-result" id="dtResult">
+          <button type="button" class="date-copy" id="dtCopy" title="کپی نتیجه">
             <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-          <div class="date-result-value" id="dateOut" dir="ltr"></div>
-          <div class="date-meta" id="dateOutMeta"></div>
+          <div class="date-result-value" id="dtOut" dir="ltr"></div>
+          <div class="date-meta" id="dtMeta"></div>
         </div>
       </div>
 
       <details class="date-config">
-        <summary>فرمت دلخواه (پیشرفته)</summary>
+        <summary>فرمت دلخواهِ ورودی (پیشرفته)</summary>
         <div class="date-config-grid">
           <label>فرمت ورودی
             <input id="cfgInFmt" type="text" dir="ltr" placeholder="auto — مثل dd/mm/yyyy" />
           </label>
-          <label>فرمت خروجی
-            <input id="cfgOutFmt" type="text" dir="ltr" placeholder="مثل ورودی — مثل yyyy-mm-dd" />
-          </label>
         </div>
-        <div class="date-config-hint">فرمت = ترتیب و تعداد کاراکتر (d/dd, m/mm, yy/yyyy) و جداکننده. اگر ترتیب روز/ماه مبهم خوانده شد، فرمت ورودی را اینجا ست کن.</div>
+        <div class="date-config-hint">اگر ترتیب روز/ماه مبهم خوانده شد، فرمت ورودی را اینجا ست کن (مثل dd/mm/yyyy).</div>
       </details>
-
-      <div class="date-card">
-        <div class="date-card-title">تبدیل ساعت و منطقه‌ی زمانی</div>
-
-        <div class="tz-zones">
-          <div class="tz-zone-col">
-            <label for="tzFrom">از منطقه‌ی</label>
-            <select id="tzFrom" class="date-select"></select>
-          </div>
-          <button type="button" class="tz-swap" id="tzSwap" title="جابه‌جایی مبدأ و مقصد" aria-label="جابه‌جایی">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
-          </button>
-          <div class="tz-zone-col">
-            <label for="tzTo">به منطقه‌ی</label>
-            <select id="tzTo" class="date-select"></select>
-          </div>
-        </div>
-
-        <div class="tz-when">
-          <div class="tz-when-col">
-            <label for="tzDate">تاریخ <span class="tz-dim">(خالی = امروز)</span></label>
-            <input id="tzDate" class="date-input" type="text" autocomplete="off" dir="ltr" placeholder="1403/06/25 یا 2024-09-15" />
-          </div>
-          <div class="tz-when-col tz-when-time">
-            <label for="tzTime">ساعت</label>
-            <input id="tzTime" class="date-input" type="text" autocomplete="off" dir="ltr" inputmode="numeric" placeholder="14:30" />
-          </div>
-          <button type="button" class="date-mini tz-now" id="tzNow">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-            اکنون
-          </button>
-        </div>
-
-        <div class="date-result" id="tzResult">
-          <button type="button" class="date-copy" id="tzCopy" title="کپی نتیجه">
-            <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </button>
-          <div class="date-result-value" id="tzOut" dir="ltr"></div>
-          <div class="date-meta" id="tzMeta"></div>
-        </div>
-      </div>
     </section>
 
     <footer class="footer">
@@ -2620,120 +2692,21 @@
     }
 
     function initDateApp() {
-      const dateIn = document.getElementById("dateIn");
-      const dateOut = document.getElementById("dateOut");
-      const dateResult = document.getElementById("dateResult");
-      const dateCopy = document.getElementById("dateCopy");
-      const dateToday = document.getElementById("dateToday");
-      const dirGroup = document.getElementById("dateDir");
-      const inMeta = document.getElementById("dateInMeta");
-      const outMeta = document.getElementById("dateOutMeta");
+      const dtDate = document.getElementById("dtDate");
+      const dtTime = document.getElementById("dtTime");
+      const dtNow = document.getElementById("dtNow");
+      const dtFromCal = document.getElementById("dtFromCal");
+      const dtFromZone = document.getElementById("dtFromZone");
+      const dtToCal = document.getElementById("dtToCal");
+      const dtToZone = document.getElementById("dtToZone");
+      const dtSwap = document.getElementById("dtSwap");
+      const dtOut = document.getElementById("dtOut");
+      const dtMeta = document.getElementById("dtMeta");
+      const dtResult = document.getElementById("dtResult");
+      const dtCopy = document.getElementById("dtCopy");
       const cfgInFmt = document.getElementById("cfgInFmt");
-      const cfgOutFmt = document.getElementById("cfgOutFmt");
 
       const calName = c => (c === "jalali" ? "شمسی" : c === "gregorian" ? "میلادی" : c);
-      const activeDir = () => dirGroup.querySelector(".date-dir-btn.active");
-
-      function clearResult() {
-        dateOut.textContent = "";
-        dateResult.classList.remove("has-value");
-        outMeta.textContent = "";
-      }
-
-      function run() {
-        const value = dateIn.value.trim();
-        if (!value) {
-          clearResult();
-          inMeta.textContent = "";
-          return;
-        }
-        if (typeof window.goConvertDate !== "function") {
-          inMeta.textContent = "در حال بارگذاری موتور تبدیل…";
-          return;
-        }
-        const dir = activeDir();
-        const opts = {
-          from: dir.dataset.from,
-          to: dir.dataset.to,
-          inputFormat: cfgInFmt.value.trim(),
-          outputFormat: cfgOutFmt.value.trim()
-        };
-        let res;
-        try {
-          res = JSON.parse(window.goConvertDate(value, JSON.stringify(opts)));
-        } catch (err) {
-          outMeta.textContent = "خطای داخلی";
-          return;
-        }
-        if (!res.ok) {
-          clearResult();
-          inMeta.innerHTML = res.inputFormat ? `خوانده شد: <b>${res.inputFormat}</b>` : "";
-          outMeta.innerHTML = `<span class="warn">تاریخ نامعتبر است</span>`;
-          return;
-        }
-        dateOut.textContent = res.output;
-        dateResult.classList.add("has-value");
-        inMeta.innerHTML =
-          `خوانده شد: <b>${res.inputFormat}</b> · <b>${calName(res.inputCalendar)}</b>` +
-          (res.orderAmbiguous
-            ? ` · <span class="warn">ترتیب روز/ماه مبهم بود؛ اگر اشتباه است فرمت ورودی را ست کن</span>`
-            : "");
-        outMeta.innerHTML = `<b>${calName(res.outputCalendar)}</b> · فرمت <b>${res.outputFormat}</b>`;
-      }
-
-      // "Today": fill the input with today's date in the input calendar.
-      function fillToday() {
-        const now = new Date();
-        const greg = now.getFullYear() + "/" +
-          String(now.getMonth() + 1).padStart(2, "0") + "/" +
-          String(now.getDate()).padStart(2, "0");
-        let value = greg;
-        if (activeDir().dataset.from === "jalali" && typeof window.goConvertDate === "function") {
-          try {
-            const r = JSON.parse(window.goConvertDate(greg, JSON.stringify({ from: "gregorian", to: "jalali", inputFormat: "yyyy/mm/dd", outputFormat: "yyyy/mm/dd" })));
-            if (r.ok) value = r.output;
-          } catch (err) { /* fall back to gregorian */ }
-        }
-        dateIn.value = value;
-        run();
-        dateIn.focus();
-      }
-
-      dirGroup.addEventListener("click", (e) => {
-        const btn = e.target.closest(".date-dir-btn");
-        if (!btn) return;
-        dirGroup.querySelectorAll(".date-dir-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        run();
-      });
-
-      dateToday.addEventListener("click", fillToday);
-
-      dateCopy.addEventListener("click", async () => {
-        const text = dateOut.textContent.trim();
-        if (!text) return;
-        try {
-          await navigator.clipboard.writeText(text);
-          dateCopy.classList.add("copied");
-          setTimeout(() => dateCopy.classList.remove("copied"), 1200);
-        } catch (err) { /* clipboard unavailable */ }
-      });
-
-      dateIn.addEventListener("input", run);
-      [cfgInFmt, cfgOutFmt].forEach(el => el.addEventListener("input", run));
-      dateIn.focus();
-
-      // ---- Time / timezone converter (second card) ----
-      const tzFrom = document.getElementById("tzFrom");
-      const tzTo = document.getElementById("tzTo");
-      const tzDate = document.getElementById("tzDate");
-      const tzTime = document.getElementById("tzTime");
-      const tzOut = document.getElementById("tzOut");
-      const tzMeta = document.getElementById("tzMeta");
-      const tzResult = document.getElementById("tzResult");
-      const tzCopy = document.getElementById("tzCopy");
-      const tzNow = document.getElementById("tzNow");
-      const tzSwap = document.getElementById("tzSwap");
 
       // Curated common zones (label → IANA). DST is resolved by the Go engine.
       const TZ_ZONES = [
@@ -2754,101 +2727,112 @@
         ["سائوپائولو", "America/Sao_Paulo"]
       ];
       const zoneLabel = z => (TZ_ZONES.find(p => p[1] === z) || [z])[0];
-
       TZ_ZONES.forEach(([label, iana]) => {
-        const make = sel => {
+        [dtFromZone, dtToZone].forEach(sel => {
           const o = document.createElement("option");
           o.value = iana; o.textContent = label;
           sel.appendChild(o);
-        };
-        make(tzFrom); make(tzTo);
+        });
       });
-      tzFrom.value = "Asia/Tehran";
-      tzTo.value = "America/New_York";
+      dtFromZone.value = "Asia/Tehran";
+      dtToZone.value = "Asia/Tehran";
 
-      function clearTz() {
-        tzOut.textContent = "";
-        tzResult.classList.remove("has-value");
-        tzMeta.textContent = "";
+      function clearResult() {
+        dtOut.textContent = "";
+        dtResult.classList.remove("has-value");
+        dtMeta.textContent = "";
       }
 
-      function tzRun() {
-        const time = tzTime.value.trim();
-        if (!time) { clearTz(); return; }
+      function run() {
+        const date = dtDate.value.trim();
+        const time = dtTime.value.trim();
+        if (!date && !time) { clearResult(); return; }
         if (typeof window.goConvertTime !== "function") {
-          tzMeta.textContent = "در حال بارگذاری موتور تبدیل…";
+          dtMeta.textContent = "در حال بارگذاری موتور تبدیل…";
           return;
         }
         let res;
         try {
           res = JSON.parse(window.goConvertTime(JSON.stringify({
-            date: tzDate.value.trim(),
+            date: date,
             time: time,
-            fromZone: tzFrom.value,
-            toZone: tzTo.value,
-            outCalendar: "jalali"
+            fromZone: dtFromZone.value,
+            toZone: dtToZone.value,
+            fromCalendar: dtFromCal.value,
+            outCalendar: dtToCal.value,
+            inputFormat: cfgInFmt.value.trim()
           })));
         } catch (err) {
-          tzMeta.textContent = "خطای داخلی";
+          dtMeta.textContent = "خطای داخلی";
           return;
         }
         if (!res.ok) {
-          clearTz();
-          tzMeta.innerHTML = `<span class="warn">${res.error || "ورودی نامعتبر است"}</span>`;
+          clearResult();
+          dtMeta.innerHTML = `<span class="warn">${res.error || "ورودی نامعتبر است"}</span>`;
           return;
         }
+
+        const hasTime = !!res.outputTime;
+        dtOut.textContent = hasTime ? `${res.outputDate} — ${res.outputTime}` : res.outputDate;
+        dtResult.classList.add("has-value");
+
         const abbr = a => (a ? ` ${a}` : "");
-        const dayTxt = res.dayShift === 0 ? ""
-          : ` · <b>${res.dayShift > 0 ? "+" : ""}${res.dayShift} روز</b>`;
-        tzOut.textContent = res.outputDate + " — " + res.outputTime;
-        tzResult.classList.add("has-value");
-        let meta =
-          `مبدأ: <b>${zoneLabel(tzFrom.value)}</b> <bdi>${res.fromOffset}${abbr(res.fromAbbr)}</bdi> · ساعت <bdi>${res.inputTime}</bdi><br>` +
-          `مقصد: <b>${zoneLabel(tzTo.value)}</b> <bdi>${res.toOffset}${abbr(res.toAbbr)}</bdi>${dayTxt}`;
-        if (res.nonExistent) {
-          meta += `<br><span class="warn">این ساعت در آن روز وجود ندارد (شروع ساعت تابستانی)؛ به جلو جابه‌جا شد.</span>`;
-        } else if (res.ambiguous) {
-          meta += `<br><span class="warn">این ساعت در آن روز دوبار رخ می‌دهد (پایان ساعت تابستانی)؛ تبدیل ممکن است مبهم باشد.</span>`;
+        const readLine = `خوانده شد: <b>${res.inputFormat || res.inputDate}</b> · <b>${calName(res.inputCalendar)}</b>` +
+          (res.orderAmbiguous ? ` · <span class="warn">ترتیب روز/ماه مبهم بود</span>` : "");
+
+        let meta = readLine;
+        if (hasTime) {
+          const dayTxt = res.dayShift === 0 ? ""
+            : ` · <b>${res.dayShift > 0 ? "+" : ""}${res.dayShift} روز</b>`;
+          meta +=
+            `<br>مبدأ: <b>${zoneLabel(dtFromZone.value)}</b> <bdi>${res.fromOffset}${abbr(res.fromAbbr)}</bdi> · ساعت <bdi>${res.inputTime}</bdi>` +
+            `<br>مقصد: <b>${zoneLabel(dtToZone.value)}</b> <bdi>${res.toOffset}${abbr(res.toAbbr)}</bdi> · <b>${calName(res.outputCalendar)}</b>${dayTxt}`;
+          if (res.nonExistent) {
+            meta += `<br><span class="warn">این ساعت در آن روز وجود ندارد (شروع ساعت تابستانی)؛ به جلو جابه‌جا شد.</span>`;
+          } else if (res.ambiguous) {
+            meta += `<br><span class="warn">این ساعت در آن روز دوبار رخ می‌دهد (پایان ساعت تابستانی)؛ تبدیل ممکن است مبهم باشد.</span>`;
+          }
+        } else {
+          meta += `<br>تقویم خروجی: <b>${calName(res.outputCalendar)}</b> <span class="tz-dim">(بدون ساعت، منطقه‌ی زمانی اعمال نشد)</span>`;
         }
-        tzMeta.innerHTML = meta;
+        dtMeta.innerHTML = meta;
       }
 
       // "Now": fill the current wall clock of the source zone (Intl reads a real
-      // instant, so no DST-parse ambiguity here).
-      function tzFillNow() {
+      // instant, so there is no DST-parse ambiguity here).
+      function fillNow() {
         try {
           const parts = new Intl.DateTimeFormat("en-CA", {
-            timeZone: tzFrom.value, year: "numeric", month: "2-digit", day: "2-digit",
+            timeZone: dtFromZone.value, year: "numeric", month: "2-digit", day: "2-digit",
             hour: "2-digit", minute: "2-digit", hour12: false
           }).formatToParts(new Date());
           const o = {};
           parts.forEach(p => { o[p.type] = p.value; });
-          tzDate.value = `${o.year}-${o.month}-${o.day}`;
-          tzTime.value = `${o.hour === "24" ? "00" : o.hour}:${o.minute}`;
-        } catch (err) {
-          tzTime.value = "";
-        }
-        tzRun();
+          dtFromCal.value = "gregorian";
+          dtDate.value = `${o.year}-${o.month}-${o.day}`;
+          dtTime.value = `${o.hour === "24" ? "00" : o.hour}:${o.minute}`;
+        } catch (err) { /* Intl/zone unavailable */ }
+        run();
       }
 
-      tzSwap.addEventListener("click", () => {
-        const a = tzFrom.value;
-        tzFrom.value = tzTo.value;
-        tzTo.value = a;
-        tzRun();
+      dtSwap.addEventListener("click", () => {
+        const cal = dtFromCal.value; dtFromCal.value = dtToCal.value; dtToCal.value = cal;
+        const zone = dtFromZone.value; dtFromZone.value = dtToZone.value; dtToZone.value = zone;
+        run();
       });
-      tzNow.addEventListener("click", tzFillNow);
-      [tzFrom, tzTo].forEach(el => el.addEventListener("change", tzRun));
-      [tzDate, tzTime].forEach(el => el.addEventListener("input", tzRun));
-      tzCopy.addEventListener("click", async () => {
-        const text = tzOut.textContent.trim();
+      dtNow.addEventListener("click", fillNow);
+      [dtFromCal, dtToCal, dtFromZone, dtToZone].forEach(el => el.addEventListener("change", run));
+      [dtDate, dtTime, cfgInFmt].forEach(el => el.addEventListener("input", run));
+      dtCopy.addEventListener("click", async () => {
+        const text = dtOut.textContent.trim();
         if (!text) return;
         try {
           await navigator.clipboard.writeText(text);
-          tzCopy.classList.add("copied");
-          setTimeout(() => tzCopy.classList.remove("copied"), 1200);
+          dtCopy.classList.add("copied");
+          setTimeout(() => dtCopy.classList.remove("copied"), 1200);
         } catch (err) { /* clipboard unavailable */ }
       });
+      dtDate.focus();
 
       loadScript("/wasm_exec.js")
         .then(() => fetch("/date.wasm"))
@@ -2857,13 +2841,9 @@
           const go = new Go();
           return WebAssembly.instantiate(buf, go.importObject).then(result => go.run(result.instance));
         })
-        .then(() => {
-          inMeta.textContent = "";
-          run();
-          tzRun();
-        })
+        .then(() => { run(); })
         .catch(() => {
-          inMeta.innerHTML = `<span class="warn">بارگذاری موتور تبدیل ناموفق بود</span>`;
+          dtMeta.innerHTML = `<span class="warn">بارگذاری موتور تبدیل ناموفق بود</span>`;
         });
     }
 
@@ -2889,7 +2869,7 @@
           dateInited = true;
           initDateApp(); // lazily loads the WASM engine the first time
         } else {
-          document.getElementById("dateIn").focus();
+          document.getElementById("dtDate").focus();
         }
       } else {
         input.focus();

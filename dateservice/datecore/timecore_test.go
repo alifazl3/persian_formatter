@@ -115,6 +115,51 @@ func TestJalaliInputJalaliOutput(t *testing.T) {
 	}
 }
 
+func TestDateOnlyIgnoresZones(t *testing.T) {
+	// No time -> pure calendar conversion; zones must not shift the date.
+	got := ConvertTime(TimeOptions{Date: "1403/06/25", Time: "", FromZone: "Asia/Tehran", ToZone: "America/Los_Angeles", OutCalendar: "gregorian"})
+	if !got.OK {
+		t.Fatalf("date-only: %s", got.Error)
+	}
+	if got.OutputDate != "2024/09/15" {
+		t.Errorf("date-only output = %q, want 2024/09/15", got.OutputDate)
+	}
+	if got.OutputTime != "" {
+		t.Errorf("date-only must have empty time, got %q", got.OutputTime)
+	}
+	if got.DayShift != 0 {
+		t.Errorf("date-only must not shift the day, got %d", got.DayShift)
+	}
+}
+
+func TestAutoOutputCalendar(t *testing.T) {
+	// outCalendar auto -> opposite of the (auto-detected) input calendar.
+	got := ConvertTime(TimeOptions{Date: "2024-09-15", Time: "", FromZone: "UTC", ToZone: "UTC", OutCalendar: "auto"})
+	if !got.OK {
+		t.Fatalf("auto cal: %s", got.Error)
+	}
+	if got.InputCalendar != "gregorian" || got.OutputCalendar != "jalali" {
+		t.Errorf("auto: in=%q out=%q, want gregorian/jalali", got.InputCalendar, got.OutputCalendar)
+	}
+	if got.OutputDate != "1403/06/25" {
+		t.Errorf("auto output = %q, want 1403/06/25", got.OutputDate)
+	}
+}
+
+func TestForcedFromCalendar(t *testing.T) {
+	// A bare "03/04/05" is ambiguous; forcing jalali pins the calendar.
+	got := ConvertTime(TimeOptions{Date: "1402/01/01", Time: "", FromZone: "UTC", ToZone: "UTC", FromCalendar: "jalali", OutCalendar: "gregorian"})
+	if !got.OK {
+		t.Fatalf("forced cal: %s", got.Error)
+	}
+	if got.InputCalendar != "jalali" {
+		t.Errorf("forced input calendar = %q, want jalali", got.InputCalendar)
+	}
+	if got.OutputDate != "2023/03/21" { // 1 Farvardin 1402 = 21 March 2023
+		t.Errorf("forced output = %q, want 2023/03/21", got.OutputDate)
+	}
+}
+
 func TestInvalidZoneAndTime(t *testing.T) {
 	if r := ConvertTime(TimeOptions{Date: "2024-01-01", Time: "12:00", FromZone: "Mars/Phobos", ToZone: "UTC"}); r.OK {
 		t.Errorf("invalid zone should fail")
