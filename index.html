@@ -1101,7 +1101,9 @@
     .date-view {
       display: none;
       grid-area: input;
-      gap: 22px;
+      gap: 16px;
+      align-content: start;
+      max-width: 560px;
     }
 
     .app.tab-date .date-view {
@@ -1121,53 +1123,190 @@
       grid-row: 1 / 3;
     }
 
-    .date-io {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    .date-card {
+      display: flex;
+      flex-direction: column;
       gap: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
     }
 
-    .date-col {
+    /* Direction selector — segmented pill control */
+    .date-dir {
+      display: flex;
+      gap: 4px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+    }
+
+    .date-dir-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 8px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+      white-space: nowrap;
+    }
+
+    .date-dir-btn:hover {
+      color: var(--text);
+    }
+
+    .date-dir-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .date-field {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .date-col label {
+    .date-field-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .date-field-head label {
       font-size: 13px;
       font-weight: 700;
       color: var(--muted);
     }
 
-    .date-view textarea {
+    .date-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .date-mini:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    #dateIn {
       width: 100%;
-      min-height: 120px;
-      resize: vertical;
-      background: var(--panel);
+      background: var(--bg);
       color: var(--text);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      font-size: 18px;
-      line-height: 1.7;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       outline: none;
     }
 
-    .date-view textarea:focus {
+    #dateIn:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 4px var(--glow);
     }
 
-    #dateOut {
+    /* Result card */
+    .date-result {
+      position: relative;
       background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 16px 14px;
+      min-height: 70px;
     }
+
+    .date-result-value {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--code-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      direction: ltr;
+      text-align: left;
+      word-break: break-all;
+      min-height: 32px;
+      padding-right: 40px;
+    }
+
+    .date-result-value:empty::before {
+      content: "نتیجه اینجا نمایش داده می‌شود";
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 500;
+      font-family: inherit;
+    }
+
+    .date-copy {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .date-result.has-value .date-copy {
+      display: inline-flex;
+    }
+
+    .date-copy:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .date-copy svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .date-copy .ic-check {
+      display: none;
+      color: var(--success);
+    }
+
+    .date-copy.copied {
+      color: var(--success);
+      border-color: var(--success);
+    }
+
+    .date-copy.copied .ic-copy { display: none; }
+    .date-copy.copied .ic-check { display: inline; }
 
     .date-meta {
       font-size: 12px;
       color: var(--muted);
-      min-height: 18px;
+      min-height: 16px;
       line-height: 1.6;
+      margin-top: 10px;
+    }
+
+    .date-field .date-meta {
+      margin-top: 0;
     }
 
     .date-meta .warn {
@@ -1183,21 +1322,34 @@
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 8px 16px;
+      padding: 4px 18px;
     }
 
     .date-config summary {
       cursor: pointer;
       font-weight: 700;
-      padding: 8px 0;
-      color: var(--text);
+      font-size: 13px;
+      padding: 12px 0;
+      color: var(--muted);
+      list-style: none;
+    }
+
+    .date-config summary::-webkit-details-marker { display: none; }
+
+    .date-config summary::before {
+      content: "▸ ";
+      color: var(--accent);
+    }
+
+    .date-config[open] summary::before {
+      content: "▾ ";
     }
 
     .date-config-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-      padding: 8px 0 12px;
+      padding: 4px 0 12px;
     }
 
     .date-config-grid label {
@@ -1209,7 +1361,6 @@
       color: var(--muted);
     }
 
-    .date-config-grid select,
     .date-config-grid input {
       background: var(--panel-soft);
       color: var(--text);
@@ -1221,7 +1372,6 @@
       outline: none;
     }
 
-    .date-config-grid select:focus,
     .date-config-grid input:focus {
       border-color: var(--accent);
     }
@@ -1229,7 +1379,7 @@
     .date-config-hint {
       font-size: 12px;
       color: var(--muted);
-      padding: 0 0 10px;
+      padding: 0 0 12px;
       line-height: 1.7;
     }
 
@@ -1242,7 +1392,6 @@
         padding: 20px;
       }
 
-      .date-io,
       .date-config-grid {
         grid-template-columns: 1fr;
       }
@@ -1383,36 +1532,38 @@
     </section>
 
     <section class="date-view" id="dateView">
-      <div class="date-io">
-        <div class="date-col">
-          <label for="dateIn">ورودی</label>
-          <textarea id="dateIn" autocomplete="off" dir="ltr" placeholder="مثلاً 1403/06/25 یا 2024-09-15"></textarea>
+      <div class="date-card">
+        <div class="date-dir" id="dateDir" role="group" aria-label="جهت تبدیل">
+          <button type="button" class="date-dir-btn active" data-from="auto" data-to="auto">تشخیص خودکار</button>
+          <button type="button" class="date-dir-btn" data-from="jalali" data-to="gregorian">شمسی به میلادی</button>
+          <button type="button" class="date-dir-btn" data-from="gregorian" data-to="jalali">میلادی به شمسی</button>
+        </div>
+
+        <div class="date-field">
+          <div class="date-field-head">
+            <label for="dateIn">تاریخِ ورودی</label>
+            <button type="button" class="date-mini" id="dateToday">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+              امروز
+            </button>
+          </div>
+          <input id="dateIn" type="text" autocomplete="off" dir="ltr" placeholder="مثلاً 1403/06/25 یا 2024-09-15" />
           <div class="date-meta" id="dateInMeta"></div>
         </div>
-        <div class="date-col">
-          <label for="dateOut">خروجی</label>
-          <textarea id="dateOut" dir="ltr" readonly placeholder="نتیجه اینجا نمایش داده می‌شود"></textarea>
+
+        <div class="date-result" id="dateResult">
+          <button type="button" class="date-copy" id="dateCopy" title="کپی نتیجه">
+            <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </button>
+          <div class="date-result-value" id="dateOut" dir="ltr"></div>
           <div class="date-meta" id="dateOutMeta"></div>
         </div>
       </div>
 
       <details class="date-config">
-        <summary>تنظیمات فرمت</summary>
+        <summary>فرمت دلخواه (پیشرفته)</summary>
         <div class="date-config-grid">
-          <label>تقویم ورودی
-            <select id="cfgFrom">
-              <option value="auto">تشخیص خودکار</option>
-              <option value="jalali">شمسی</option>
-              <option value="gregorian">میلادی</option>
-            </select>
-          </label>
-          <label>تقویم خروجی
-            <select id="cfgTo">
-              <option value="auto">برعکسِ ورودی</option>
-              <option value="jalali">شمسی</option>
-              <option value="gregorian">میلادی</option>
-            </select>
-          </label>
           <label>فرمت ورودی
             <input id="cfgInFmt" type="text" dir="ltr" placeholder="auto — مثل dd/mm/yyyy" />
           </label>
@@ -1420,7 +1571,7 @@
             <input id="cfgOutFmt" type="text" dir="ltr" placeholder="مثل ورودی — مثل yyyy-mm-dd" />
           </label>
         </div>
-        <div class="date-config-hint">فرمت = ترتیب و تعداد کاراکتر (d/dd, m/mm, yy/yyyy) و جداکننده. اگر ترتیب روز/ماه مبهم شد، فرمت ورودی را اینجا ست کن.</div>
+        <div class="date-config-hint">فرمت = ترتیب و تعداد کاراکتر (d/dd, m/mm, yy/yyyy) و جداکننده. اگر ترتیب روز/ماه مبهم خوانده شد، فرمت ورودی را اینجا ست کن.</div>
       </details>
     </section>
 
@@ -2314,30 +2465,39 @@
     function initDateApp() {
       const dateIn = document.getElementById("dateIn");
       const dateOut = document.getElementById("dateOut");
+      const dateResult = document.getElementById("dateResult");
+      const dateCopy = document.getElementById("dateCopy");
+      const dateToday = document.getElementById("dateToday");
+      const dirGroup = document.getElementById("dateDir");
       const inMeta = document.getElementById("dateInMeta");
       const outMeta = document.getElementById("dateOutMeta");
-      const cfgFrom = document.getElementById("cfgFrom");
-      const cfgTo = document.getElementById("cfgTo");
       const cfgInFmt = document.getElementById("cfgInFmt");
       const cfgOutFmt = document.getElementById("cfgOutFmt");
 
       const calName = c => (c === "jalali" ? "شمسی" : c === "gregorian" ? "میلادی" : c);
+      const activeDir = () => dirGroup.querySelector(".date-dir-btn.active");
+
+      function clearResult() {
+        dateOut.textContent = "";
+        dateResult.classList.remove("has-value");
+        outMeta.textContent = "";
+      }
 
       function run() {
         const value = dateIn.value.trim();
         if (!value) {
-          dateOut.value = "";
+          clearResult();
           inMeta.textContent = "";
-          outMeta.textContent = "";
           return;
         }
         if (typeof window.goConvertDate !== "function") {
           inMeta.textContent = "در حال بارگذاری موتور تبدیل…";
           return;
         }
+        const dir = activeDir();
         const opts = {
-          from: cfgFrom.value,
-          to: cfgTo.value,
+          from: dir.dataset.from,
+          to: dir.dataset.to,
           inputFormat: cfgInFmt.value.trim(),
           outputFormat: cfgOutFmt.value.trim()
         };
@@ -2349,22 +2509,60 @@
           return;
         }
         if (!res.ok) {
-          dateOut.value = "";
-          inMeta.innerHTML = res.inputFormat ? `فرمتِ خوانده‌شده: <b>${res.inputFormat}</b>` : "";
+          clearResult();
+          inMeta.innerHTML = res.inputFormat ? `خوانده شد: <b>${res.inputFormat}</b>` : "";
           outMeta.innerHTML = `<span class="warn">تاریخ نامعتبر است</span>`;
           return;
         }
-        dateOut.value = res.output;
+        dateOut.textContent = res.output;
+        dateResult.classList.add("has-value");
         inMeta.innerHTML =
-          `فرمتِ خوانده‌شده: <b>${res.inputFormat}</b> · تقویم: <b>${calName(res.inputCalendar)}</b>` +
+          `خوانده شد: <b>${res.inputFormat}</b> · <b>${calName(res.inputCalendar)}</b>` +
           (res.orderAmbiguous
             ? ` · <span class="warn">ترتیب روز/ماه مبهم بود؛ اگر اشتباه است فرمت ورودی را ست کن</span>`
             : "");
-        outMeta.innerHTML = `فرمت خروجی: <b>${res.outputFormat}</b> · تقویم: <b>${calName(res.outputCalendar)}</b>`;
+        outMeta.innerHTML = `<b>${calName(res.outputCalendar)}</b> · فرمت <b>${res.outputFormat}</b>`;
       }
 
+      // "Today": fill the input with today's date in the input calendar.
+      function fillToday() {
+        const now = new Date();
+        const greg = now.getFullYear() + "/" +
+          String(now.getMonth() + 1).padStart(2, "0") + "/" +
+          String(now.getDate()).padStart(2, "0");
+        let value = greg;
+        if (activeDir().dataset.from === "jalali" && typeof window.goConvertDate === "function") {
+          try {
+            const r = JSON.parse(window.goConvertDate(greg, JSON.stringify({ from: "gregorian", to: "jalali", inputFormat: "yyyy/mm/dd", outputFormat: "yyyy/mm/dd" })));
+            if (r.ok) value = r.output;
+          } catch (err) { /* fall back to gregorian */ }
+        }
+        dateIn.value = value;
+        run();
+        dateIn.focus();
+      }
+
+      dirGroup.addEventListener("click", (e) => {
+        const btn = e.target.closest(".date-dir-btn");
+        if (!btn) return;
+        dirGroup.querySelectorAll(".date-dir-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        run();
+      });
+
+      dateToday.addEventListener("click", fillToday);
+
+      dateCopy.addEventListener("click", async () => {
+        const text = dateOut.textContent.trim();
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          dateCopy.classList.add("copied");
+          setTimeout(() => dateCopy.classList.remove("copied"), 1200);
+        } catch (err) { /* clipboard unavailable */ }
+      });
+
       dateIn.addEventListener("input", run);
-      [cfgFrom, cfgTo].forEach(el => el.addEventListener("change", run));
       [cfgInFmt, cfgOutFmt].forEach(el => el.addEventListener("input", run));
       dateIn.focus();
 
