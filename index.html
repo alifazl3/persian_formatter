@@ -223,6 +223,7 @@
     .app.mode-sidebar .toolbar button.upload { --btn: #5fa3a0; }
     .app.mode-sidebar .toolbar button.copy-input { --btn: #5f8fb0; }
     .app.mode-sidebar .toolbar button.copy { --btn: #6fa07a; }
+    .app.mode-sidebar .toolbar button.download { --btn: #8a7fc0; }
     .app.mode-sidebar .toolbar button.share { --btn: #c0925f; }
     .app.mode-sidebar .toolbar button.raw-toggle { --btn: #8a8fa0; }
     .app.mode-sidebar .toolbar button.clear { --btn: #bd7676; }
@@ -437,6 +438,11 @@
     button.upload {
       background: linear-gradient(135deg, #14b8a6, #0d9488);
       box-shadow: 0 4px 14px rgba(20, 184, 166, 0.28);
+    }
+
+    button.download {
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.28);
     }
 
     button.share {
@@ -1657,6 +1663,14 @@
             </svg>
             <span>کپی خروجی</span>
           </button>
+          <button class="download" onclick="downloadOutput()" title="دانلود خروجی به‌صورت فایل متنی">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>دانلود فایل</span>
+          </button>
           <button class="share" id="shareBtn" onclick="shareCurrent()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="18" cy="5" r="3"></circle>
@@ -2477,6 +2491,28 @@
       const text = outputText();
       if (!text) return;
       await navigator.clipboard.writeText(text);
+    }
+
+    // Export the formatted output as a downloadable .txt file. Uses the raw
+    // markdown when raw view is on, otherwise the cleaned plain text.
+    function downloadOutput() {
+      const text = rawMode ? input.value.trim() : outputText();
+      if (!text) return;
+
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+      const ext = rawMode ? "md" : "txt";
+
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `persian-formatter-${stamp}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     async function copyCode(btn) {
