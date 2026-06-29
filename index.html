@@ -101,6 +101,41 @@
 
     .input-shell {
       grid-area: input;
+      position: relative;
+    }
+
+    /* Manual collapse for the input — folds the editor without needing a paste.
+       Hidden once collapsed; the edit button takes over from there. */
+    .collapse-input-btn {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .collapse-input-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .collapse-input-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .input-shell.collapsed .collapse-input-btn {
+      display: none;
     }
 
     .preview-shell {
@@ -342,7 +377,7 @@
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 20px;
+      padding: 46px 20px 20px;
       font-size: 15px;
       line-height: 1.8;
       outline: none;
@@ -1705,6 +1740,12 @@
     </header>
 
     <div class="input-shell" id="inputShell">
+      <button class="collapse-input-btn" type="button" onclick="collapseInput()" title="جمع کردن ورودی">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+        <span>جمع کردن</span>
+      </button>
       <textarea id="input" autocomplete="off" placeholder="متن به‌هم‌ریخته را اینجا Paste کن..."></textarea>
       <button class="edit-input-btn" type="button" onclick="expandInput()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
