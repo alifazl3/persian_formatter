@@ -2181,18 +2181,24 @@
 
     // A markdown table = a header row followed by a separator row made only of
     // -, :, | and spaces (e.g. |----|:--:|).
+    // A GFM separator row: pipes, dashes, optional colons only (e.g. |:--|--:|).
+    function isSeparatorRow(line) {
+      const s = (line || "").trim();
+      return s.includes("|") && s.includes("-") && /^\|?[\s:|-]+\|?$/.test(s);
+    }
+
     function isTable(lines) {
       if (lines.length < 2) return false;
-      const sep = lines[1].trim();
-      return (
-        lines[0].includes("|") &&
-        sep.includes("|") &&
-        sep.includes("-") &&
-        /^\|?[\s:|-]+\|?$/.test(sep)
-      );
+      return lines[0].includes("|") && isSeparatorRow(lines[1]);
     }
 
     function renderTable(lines) {
+      return `<div class="block">${renderTableInner(lines)}</div>`;
+    }
+
+    // The table markup without the surrounding .block wrapper, so it can also be
+    // emitted inline by renderProseLines (a table that follows a heading/paragraph).
+    function renderTableInner(lines) {
       const aligns = splitRow(lines[1]).map(c => {
         const left = c.startsWith(":");
         const right = c.endsWith(":");
@@ -2215,13 +2221,11 @@
         .join("");
 
       return `
-        <div class="block">
-          <div class="table-wrap">
-            <table class="md-table">
-              <thead>${thead}</thead>
-              <tbody>${body}</tbody>
-            </table>
-          </div>
+        <div class="table-wrap">
+          <table class="md-table">
+            <thead>${thead}</thead>
+            <tbody>${body}</tbody>
+          </table>
         </div>
       `;
     }
@@ -2240,7 +2244,17 @@
       let html = "";
       let i = 0;
       while (i < lines.length) {
-        if (isBulletLine(lines[i])) {
+        // A table anywhere in the block: a "| … |" header immediately followed by
+        // a separator row. Consume all following pipe rows as the body.
+        if (i + 1 < lines.length && lines[i].includes("|") && isSeparatorRow(lines[i + 1])) {
+          const tbl = [lines[i], lines[i + 1]];
+          i += 2;
+          while (i < lines.length && lines[i].trim() && lines[i].includes("|")) {
+            tbl.push(lines[i]);
+            i++;
+          }
+          html += renderTableInner(tbl);
+        } else if (isBulletLine(lines[i])) {
           const items = [];
           while (i < lines.length && isBulletLine(lines[i])) {
             items.push(lines[i].trim().replace(/^[-•*]\s+/, ""));
