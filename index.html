@@ -2179,6 +2179,66 @@
       return s.split("|").map(cell => cell.trim());
     }
 
+    // A fenced ```csv / ```tsv block is tabular data, not code: Persian cells
+    // in an LTR code box get their comma order visually scrambled by the bidi
+    // algorithm, so parse the rows and reuse the same RTL table as markdown.
+    function parseDelimitedRow(line, delim) {
+      const cells = [];
+      let cur = "";
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (line[i + 1] === '"') { cur += '"'; i++; }
+            else inQuotes = false;
+          } else cur += ch;
+        } else if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === delim) {
+          cells.push(cur.trim());
+          cur = "";
+        } else cur += ch;
+      }
+      cells.push(cur.trim());
+      return cells;
+    }
+
+    // Returns null when the content doesn't look tabular (no delimiter at all),
+    // so the caller can fall back to the plain code box.
+    function renderCsvTable(content, lang) {
+      const delim = lang === "tsv" ? "\t" : ",";
+      const rows = content
+        .split("\n")
+        .filter(line => line.trim())
+        .map(line => parseDelimitedRow(line, delim));
+      if (!rows.length) return null;
+      const cols = Math.max(...rows.map(r => r.length));
+      if (cols < 2) return null;
+
+      const pad = row => {
+        const cells = row.slice();
+        while (cells.length < cols) cells.push("");
+        return cells;
+      };
+      const thead = `<tr>${pad(rows[0]).map(c => `<th>${decorate(c)}</th>`).join("")}</tr>`;
+      const body = rows
+        .slice(1)
+        .map(r => `<tr>${pad(r).map(c => `<td>${decorate(c)}</td>`).join("")}</tr>`)
+        .join("");
+
+      return `
+        <div class="block">
+          <div class="table-wrap">
+            <table class="md-table">
+              <thead>${thead}</thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
     // A markdown table = a header row followed by a separator row made only of
     // -, :, | and spaces (e.g. |----|:--:|).
     // A GFM separator row: pipes, dashes, optional colons only (e.g. |:--|--:|).
@@ -2345,6 +2405,12 @@
         const jsonData = tryParseJson(content, lang);
         if (jsonData !== undefined) {
           return renderJsonBlock(jsonData);
+        }
+
+        // ```csv / ```tsv fences render as a table, not a code box.
+        if (lang === "csv" || lang === "tsv") {
+          const csvHtml = renderCsvTable(content, lang);
+          if (csvHtml) return csvHtml;
         }
 
         if (isCodeBlock(content, lang)) {
