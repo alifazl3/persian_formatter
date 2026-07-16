@@ -1144,11 +1144,16 @@
       grid-area: input;
       gap: 16px;
       align-content: start;
+      width: 100%;
       max-width: 560px;
+      justify-self: center;
     }
 
     .app.tab-date .date-view {
       display: grid;
+      /* The formatter columns are hidden on this tab — take the whole row and
+         center, instead of hugging one edge with the rest left empty. */
+      grid-column: 1 / -1;
     }
 
     /* On the Date tab, hide the formatter center + its tools. */
@@ -1612,6 +1617,69 @@
       line-height: 1.7;
     }
 
+    .date-config-hint code {
+      direction: ltr;
+      unicode-bidi: embed;
+      color: var(--text);
+    }
+
+    /* Small clickable chips: input examples + output-format presets */
+    .date-chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .date-chips .chips-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .date-chip {
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11.5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      direction: ltr;
+    }
+
+    .date-chip:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .date-chip.active {
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--glow);
+    }
+
+    .fmt-presets {
+      padding: 0 0 14px;
+    }
+
+    /* Weekday of the converted date, shown above the result value */
+    .date-weekday {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .date-weekday:empty {
+      display: none;
+    }
+
+    .date-result-value[dir="rtl"] {
+      text-align: right;
+    }
+
     @media (max-width: 700px) {
       body {
         padding: 18px;
@@ -1789,12 +1857,19 @@
           <div class="conv-row">
             <div class="conv-field conv-grow">
               <label for="dtDate">تاریخ <span class="tz-dim">(خالی = امروز)</span></label>
-              <input id="dtDate" class="date-input" type="text" autocomplete="off" dir="ltr" placeholder="1403/06/25 یا 2024-09-15" />
+              <input id="dtDate" class="date-input" type="text" autocomplete="off" dir="ltr" placeholder="1403/06/25 یا June 14, 1946" />
             </div>
             <div class="conv-field conv-time">
               <label for="dtTime">ساعت <span class="tz-dim">(اختیاری)</span></label>
               <input id="dtTime" class="date-input" type="text" autocomplete="off" dir="ltr" inputmode="numeric" placeholder="14:30" />
             </div>
+          </div>
+          <div class="date-chips" id="dtExamples">
+            <span class="chips-label">مثال:</span>
+            <button type="button" class="date-chip">1403/06/25</button>
+            <button type="button" class="date-chip">2024-09-15</button>
+            <button type="button" class="date-chip">June 14, 1946</button>
+            <button type="button" class="date-chip">25 شهریور 1403</button>
           </div>
           <div class="conv-row">
             <div class="conv-field conv-grow">
@@ -1843,19 +1918,31 @@
             <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
+          <div class="date-weekday" id="dtWeekday"></div>
           <div class="date-result-value" id="dtOut" dir="ltr"></div>
           <div class="date-meta" id="dtMeta"></div>
         </div>
       </div>
 
       <details class="date-config">
-        <summary>فرمت دلخواهِ ورودی (پیشرفته)</summary>
+        <summary>فرمت دلخواهِ ورودی و خروجی (پیشرفته)</summary>
         <div class="date-config-grid">
           <label>فرمت ورودی
             <input id="cfgInFmt" type="text" dir="ltr" placeholder="auto — مثل dd/mm/yyyy" />
           </label>
+          <label>فرمت خروجی
+            <input id="cfgOutFmt" type="text" dir="ltr" placeholder="auto — مثل yyyy/mm/dd یا d mmmm yyyy" />
+          </label>
         </div>
-        <div class="date-config-hint">اگر ترتیب روز/ماه مبهم خوانده شد، فرمت ورودی را اینجا ست کن (مثل dd/mm/yyyy).</div>
+        <div class="date-chips fmt-presets" id="fmtPresets">
+          <span class="chips-label">فرمت‌های آماده:</span>
+          <button type="button" class="date-chip" data-fmt="yyyy/mm/dd">yyyy/mm/dd</button>
+          <button type="button" class="date-chip" data-fmt="yyyy-mm-dd">yyyy-mm-dd</button>
+          <button type="button" class="date-chip" data-fmt="dd/mm/yyyy">dd/mm/yyyy</button>
+          <button type="button" class="date-chip" data-fmt="d mmmm yyyy">d mmmm yyyy</button>
+          <button type="button" class="date-chip" data-fmt="mmmm d, yyyy">mmmm d, yyyy</button>
+        </div>
+        <div class="date-config-hint">اگر ترتیب روز/ماه مبهم خوانده شد، فرمت ورودی را ست کن (مثل <code>dd/mm/yyyy</code>). در فرمت خروجی <code>mmmm</code> نام کامل ماه و <code>mmm</code> نام کوتاه است؛ خالی یعنی خودکار.</div>
       </details>
     </section>
 
@@ -2861,7 +2948,9 @@
       const dtMeta = document.getElementById("dtMeta");
       const dtResult = document.getElementById("dtResult");
       const dtCopy = document.getElementById("dtCopy");
+      const dtWeekday = document.getElementById("dtWeekday");
       const cfgInFmt = document.getElementById("cfgInFmt");
+      const cfgOutFmt = document.getElementById("cfgOutFmt");
 
       const calName = c => (c === "jalali" ? "شمسی" : c === "gregorian" ? "میلادی" : c);
 
@@ -2896,6 +2985,7 @@
 
       function clearResult() {
         dtOut.textContent = "";
+        dtWeekday.textContent = "";
         dtResult.classList.remove("has-value");
         dtMeta.textContent = "";
       }
@@ -2917,7 +3007,8 @@
             toZone: dtToZone.value,
             fromCalendar: dtFromCal.value,
             outCalendar: dtToCal.value,
-            inputFormat: cfgInFmt.value.trim()
+            inputFormat: cfgInFmt.value.trim(),
+            outputFormat: cfgOutFmt.value.trim()
           })));
         } catch (err) {
           dtMeta.textContent = "خطای داخلی";
@@ -2930,7 +3021,11 @@
         }
 
         const hasTime = !!res.outputTime;
-        dtOut.textContent = hasTime ? `${res.outputDate} — ${res.outputTime}` : res.outputDate;
+        const outText = hasTime ? `${res.outputDate} — ${res.outputTime}` : res.outputDate;
+        dtOut.textContent = outText;
+        // Persian month names read RTL; plain numeric/English dates read LTR.
+        dtOut.setAttribute("dir", /[؀-ۿ]/.test(outText) ? "rtl" : "ltr");
+        dtWeekday.textContent = res.weekday || "";
         dtResult.classList.add("has-value");
 
         const abbr = a => (a ? ` ${a}` : "");
@@ -2979,7 +3074,32 @@
       });
       dtNow.addEventListener("click", fillNow);
       [dtFromCal, dtToCal, dtFromZone, dtToZone].forEach(el => el.addEventListener("change", run));
-      [dtDate, dtTime, cfgInFmt].forEach(el => el.addEventListener("input", run));
+      [dtDate, dtTime, cfgInFmt, cfgOutFmt].forEach(el => el.addEventListener("input", run));
+
+      // Example chips fill the date input; format presets fill (or toggle off)
+      // the output-format field.
+      document.querySelectorAll("#dtExamples .date-chip").forEach(btn => {
+        btn.addEventListener("click", () => {
+          dtDate.value = btn.textContent.trim();
+          dtFromCal.value = "auto";
+          run();
+          dtDate.focus();
+        });
+      });
+
+      const fmtPresetBtns = document.querySelectorAll("#fmtPresets .date-chip");
+      const syncPresets = () => {
+        const v = cfgOutFmt.value.trim();
+        fmtPresetBtns.forEach(b => b.classList.toggle("active", b.dataset.fmt === v));
+      };
+      fmtPresetBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          cfgOutFmt.value = cfgOutFmt.value.trim() === btn.dataset.fmt ? "" : btn.dataset.fmt;
+          syncPresets();
+          run();
+        });
+      });
+      cfgOutFmt.addEventListener("input", syncPresets);
       dtCopy.addEventListener("click", async () => {
         const text = dtOut.textContent.trim();
         if (!text) return;

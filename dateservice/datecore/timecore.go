@@ -23,6 +23,7 @@ type TimeOptions struct {
 	FromCalendar string `json:"fromCalendar"` // "auto" | "jalali" | "gregorian"; default auto
 	OutCalendar  string `json:"outCalendar"`  // "auto" | "jalali" | "gregorian"; default auto (opposite)
 	InputFormat  string `json:"inputFormat"`  // "" / "auto" = detect, else a pattern
+	OutputFormat string `json:"outputFormat"` // "" / "auto" / "same" = natural, else a layout (may use mmm/mmmm)
 	OrderHint    string `json:"orderHint"`    // ambiguous day/month fallback for the date part
 }
 
@@ -40,6 +41,8 @@ type TimeResult struct {
 	OutputDate     string `json:"outputDate,omitempty"` // in OutputCalendar
 	OutputTime     string `json:"outputTime,omitempty"` // HH:MM ("" when date-only)
 	OutputCalendar string `json:"outputCalendar,omitempty"`
+	OutputFormat   string `json:"outputFormat,omitempty"` // layout used for OutputDate
+	Weekday        string `json:"weekday,omitempty"`      // Persian weekday name of the output date
 	ToOffset       string `json:"toOffset,omitempty"`
 	ToAbbr         string `json:"toAbbr,omitempty"`
 	DayShift       int    `json:"dayShift"`    // output date − input date in days (… −1, 0, +1 …)
@@ -130,6 +133,7 @@ func ConvertTime(opt TimeOptions) TimeResult {
 	inCal := "gregorian"
 	ambiguous := false
 	inFmt := ""
+	var inF Format
 	if dateStr := strings.TrimSpace(opt.Date); dateStr == "" {
 		now := time.Now().In(fromLoc)
 		gy, gm, gd = now.Year(), int(now.Month()), now.Day()
@@ -145,7 +149,7 @@ func ConvertTime(opt TimeOptions) TimeResult {
 		if derr != nil {
 			return TimeResult{OK: false, Error: derr.Error()}
 		}
-		inCal, ambiguous, inFmt = cal, amb, f.Pattern()
+		inCal, ambiguous, inFmt, inF = cal, amb, f.Pattern(), f
 		if cal == "jalali" {
 			if gy, gm, gd, derr = jalaliToGregorian(y, m, d); derr != nil {
 				return TimeResult{OK: false, Error: derr.Error(), InputCalendar: cal, InputFormat: inFmt, OrderAmbiguous: amb}
@@ -167,15 +171,26 @@ func ConvertTime(opt TimeOptions) TimeResult {
 			outCal = "jalali"
 		}
 	}
+	// The output layout: explicit > mirror a named input > canonical numeric.
+	outLayout := strings.TrimSpace(opt.OutputFormat)
+	if outLayout == "" || outLayout == "auto" || outLayout == "same" {
+		if inF.Layout != "" {
+			outLayout = defaultNamedLayout(outCal, inF.Lang)
+		} else {
+			outLayout = "yyyy/mm/dd"
+		}
+	} else if !validLayout(outLayout) {
+		return TimeResult{OK: false, Error: "فرمت خروجی باید سال، ماه و روز داشته باشد (مثل yyyy/mm/dd یا d mmmm yyyy)"}
+	}
 	fmtDate := func(y, mo, d int) (string, error) {
 		if outCal == "jalali" {
 			jy, jm, jd, e := gregorianToJalali(y, mo, d)
 			if e != nil {
 				return "", e
 			}
-			return fmt.Sprintf("%04d/%02d/%02d", jy, jm, jd), nil
+			return FormatLayout(jy, jm, jd, outLayout, "jalali", inF.Lang), nil
 		}
-		return fmt.Sprintf("%04d/%02d/%02d", y, mo, d), nil
+		return FormatLayout(y, mo, d, outLayout, "gregorian", inF.Lang), nil
 	}
 
 	base := TimeResult{
@@ -185,6 +200,7 @@ func ConvertTime(opt TimeOptions) TimeResult {
 		OrderAmbiguous: ambiguous,
 		InputDate:      fmt.Sprintf("%04d-%02d-%02d", gy, gm, gd),
 		OutputCalendar: outCal,
+		OutputFormat:   outLayout,
 	}
 
 	// --- date-only: pure calendar conversion, no timezone applied ---
@@ -194,6 +210,7 @@ func ConvertTime(opt TimeOptions) TimeResult {
 			return TimeResult{OK: false, Error: e.Error()}
 		}
 		base.OutputDate = outDate
+		base.Weekday = FaWeekdays[time.Date(gy, time.Month(gm), gd, 0, 0, 0, 0, time.UTC).Weekday()]
 		return base
 	}
 
@@ -221,6 +238,7 @@ func ConvertTime(opt TimeOptions) TimeResult {
 	base.FromOffset = offsetString(fromOff)
 	base.FromAbbr = zoneAbbr(t)
 	base.OutputDate = outDate
+	base.Weekday = FaWeekdays[out.Weekday()]
 	base.OutputTime = fmt.Sprintf("%02d:%02d", out.Hour(), out.Minute())
 	base.ToOffset = offsetString(toOff)
 	base.ToAbbr = zoneAbbr(out)

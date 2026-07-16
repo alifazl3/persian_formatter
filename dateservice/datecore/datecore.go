@@ -21,10 +21,17 @@ type Format struct {
 	MonthW    int    `json:"monthW"`    // 1 or 2
 	DayW      int    `json:"dayW"`      // 1 or 2
 	Separator string `json:"separator"` // "/", "-", ".", " ", "" …
+	// Month-name formats (e.g. "June 14, 1946") carry a full layout instead of
+	// the numeric fields above; when set it wins in Pattern() and Render().
+	Layout string `json:"layout,omitempty"` // e.g. "mmmm d, yyyy"
+	Lang   string `json:"lang,omitempty"`   // month-name language: "en" | "fa"
 }
 
 // Pattern renders the format as a human pattern like "yyyy/mm/dd".
 func (f Format) Pattern() string {
+	if f.Layout != "" {
+		return f.Layout
+	}
 	tok := map[byte]string{
 		'y': strings.Repeat("y", max(f.YearW, 1)),
 		'm': strings.Repeat("m", max(f.MonthW, 1)),
@@ -160,6 +167,19 @@ func detect(input string, opt Options) (y, m, d int, f Format, calendar string, 
 		return
 	}
 
+	// A month written as a name ("June 14, 1946", "25 شهریور 1403") pins both
+	// the day/month order and the calendar, so it bypasses the numeric path.
+	if ny, nm, nd, ncal, nlang, nlayout, named, nerr := detectNamed(s); named {
+		if nerr != nil {
+			err = nerr
+			return
+		}
+		y, m, d = ny, nm, nd
+		f = Format{Order: "dmy", YearW: 4, MonthW: 2, DayW: 1, Separator: " ", Layout: nlayout, Lang: nlang}
+		calendar = ncal
+		return
+	}
+
 	explicit := opt.InputFormat != "" && opt.InputFormat != "auto"
 	tokens, sep, e := splitParts(s)
 	if e != nil {
@@ -272,7 +292,10 @@ func detect(input string, opt Options) (y, m, d int, f Format, calendar string, 
 	return
 }
 
-func formatDate(y, m, d int, f Format) string {
+func formatDate(y, m, d int, f Format, cal string) string {
+	if f.Layout != "" {
+		return FormatLayout(y, m, d, f.Layout, cal, f.Lang)
+	}
 	pad := func(v, w int) string {
 		s := strconv.Itoa(v)
 		for len(s) < w {
@@ -360,12 +383,15 @@ func Convert(input string, opt Options) Result {
 	}
 
 	outFmt := inFmt
-	if opt.OutputFormat != "" && opt.OutputFormat != "same" {
-		pf, pe := parsePattern(opt.OutputFormat)
-		if pe != nil {
-			return Result{OK: false, Error: pe.Error()}
+	if custom := strings.TrimSpace(opt.OutputFormat); custom != "" && custom != "same" && custom != "auto" {
+		// Custom output formats are full layouts (may contain mmm/mmmm names).
+		if !validLayout(custom) {
+			return Result{OK: false, Error: "فرمت خروجی باید سال، ماه و روز داشته باشد (مثل yyyy/mm/dd)"}
 		}
-		outFmt = pf
+		outFmt = Format{Layout: custom, Lang: inFmt.Lang}
+	} else if inFmt.Layout != "" {
+		// Named input mirrors to the output calendar's natural named order.
+		outFmt = Format{Layout: defaultNamedLayout(outCal, inFmt.Lang), Lang: inFmt.Lang}
 	}
 
 	return Result{
@@ -373,7 +399,7 @@ func Convert(input string, opt Options) Result {
 		InputFormat:    inFmt.Pattern(),
 		InputCalendar:  inCal,
 		OrderAmbiguous: ambiguous,
-		Output:         formatDate(oy, om, od, outFmt),
+		Output:         formatDate(oy, om, od, outFmt, outCal),
 		OutputCalendar: outCal,
 		OutputFormat:   outFmt.Pattern(),
 	}
