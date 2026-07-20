@@ -1994,11 +1994,21 @@
     // auto-collapse it; otherwise every paste collapses the input.
     let editingInput = false;
 
+    // A fresh paste/load replaces the content entirely — jump back to the top
+    // so reading starts from the beginning, not wherever the previous text
+    // left the scroll. Not used for mid-edit pastes (they insert at the cursor).
+    function scrollToTop() {
+      window.scrollTo(0, 0);
+    }
+
     // Pasting with Ctrl/Cmd+V collapses the editor too (not just the button).
     // Defer one tick so the pasted text is in place before we collapse.
     input.addEventListener("paste", () => {
       setTimeout(() => {
-        if (!editingInput && input.value.trim()) collapseInput();
+        if (!editingInput && input.value.trim()) {
+          collapseInput();
+          scrollToTop();
+        }
       }, 0);
     });
 
@@ -2606,6 +2616,7 @@
         render();
         // Explicit fresh paste via the button → always collapse (ends editing).
         if (text.trim()) collapseInput();
+        scrollToTop();
       } catch (err) {
         input.focus();
       }
@@ -2620,6 +2631,7 @@
         input.value = typeof reader.result === "string" ? reader.result : "";
         render();
         if (input.value.trim()) collapseInput();
+        scrollToTop();
       };
       reader.readAsText(file);
     }
