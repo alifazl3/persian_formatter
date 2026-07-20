@@ -1680,6 +1680,139 @@
       text-align: right;
     }
 
+    /* Keyboard-shortcut hint chips shown inside action buttons */
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 3px 5px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(0, 0, 0, 0.18);
+      color: inherit;
+      opacity: 0.85;
+      direction: ltr;
+      unicode-bidi: embed;
+    }
+
+    /* A shortcut fired: flash its button so the action is visible */
+    .kbd-flash {
+      box-shadow: 0 0 0 4px var(--glow) !important;
+    }
+
+    /* Shortcut help overlay (?) */
+    .kbd-help-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+    }
+
+    .kbd-help-backdrop.open {
+      display: flex;
+    }
+
+    .kbd-help {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px 22px 16px;
+      width: min(520px, 92vw);
+      max-height: 82vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .kbd-help::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .kbd-help::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .kbd-help::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    .kbd-help .kbd {
+      background: var(--panel-soft);
+      border-color: var(--border);
+      color: var(--text);
+      font-size: 11px;
+      opacity: 1;
+    }
+
+    .kbd-help-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .kbd-help-close {
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--muted);
+      border-radius: 8px;
+      width: 26px;
+      height: 26px;
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .kbd-help-close:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .kbd-group-title {
+      margin: 12px 0 2px;
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .kbd-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0;
+      font-size: 13px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .kbd-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .kbd-row .keys {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .kbd-help-hint {
+      margin-top: 10px;
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
     @media (max-width: 700px) {
       body {
         padding: 18px;
@@ -1691,6 +1824,11 @@
 
       .date-config-grid {
         grid-template-columns: 1fr;
+      }
+
+      /* No hardware keyboard on small screens — hide the shortcut chips. */
+      .kbd {
+        display: none;
       }
     }
   </style>
@@ -1708,7 +1846,7 @@
               <line x1="9" y1="3" x2="9" y2="21"></line>
               <line x1="15" y1="3" x2="15" y2="21"></line>
             </svg>
-            <span class="layout-label">ساید‌بار</span>
+            <span class="layout-label">ساید‌بار</span><kbd class="kbd">B</kbd>
           </button>
           <button class="layout-toggle theme-toggle" type="button" onclick="toggleTheme()" title="تغییر تم (روشن / تیره)">
             <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1718,13 +1856,13 @@
               <circle cx="12" cy="12" r="4"></circle>
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
             </svg>
-            <span class="theme-label">روشن</span>
+            <span class="theme-label">روشن</span><kbd class="kbd">T</kbd>
           </button>
         </div>
         <div class="hint">متن خام را Paste کن؛ پایین تمیز، بخش‌بندی‌شده و خوانا نمایش داده می‌شود.</div>
         <div class="tabs" role="tablist">
-          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="switchTab('format')">پرشین فرمتر</button>
-          <button class="tab" id="tabDate" type="button" role="tab" onclick="switchTab('date')">تاریخ</button>
+          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="switchTab('format')">پرشین فرمتر <kbd class="kbd">1</kbd></button>
+          <button class="tab" id="tabDate" type="button" role="tab" onclick="switchTab('date')">تاریخ <kbd class="kbd">2</kbd></button>
         </div>
       </div>
 
@@ -1738,7 +1876,7 @@
               <rect x="8" y="2" width="8" height="4" rx="1"></rect>
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
             </svg>
-            <span>Paste</span>
+            <span>Paste</span><kbd class="kbd">P</kbd>
           </button>
           <button class="upload" type="button" onclick="document.getElementById('fileInput').click()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1746,7 +1884,7 @@
               <polyline points="17 8 12 3 7 8"></polyline>
               <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
-            <span>بارگذاری فایل</span>
+            <span>بارگذاری فایل</span><kbd class="kbd">U</kbd>
           </button>
         </div>
 
@@ -1757,14 +1895,14 @@
               <rect x="9" y="9" width="13" height="13" rx="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
-            <span>کپی ورودی</span>
+            <span>کپی ورودی</span><kbd class="kbd">I</kbd>
           </button>
           <button class="copy" onclick="copyOutput()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="9" y="9" width="13" height="13" rx="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
-            <span>کپی خروجی</span>
+            <span>کپی خروجی</span><kbd class="kbd">C</kbd>
           </button>
           <button class="download" onclick="downloadOutput()" title="دانلود خروجی به‌صورت فایل متنی">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1772,7 +1910,7 @@
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            <span>دانلود فایل</span>
+            <span>دانلود فایل</span><kbd class="kbd">D</kbd>
           </button>
           <button class="share" id="shareBtn" onclick="shareCurrent()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1782,7 +1920,7 @@
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
-            <span>اشتراک‌گذاری</span>
+            <span>اشتراک‌گذاری</span><kbd class="kbd">S</kbd>
           </button>
         </div>
 
@@ -1793,7 +1931,7 @@
               <polyline points="16 18 22 12 16 6"></polyline>
               <polyline points="8 6 2 12 8 18"></polyline>
             </svg>
-            <span class="raw-label">خام</span>
+            <span class="raw-label">خام</span><kbd class="kbd">R</kbd>
           </button>
           <button class="clear" onclick="clearAll()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1801,7 +1939,7 @@
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
               <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
-            <span>پاک کردن</span>
+            <span>پاک کردن</span><kbd class="kbd">⇧K</kbd>
           </button>
         </div>
       </div>
@@ -1812,7 +1950,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="18 15 12 9 6 15"></polyline>
         </svg>
-        <span>جمع کردن</span>
+        <span>جمع کردن</span><kbd class="kbd">Esc</kbd>
       </button>
       <textarea id="input" autocomplete="off" placeholder="متن به‌هم‌ریخته را اینجا Paste کن..."></textarea>
       <button class="edit-input-btn" type="button" onclick="expandInput()">
@@ -1820,7 +1958,7 @@
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
           <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
         </svg>
-        <span>ویرایش ورودی</span>
+        <span>ویرایش ورودی</span><kbd class="kbd">E</kbd>
       </button>
     </div>
 
@@ -1834,7 +1972,7 @@
           <rect x="4" y="11" width="16" height="10" rx="2"></rect>
           <path d="M8 11V7a4 4 0 0 1 7.5-1.9"></path>
         </svg>
-        <span class="lock-label">قفل</span>
+        <span class="lock-label">قفل</span><kbd class="kbd">L</kbd>
       </button>
 
       <section id="preview" class="preview">
@@ -1851,7 +1989,7 @@
             <span class="conv-side-label">از</span>
             <button type="button" class="date-mini conv-now" id="dtNow">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-              اکنون
+              اکنون <kbd class="kbd">N</kbd>
             </button>
           </div>
           <div class="conv-row">
@@ -1888,7 +2026,7 @@
         </div>
 
         <div class="conv-swap-row">
-          <button type="button" class="tz-swap" id="dtSwap" title="جابه‌جایی مبدأ و مقصد" aria-label="جابه‌جایی">
+          <button type="button" class="tz-swap" id="dtSwap" title="جابه‌جایی مبدأ و مقصد (X)" aria-label="جابه‌جایی">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
           </button>
         </div>
@@ -1956,6 +2094,37 @@
     </footer>
   </main>
 
+
+  <div id="kbdHelp" class="kbd-help-backdrop" onclick="if (event.target === this) toggleKbdHelp(false)">
+    <div class="kbd-help" role="dialog" aria-label="میانبرهای صفحه‌کلید">
+      <div class="kbd-help-head">
+        <span>میانبرهای صفحه‌کلید</span>
+        <button type="button" class="kbd-help-close" onclick="toggleKbdHelp(false)" aria-label="بستن">×</button>
+      </div>
+      <div class="kbd-group-title">عمومی</div>
+      <div class="kbd-row"><span>تب پرشین فرمتر</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
+      <div class="kbd-row"><span>تب تاریخ</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
+      <div class="kbd-row"><span>تغییر تم (روشن / تیره)</span><span class="keys"><kbd class="kbd">T</kbd></span></div>
+      <div class="kbd-row"><span>تغییر چیدمان (هدر / سایدبار)</span><span class="keys"><kbd class="kbd">B</kbd></span></div>
+      <div class="kbd-row"><span>این راهنما</span><span class="keys"><kbd class="kbd">?</kbd></span></div>
+      <div class="kbd-row"><span>خروج از فیلد متنی / جمع کردن ورودی / بستن</span><span class="keys"><kbd class="kbd">Esc</kbd></span></div>
+      <div class="kbd-group-title">پرشین فرمتر</div>
+      <div class="kbd-row"><span>Paste از کلیپ‌بورد</span><span class="keys"><kbd class="kbd">P</kbd></span></div>
+      <div class="kbd-row"><span>بارگذاری فایل</span><span class="keys"><kbd class="kbd">U</kbd></span></div>
+      <div class="kbd-row"><span>کپی ورودی</span><span class="keys"><kbd class="kbd">I</kbd></span></div>
+      <div class="kbd-row"><span>کپی خروجی</span><span class="keys"><kbd class="kbd">C</kbd></span></div>
+      <div class="kbd-row"><span>دانلود فایل</span><span class="keys"><kbd class="kbd">D</kbd></span></div>
+      <div class="kbd-row"><span>اشتراک‌گذاری</span><span class="keys"><kbd class="kbd">S</kbd></span></div>
+      <div class="kbd-row"><span>نمایش خام / پارس‌شده</span><span class="keys"><kbd class="kbd">R</kbd></span></div>
+      <div class="kbd-row"><span>ویرایش ورودی</span><span class="keys"><kbd class="kbd">E</kbd></span></div>
+      <div class="kbd-row"><span>قفل / باز کردن خروجی</span><span class="keys"><kbd class="kbd">L</kbd></span></div>
+      <div class="kbd-row"><span>پاک کردن همه</span><span class="keys"><kbd class="kbd">Shift</kbd><kbd class="kbd">K</kbd></span></div>
+      <div class="kbd-group-title">تاریخ</div>
+      <div class="kbd-row"><span>اکنون</span><span class="keys"><kbd class="kbd">N</kbd></span></div>
+      <div class="kbd-row"><span>جابه‌جایی مبدأ و مقصد</span><span class="keys"><kbd class="kbd">X</kbd></span></div>
+      <div class="kbd-help-hint">میانبرها وقتی کار می‌کنند که فوکِس داخل فیلد متنی نباشد؛ با <kbd class="kbd">Esc</kbd> از فیلد بیرون بیا. مستقل از زبان کیبورد (فیزیک دکمه) عمل می‌کنند.</div>
+    </div>
+  </div>
 
   <div id="shareToast" class="share-toast" hidden>
     <span class="share-toast-label">لینک اشتراک</span>
@@ -3112,6 +3281,8 @@
         });
       });
       cfgOutFmt.addEventListener("input", syncPresets);
+      // NOTE: focus is handled by switchTab (keyboard-opened tabs must not
+      // steal focus into a text field, or every next shortcut dies).
       dtCopy.addEventListener("click", async () => {
         const text = dtOut.textContent.trim();
         if (!text) return;
@@ -3121,8 +3292,6 @@
           setTimeout(() => dtCopy.classList.remove("copied"), 1200);
         } catch (err) { /* clipboard unavailable */ }
       });
-      dtDate.focus();
-
       loadScript("/wasm_exec.js")
         .then(() => fetch("/date.wasm"))
         .then(r => r.arrayBuffer())
@@ -3139,7 +3308,9 @@
     // Two in-place tabs in the right sidebar: Persian Formatter ⇄ Date.
     let dateInited = false;
 
-    function switchTab(name) {
+    // focusField=false is used by keyboard shortcuts: focusing a text field on
+    // switch would swallow every following single-key shortcut.
+    function switchTab(name, focusField = true) {
       const app = document.querySelector(".app");
       const isDate = name === "date";
       app.classList.toggle("tab-date", isDate);
@@ -3157,16 +3328,109 @@
         if (!dateInited) {
           dateInited = true;
           initDateApp(); // lazily loads the WASM engine the first time
-        } else {
-          document.getElementById("dtDate").focus();
         }
-      } else {
+        if (focusField) document.getElementById("dtDate").focus();
+      } else if (focusField) {
         input.focus();
       }
     }
 
     window.addEventListener("popstate", () => {
       switchTab(location.pathname === "/date" ? "date" : "format");
+    });
+
+    // ---- Keyboard shortcuts ----
+    // Matched on e.code (the physical key), so they work the same under the
+    // Persian keyboard layout. Single-letter shortcuts only fire when focus is
+    // outside text fields; Esc leaves the field first.
+    function inEditable() {
+      const el = document.activeElement;
+      if (!el) return false;
+      if (el.isContentEditable) return true;
+      return el.tagName === "TEXTAREA" || el.tagName === "INPUT" || el.tagName === "SELECT";
+    }
+
+    function toggleKbdHelp(force) {
+      const el = document.getElementById("kbdHelp");
+      el.classList.toggle("open", force !== undefined ? force : !el.classList.contains("open"));
+    }
+
+    // Flash the button a shortcut triggered, so the action has a visible echo.
+    function flashBtn(selector) {
+      const btn = document.querySelector(selector);
+      if (!btn) return;
+      btn.classList.add("kbd-flash");
+      setTimeout(() => btn.classList.remove("kbd-flash"), 350);
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.repeat) return;
+      const onDate = appEl.classList.contains("tab-date");
+
+      if (e.key === "Escape") {
+        const help = document.getElementById("kbdHelp");
+        if (help.classList.contains("open")) { toggleKbdHelp(false); return; }
+        const toast = document.getElementById("shareToast");
+        if (toast && !toast.hidden) { hideShareToast(); return; }
+        if (inEditable()) {
+          const el = document.activeElement;
+          el.blur();
+          if (el === input && input.value.trim()) collapseInput();
+          return;
+        }
+        if (!onDate && input.value.trim() &&
+            !document.getElementById("inputShell").classList.contains("collapsed")) {
+          collapseInput();
+        }
+        return;
+      }
+
+      if (e.metaKey || e.ctrlKey || e.altKey || inEditable()) return;
+
+      // "?" (Shift+/ — or plain "/") opens the help overlay.
+      if (e.code === "Slash") {
+        e.preventDefault();
+        toggleKbdHelp();
+        return;
+      }
+
+      const run = (fn, selector) => {
+        e.preventDefault();
+        if (selector) flashBtn(selector);
+        fn();
+      };
+
+      // Shift is only part of the clear shortcut.
+      if (e.shiftKey) {
+        if (e.code === "KeyK" && !onDate) run(clearAll, ".toolbar .clear");
+        return;
+      }
+
+      switch (e.code) {
+        case "Digit1": run(() => switchTab("format", false), "#tabFormat"); break;
+        case "Digit2": run(() => switchTab("date", false), "#tabDate"); break;
+        case "KeyT": run(toggleTheme, ".theme-toggle"); break;
+        case "KeyB": run(toggleLayout, ".layout-toggle"); break;
+      }
+
+      if (!onDate) {
+        switch (e.code) {
+          case "KeyP": run(pasteInput, ".toolbar .paste"); break;
+          case "KeyU": run(() => document.getElementById("fileInput").click(), ".toolbar .upload"); break;
+          case "KeyI": run(copyInput, ".toolbar .copy-input"); break;
+          case "KeyC": run(copyOutput, ".toolbar .copy"); break;
+          case "KeyD": run(downloadOutput, ".toolbar .download"); break;
+          case "KeyS": run(shareCurrent, "#shareBtn"); break;
+          case "KeyR": run(toggleRaw, "#rawToggle"); break;
+          case "KeyE": run(expandInput, ".edit-input-btn"); break;
+          case "KeyL": run(toggleLock, "#lockBtn"); break;
+        }
+      } else {
+        switch (e.code) {
+          case "KeyN": run(() => document.getElementById("dtNow").click(), "#dtNow"); break;
+          case "KeyX": run(() => document.getElementById("dtSwap").click(), "#dtSwap"); break;
+        }
+      }
     });
 
     // Open the right tab on load (/date deep-link opens the Date tab in place).
