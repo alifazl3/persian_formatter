@@ -268,14 +268,24 @@
       border-color: var(--btn);
     }
 
-    /* Icon-only squares: the key-hint chip is hidden (raw-toggle's separate
-       slot) or travels inside the label, which turns into the hover tooltip. */
-    .app.mode-sidebar .toolbar button .kbd-slot {
-      display: none;
+    /* Icon-only squares: the key-hint chip becomes a tiny badge pinned to the
+       button corner (it must not join the flex layout of the 42px square). */
+    .app.mode-sidebar .toolbar button .kbd {
+      position: absolute;
+      bottom: -6px;
+      left: -6px;
+      z-index: 2;
+      pointer-events: none;
+      font-size: 8.5px;
+      padding: 2px 4px;
+      background: var(--panel);
+      border-color: var(--border);
+      color: var(--muted);
+      opacity: 1;
     }
 
     /* label → tooltip below the icon on hover */
-    .app.mode-sidebar .toolbar button span:not(.kbd-slot) {
+    .app.mode-sidebar .toolbar button span {
       position: absolute;
       top: calc(100% + 8px);
       left: 50%;
@@ -295,7 +305,7 @@
       z-index: 20;
     }
 
-    .app.mode-sidebar .toolbar button:hover span:not(.kbd-slot) {
+    .app.mode-sidebar .toolbar button:hover span {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
@@ -1882,7 +1892,7 @@
               <rect x="8" y="2" width="8" height="4" rx="1"></rect>
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
             </svg>
-            <span>Paste <kbd class="kbd">P</kbd></span>
+            <span>Paste</span><kbd class="kbd">P</kbd>
           </button>
           <button class="upload" type="button" onclick="document.getElementById('fileInput').click()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1890,7 +1900,7 @@
               <polyline points="17 8 12 3 7 8"></polyline>
               <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
-            <span>بارگذاری فایل <kbd class="kbd">U</kbd></span>
+            <span>بارگذاری فایل</span><kbd class="kbd">U</kbd>
           </button>
         </div>
 
@@ -1901,14 +1911,14 @@
               <rect x="9" y="9" width="13" height="13" rx="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
-            <span>کپی ورودی <kbd class="kbd">I</kbd></span>
+            <span>کپی ورودی</span><kbd class="kbd">I</kbd>
           </button>
           <button class="copy" onclick="copyOutput()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="9" y="9" width="13" height="13" rx="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
-            <span>کپی خروجی <kbd class="kbd">C</kbd></span>
+            <span>کپی خروجی</span><kbd class="kbd">C</kbd>
           </button>
           <button class="download" onclick="downloadOutput()" title="دانلود خروجی به‌صورت فایل Markdown">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1916,7 +1926,7 @@
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            <span>دانلود فایل <kbd class="kbd">D</kbd></span>
+            <span>دانلود فایل</span><kbd class="kbd">D</kbd>
           </button>
           <button class="share" id="shareBtn" onclick="shareCurrent()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1926,7 +1936,7 @@
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
-            <span>اشتراک‌گذاری <kbd class="kbd">S</kbd></span>
+            <span>اشتراک‌گذاری</span><kbd class="kbd">S</kbd>
           </button>
         </div>
 
@@ -1937,7 +1947,7 @@
               <polyline points="16 18 22 12 16 6"></polyline>
               <polyline points="8 6 2 12 8 18"></polyline>
             </svg>
-            <span class="raw-label">خام</span><span class="kbd-slot"><kbd class="kbd">R</kbd></span>
+            <span class="raw-label">خام</span><kbd class="kbd">R</kbd>
           </button>
           <button class="clear" onclick="clearAll()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1945,7 +1955,7 @@
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
               <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
-            <span>پاک کردن <kbd class="kbd">⇧K</kbd></span>
+            <span>پاک کردن</span><kbd class="kbd">⇧K</kbd>
           </button>
         </div>
       </div>
