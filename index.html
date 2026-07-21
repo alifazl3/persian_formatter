@@ -1718,6 +1718,12 @@
     }
 
     /* Problem-report widget on shared pages (bottom corner, above nothing else) */
+    /* display:flex below would defeat the hidden attribute — restore it. */
+    .report-widget[hidden],
+    .report-panel[hidden] {
+      display: none;
+    }
+
     .report-widget {
       position: fixed;
       bottom: 18px;
