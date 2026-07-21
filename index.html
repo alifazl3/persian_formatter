@@ -1910,7 +1910,7 @@
             </svg>
             <span>کپی خروجی <kbd class="kbd">C</kbd></span>
           </button>
-          <button class="download" onclick="downloadOutput()" title="دانلود خروجی به‌صورت فایل متنی">
+          <button class="download" onclick="downloadOutput()" title="دانلود خروجی به‌صورت فایل Markdown">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
@@ -2869,45 +2869,114 @@
       await navigator.clipboard.writeText(text);
     }
 
-    // The output text without the UI chrome (per-box copy buttons, lang badges).
-    function outputText() {
+    // ---- Output → Markdown serialization ----
+    // The renderer flattens everything to styled HTML; for copy/export we walk
+    // that small fixed set of node shapes back into Markdown, so headings,
+    // lists, tables and code fences survive instead of collapsing to flat text.
+    function inlineMdOf(node) {
+      let out = "";
+      node.childNodes.forEach(n => {
+        if (n.nodeType === Node.TEXT_NODE) { out += n.textContent; return; }
+        if (n.nodeType !== Node.ELEMENT_NODE) return;
+        if (n.classList.contains("code-copy") || n.classList.contains("lang")) return;
+        switch (n.tagName) {
+          case "STRONG": out += `**${inlineMdOf(n)}**`; break;
+          case "CODE": out += "`" + inlineMdOf(n) + "`"; break;
+          case "A": out += `[${inlineMdOf(n)}](${n.getAttribute("href") || ""})`; break;
+          default: out += inlineMdOf(n);
+        }
+      });
+      return out;
+    }
+
+    function tableToMd(wrap) {
+      const rows = Array.from(wrap.querySelectorAll("tr"));
+      if (!rows.length) return "";
+      const cells = r => Array.from(r.children).map(c => inlineMdOf(c).trim().replaceAll("|", "\\|"));
+      const head = cells(rows[0]);
+      const lines = [
+        `| ${head.join(" | ")} |`,
+        `| ${head.map(() => "---").join(" | ")} |`
+      ];
+      rows.slice(1).forEach(r => lines.push(`| ${cells(r).join(" | ")} |`));
+      return lines.join("\n");
+    }
+
+    function blockNodeToMd(el) {
+      const c = el.classList;
+      const heading = el.className.match(/md-h([1-6])/);
+      if (heading) return "#".repeat(+heading[1]) + " " + inlineMdOf(el).trim();
+      if (el.tagName === "UL") return Array.from(el.children).map(li => "- " + inlineMdOf(li).trim()).join("\n");
+      if (el.tagName === "BLOCKQUOTE") return "> " + inlineMdOf(el).trim();
+      if (el.tagName === "HR" || c.contains("md-hr")) return "---";
+      if (c.contains("table-wrap")) return tableToMd(el);
+      if (el.tagName === "PRE") {
+        const lang = el.getAttribute("data-lang") || "";
+        const code = el.querySelector("code");
+        return "```" + lang + "\n" + (code ? code.innerText.replace(/\n+$/, "") : "") + "\n```";
+      }
+      if (c.contains("jsonview")) return "```json\n" + (el.getAttribute("data-json") || "") + "\n```";
+      if (c.contains("title")) return "### " + inlineMdOf(el).trim();
+      if (c.contains("empty")) return "";
+      return inlineMdOf(el).trim(); // .paragraph and anything text-like
+    }
+
+    function outputMarkdown() {
+      if (rawMode) return input.value.trim();
+      const parts = [];
+      preview.querySelectorAll(":scope > .block").forEach(block => {
+        Array.from(block.children).forEach(ch => {
+          const md = blockNodeToMd(ch);
+          if (md) parts.push(md);
+        });
+      });
+      return parts.join("\n\n").trim();
+    }
+
+    // The rendered HTML without UI chrome — used as the rich clipboard flavor.
+    function cleanedOutputHtml() {
       const clone = preview.cloneNode(true);
-      clone.querySelectorAll(".code-copy, .lang").forEach(el => el.remove());
+      clone.querySelectorAll(".code-copy, .lang, .json-bar").forEach(el => el.remove());
       clone.removeAttribute("id");
-      clone.style.position = "absolute";
-      clone.style.left = "-99999px";
-      document.body.appendChild(clone);
-      const text = clone.innerText.trim();
-      document.body.removeChild(clone);
-      return text;
+      return `<div dir="rtl">${clone.innerHTML}</div>`;
     }
 
     async function copyOutput() {
-      const text = outputText();
-      if (!text) return;
-      await navigator.clipboard.writeText(text);
+      const md = outputMarkdown();
+      if (!md) return;
+      try {
+        // text/plain carries the Markdown; text/html keeps the rendered look
+        // when pasting into rich editors (Docs / Word / Notes).
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/plain": new Blob([md], { type: "text/plain" }),
+          "text/html": new Blob([cleanedOutputHtml()], { type: "text/html" })
+        })]);
+      } catch (err) {
+        try { await navigator.clipboard.writeText(md); } catch (e2) { /* unavailable */ }
+      }
     }
 
-    // Export the formatted output as a downloadable .txt file. Uses the raw
-    // markdown when raw view is on, otherwise the cleaned plain text.
+    // Export the output as a Markdown file.
     function downloadOutput() {
-      const text = rawMode ? input.value.trim() : outputText();
+      const text = outputMarkdown();
       if (!text) return;
 
       const d = new Date();
       const pad = (n) => String(n).padStart(2, "0");
       const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
-      const ext = rawMode ? "md" : "txt";
 
-      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `persian-formatter-${stamp}.${ext}`;
+      a.download = `persian-formatter-${stamp}.md`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Revoking synchronously aborts the download in Safari — defer cleanup.
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1500);
     }
 
     async function copyCode(btn) {
