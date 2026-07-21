@@ -2,8 +2,11 @@ import { config } from "./config";
 import { pool } from "./db/pool";
 import { migrate } from "./db/migrate";
 import { PgShareRepository } from "./repositories/shareRepository";
+import { PgReportRepository } from "./repositories/reportRepository";
 import { ShareService } from "./services/shareService";
+import { ReportService } from "./services/reportService";
 import { ShareHandler } from "./handlers/shareHandler";
+import { ReportHandler } from "./handlers/reportHandler";
 import { createApp } from "./app";
 
 async function main(): Promise<void> {
@@ -14,7 +17,11 @@ async function main(): Promise<void> {
   const service = new ShareService(repository, config.maxContentLength);
   const handler = new ShareHandler(service);
 
-  const app = createApp(handler);
+  const reportRepository = new PgReportRepository(pool);
+  const reportService = new ReportService(reportRepository, repository);
+  const reportHandler = new ReportHandler(reportService, config.adminToken);
+
+  const app = createApp(handler, reportHandler);
   app.listen(config.port, () => {
     console.log(`Server listening on http://0.0.0.0:${config.port}`);
   });

@@ -8,6 +8,8 @@ export interface Config {
   readonly publicDir: string;
   /** Maximum length (in characters) of a shared document. */
   readonly maxContentLength: number;
+  /** Token guarding GET /api/reports; empty disables the endpoint. */
+  readonly adminToken: string;
 }
 
 function requireEnv(name: string, fallback?: string): string {
@@ -38,4 +40,5 @@ export const config: Config = {
   // repo root where index.html sits. In Docker this is overridden via PUBLIC_DIR.
   publicDir: process.env.PUBLIC_DIR ?? path.resolve(__dirname, "..", ".."),
   maxContentLength: numberEnv("MAX_CONTENT_LENGTH", 200_000),
+  adminToken: process.env.ADMIN_TOKEN ?? "",
 };

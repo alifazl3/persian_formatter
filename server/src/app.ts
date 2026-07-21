@@ -2,15 +2,19 @@ import express, { Application } from "express";
 import path from "path";
 import { config } from "./config";
 import { ShareHandler } from "./handlers/shareHandler";
+import { ReportHandler } from "./handlers/reportHandler";
 import { createApiRouter } from "./routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 /** Builds the Express application: JSON API under /api + the static frontend. */
-export function createApp(shareHandler: ShareHandler): Application {
+export function createApp(
+  shareHandler: ShareHandler,
+  reportHandler: ReportHandler
+): Application {
   const app = express();
   app.use(express.json({ limit: "1mb" }));
 
-  app.use("/api", createApiRouter(shareHandler));
+  app.use("/api", createApiRouter(shareHandler, reportHandler));
 
   // Static frontend. The share view (/s/:id) serves the same SPA; the client
   // reads the id from the path and fetches the content from the API.

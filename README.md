@@ -17,6 +17,8 @@
 |--------|------|-----|
 | `POST` | `/api/shares` | ذخیرهٔ `{ content }` → `{ id, url }` |
 | `GET`  | `/api/shares/:id` | خواندن یک share |
+| `POST` | `/api/shares/:id/reports` | ثبت گزارش مشکل بیننده روی صفحهٔ اشتراکی، با `{ note? }` اختیاری |
+| `GET`  | `/api/reports` | فهرست گزارش‌ها (ادمین)؛ نیاز به هدر `x-admin-token` برابر `ADMIN_TOKEN`. بدون ست بودن `ADMIN_TOKEN` غیرفعال است |
 | `GET`  | `/s/:id` | همان SPA؛ کلاینت id را از مسیر می‌خواند و محتوا را fetch می‌کند |
 
 ## اجرا با Docker Compose (پیشنهادی)
@@ -49,6 +51,7 @@ npm run dev          # یا: npm run build && npm start
 | `DATABASE_URL` | `postgres://postgres:mysecretpassword@localhost:5432/persian_formatter` | اتصال Postgres |
 | `PUBLIC_DIR` | ریشهٔ مخزن | پوشهٔ شامل `index.html` |
 | `MAX_CONTENT_LENGTH` | `200000` | حداکثر طول متن قابل اشتراک |
+| `ADMIN_TOKEN` | *(خالی)* | توکن هدر `x-admin-token` برای `GET /api/reports`؛ خالی = endpoint غیرفعال |
 
 > نکته: اگر می‌خواهی به یک Postgres موجود وصل شوی (مثل همان `localhost:6432`)، فقط `DATABASE_URL` را ست کن و سرویس `postgres` در `docker-compose.yml` را حذف کن.
 

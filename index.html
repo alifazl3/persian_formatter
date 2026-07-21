@@ -1717,6 +1717,111 @@
       box-shadow: 0 0 0 4px var(--glow) !important;
     }
 
+    /* Problem-report widget on shared pages (bottom corner, above nothing else) */
+    .report-widget {
+      position: fixed;
+      bottom: 18px;
+      left: 18px;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .report-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 700;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .report-btn:hover {
+      color: var(--warning);
+      border-color: var(--warning);
+      filter: none;
+    }
+
+    .report-panel {
+      width: min(320px, calc(100vw - 36px));
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 14px 44px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .report-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .report-panel textarea {
+      width: 100%;
+      resize: vertical;
+      min-height: 64px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .report-panel textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .report-send {
+      background: var(--accent);
+      color: white;
+      font-size: 12.5px;
+      padding: 8px 14px;
+      border-radius: 10px;
+    }
+
+    .report-send:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .report-cancel {
+      background: var(--panel-soft);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 12.5px;
+      padding: 8px 14px;
+      border-radius: 10px;
+    }
+
+    .report-status {
+      font-size: 12px;
+      min-height: 0;
+      color: var(--muted);
+    }
+
+    .report-status.ok { color: var(--success); }
+    .report-status.err { color: var(--warning); }
+    .report-status:empty { display: none; }
+
     /* Shortcut help overlay (?) */
     .kbd-help-backdrop {
       position: fixed;
@@ -2110,6 +2215,26 @@
     </footer>
   </main>
 
+
+  <!-- Problem-report widget, shown only on shared (/s/:id) pages. -->
+  <div id="reportWidget" class="report-widget" hidden>
+    <div id="reportPanel" class="report-panel" hidden>
+      <div class="report-title">گزارش مشکل این صفحه</div>
+      <textarea id="reportNote" rows="3" maxlength="2000" placeholder="اگر خواستی توضیح بده (اختیاری)…"></textarea>
+      <div class="report-actions">
+        <button type="button" class="report-send" id="reportSend">ارسال گزارش</button>
+        <button type="button" class="report-cancel" id="reportCancel">انصراف</button>
+      </div>
+      <div class="report-status" id="reportStatus"></div>
+    </div>
+    <button type="button" class="report-btn" id="reportBtn">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+        <line x1="4" y1="22" x2="4" y2="15"></line>
+      </svg>
+      <span>گزارش مشکل</span>
+    </button>
+  </div>
 
   <div id="kbdHelp" class="kbd-help-backdrop" onclick="if (event.target === this) toggleKbdHelp(false)">
     <div class="kbd-help" role="dialog" aria-label="میانبرهای صفحه‌کلید">
@@ -3179,6 +3304,7 @@
             input.value = data.content;
             render();
             collapseInput();
+            initReportWidget(match[1]);
           })
           .catch(() => {
             preview.innerHTML = '<div class="empty">این لینک اشتراک پیدا نشد یا منقضی شده است.</div>';
@@ -3189,6 +3315,65 @@
       input.value = "";
       input.focus();
     })();
+
+    // ---- Problem reports on shared pages ----
+    // Viewers of a /s/:id page get a small floating button to report that the
+    // page renders wrong, with an optional note. Reports are stored server-side.
+    function initReportWidget(shareId) {
+      const widget = document.getElementById("reportWidget");
+      const panel = document.getElementById("reportPanel");
+      const note = document.getElementById("reportNote");
+      const btn = document.getElementById("reportBtn");
+      const send = document.getElementById("reportSend");
+      const cancel = document.getElementById("reportCancel");
+      const status = document.getElementById("reportStatus");
+
+      widget.hidden = false;
+
+      const setStatus = (text, cls) => {
+        status.textContent = text;
+        status.className = "report-status" + (cls ? ` ${cls}` : "");
+      };
+
+      const closePanel = () => {
+        panel.hidden = true;
+        setStatus("", "");
+      };
+
+      btn.addEventListener("click", () => {
+        panel.hidden = !panel.hidden;
+        if (!panel.hidden) note.focus();
+      });
+      cancel.addEventListener("click", closePanel);
+
+      send.addEventListener("click", async () => {
+        send.disabled = true;
+        setStatus("در حال ارسال…", "");
+        try {
+          const res = await fetch(`/api/shares/${shareId}/reports`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ note: note.value.trim() })
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          setStatus("گزارشت ثبت شد؛ ممنون ✓", "ok");
+          note.value = "";
+          setTimeout(closePanel, 1600);
+        } catch (err) {
+          setStatus("ارسال نشد؛ دوباره تلاش کن", "err");
+        } finally {
+          send.disabled = false;
+        }
+      });
+
+      // Esc inside the note closes the panel (before the global handler blurs).
+      note.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          closePanel();
+        }
+      });
+    }
 
     // ---- Date-converter view (/date), powered by Go compiled to WASM ----
     function loadScript(src) {
@@ -3457,6 +3642,8 @@
         if (help.classList.contains("open")) { toggleKbdHelp(false); return; }
         const toast = document.getElementById("shareToast");
         if (toast && !toast.hidden) { hideShareToast(); return; }
+        const reportPanel = document.getElementById("reportPanel");
+        if (reportPanel && !reportPanel.hidden) { reportPanel.hidden = true; return; }
         if (inEditable()) {
           const el = document.activeElement;
           el.blur();
