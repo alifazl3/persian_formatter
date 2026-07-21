@@ -2133,7 +2133,7 @@
       <div class="kbd-row"><span>اشتراک‌گذاری</span><span class="keys"><kbd class="kbd">S</kbd></span></div>
       <div class="kbd-row"><span>نمایش خام / پارس‌شده</span><span class="keys"><kbd class="kbd">R</kbd></span></div>
       <div class="kbd-row"><span>ویرایش ورودی</span><span class="keys"><kbd class="kbd">E</kbd></span></div>
-      <div class="kbd-row"><span>قفل / باز کردن خروجی</span><span class="keys"><kbd class="kbd">L</kbd></span></div>
+      <div class="kbd-row"><span>قفل / باز کردن خروجی (Ctrl/⌘+L حتی وسط ویرایش)</span><span class="keys"><kbd class="kbd">L</kbd><kbd class="kbd">⌘L</kbd></span></div>
       <div class="kbd-row"><span>پاک کردن همه</span><span class="keys"><kbd class="kbd">Shift</kbd><kbd class="kbd">K</kbd></span></div>
       <div class="kbd-group-title">تاریخ</div>
       <div class="kbd-row"><span>اکنون</span><span class="keys"><kbd class="kbd">N</kbd></span></div>
@@ -3467,6 +3467,17 @@
             !document.getElementById("inputShell").classList.contains("collapsed")) {
           collapseInput();
         }
+        return;
+      }
+
+      // Cmd/Ctrl+L toggles the output lock even while typing inside the
+      // editable output, where plain L would just insert a letter. (Cmd+L is
+      // reserved by some browsers for the address bar; Ctrl+L always works.)
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === "KeyL" && !onDate) {
+        e.preventDefault();
+        flashBtn("#lockBtn");
+        if (outputEditable && document.activeElement === preview) preview.blur();
+        toggleLock();
         return;
       }
 
