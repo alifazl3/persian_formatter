@@ -2511,17 +2511,40 @@
       return /[─-╿]/.test(text);
     }
 
+    // Whitespace doing real work: lines pushed in from the margin, or columns
+    // held apart by runs of spaces. A Persian sentence has neither, so an
+    // accidental double space cannot trip this — two such lines are needed.
+    // A diagram or a dump of aligned output always has them, and reflowing it
+    // as prose throws the layout away.
+    function hasStructuralWhitespace(text) {
+      const lines = text.split("\n").filter(line => line.trim());
+      if (lines.length < 2) return false;
+
+      const structural = lines.filter(line => /^ {2,}\S/.test(line) || /\S {2,}\S/.test(line));
+      return structural.length >= 2;
+    }
+
     // Decide whether a block is real code (LTR monospace) or prose. A fenced
     // block with a real language tag (```js) is always code; box-drawing art is
-    // always code; otherwise we only treat it as code when it is barely Persian.
+    // always code; a fence whose whitespace carries the meaning is code even in
+    // Persian; otherwise we only treat it as code when it is barely Persian.
     function isCodeBlock(content, lang) {
       const isFenced = lang !== null;
       const realLang = isFenced && lang && !TEXTY_FENCES.includes(lang);
 
       if (isBoxDrawing(content)) return true;
       if (realLang) return true;
+      if (isFenced && hasStructuralWhitespace(content)) return true;
       if (isFenced && persianRatio(content) < 0.2) return true;
       return false;
+    }
+
+    // Code that is not a language: box-drawing art, or a bare/```text fence
+    // that is mostly Persian — a diagram, a dump of output. highlight.js would
+    // auto-detect nonsense from it and stamp on a language badge it never had.
+    function isUnhighlightable(content, lang) {
+      const realLang = lang && !TEXTY_FENCES.includes(lang);
+      return isBoxDrawing(content) || (!realLang && persianRatio(content) >= 0.2);
     }
 
     // A line that is nothing but a fence: ``` or ```js or ```text.
@@ -2867,9 +2890,9 @@
         }
 
         if (isCodeBlock(content, lang)) {
-          // Box-drawing art is not a language — mark it plain so the highlighter
-          // skips it (it would mangle the ASCII table). Still gets a copy button.
-          if (isBoxDrawing(content)) {
+          // Art is not a language — mark it plain so the highlighter skips it
+          // (it would mangle the layout). Still gets a copy button.
+          if (isUnhighlightable(content, lang)) {
             return `
               <div class="block">
                 <pre class="code plain">${CODE_COPY_BTN}<code>${decorate(content)}</code></pre>
