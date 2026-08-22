@@ -2511,13 +2511,20 @@
       return /[─-╿]/.test(text);
     }
 
+    // A list item is indented too, but that indentation is nesting the prose
+    // renderer already understands — it must not count as layout to preserve,
+    // or a fenced nested list turns into a code box.
+    function isListLine(line) {
+      return isBulletLine(line) || /^\s*[0-9\u06F0-\u06F9]+[.)]\s+/.test(line);
+    }
+
     // Whitespace doing real work: lines pushed in from the margin, or columns
     // held apart by runs of spaces. A Persian sentence has neither, so an
     // accidental double space cannot trip this — two such lines are needed.
     // A diagram or a dump of aligned output always has them, and reflowing it
     // as prose throws the layout away.
     function hasStructuralWhitespace(text) {
-      const lines = text.split("\n").filter(line => line.trim());
+      const lines = text.split("\n").filter(line => line.trim() && !isListLine(line));
       if (lines.length < 2) return false;
 
       const structural = lines.filter(line => /^ {2,}\S/.test(line) || /\S {2,}\S/.test(line));
