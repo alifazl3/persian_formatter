@@ -2524,14 +2524,16 @@
       return false;
     }
 
-    // Drop every standalone fence line (```、```js、```text …) wherever it sits.
-    // splitBlocks may separate an opening and closing fence into different
-    // blocks when the fenced content has blank lines, so position-based removal
-    // is not enough — strip any line that is purely a fence.
+    // A line that is nothing but a fence: ``` or ```js or ```text.
+    const FENCE_LINE = /^\s*```[A-Za-z0-9_+#-]*\s*$/;
+
+    // Drop every standalone fence line wherever it sits. splitBlocks keeps a
+    // paired fence whole, so normally they sit at the edges — but an unpaired
+    // ``` stays inline, so position-based removal is not enough.
     function stripFence(block) {
       return block
         .split("\n")
-        .filter(line => !/^\s*```[A-Za-z0-9_+#-]*\s*$/.test(line))
+        .filter(line => !FENCE_LINE.test(line))
         .join("\n")
         .replace(/^\n+|\n+$/g, "");
     }
@@ -2755,12 +2757,50 @@
       return html;
     }
 
+    // Blocks are separated by blank lines — except inside a fenced code block,
+    // where a blank line is part of the code and must not tear the fence apart.
+    // An opening fence only starts a fenced block when a closing fence really
+    // follows; an unpaired ``` stays ordinary text instead of swallowing the
+    // rest of the document into one code box.
     function splitBlocks(text) {
-      return text
-        .replace(/\r/g, "")
-        .split(/\n{2,}/)
-        .map(block => block.trim())
-        .filter(Boolean);
+      const lines = text.replace(/\r/g, "").split("\n");
+      const blocks = [];
+      let buffer = [];
+      let fenced = false;
+
+      const flush = () => {
+        const block = buffer.join("\n").trim();
+        if (block) blocks.push(block);
+        buffer = [];
+      };
+
+      lines.forEach((line, i) => {
+        if (fenced) {
+          buffer.push(line);
+          if (FENCE_LINE.test(line)) {
+            fenced = false;
+            flush();
+          }
+          return;
+        }
+
+        if (FENCE_LINE.test(line) && lines.some((l, j) => j > i && FENCE_LINE.test(l))) {
+          flush();
+          buffer.push(line);
+          fenced = true;
+          return;
+        }
+
+        if (!line.trim()) {
+          flush();
+          return;
+        }
+
+        buffer.push(line);
+      });
+
+      flush();
+      return blocks;
     }
 
     // Drop Arabic diacritics (kasra, fatha, …) that sit on a NON-Arabic base —
