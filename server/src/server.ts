@@ -8,6 +8,8 @@ import { ReportService } from "./services/reportService";
 import { ShareHandler } from "./handlers/shareHandler";
 import { ReportHandler } from "./handlers/reportHandler";
 import { createApp } from "./app";
+import { createAuthRouter, AuthRouter } from "./auth";
+import { createLibraryRouter } from "./library";
 
 async function main(): Promise<void> {
   await migrate(pool);
@@ -21,7 +23,9 @@ async function main(): Promise<void> {
   const reportService = new ReportService(reportRepository, repository);
   const reportHandler = new ReportHandler(reportService, config.adminToken);
 
-  const app = createApp(handler, reportHandler);
+  const authRouter = createAuthRouter(pool) as AuthRouter;
+  const libraryRouter = createLibraryRouter(pool, authRouter, config.maxContentLength);
+  const app = createApp(handler, reportHandler, authRouter, libraryRouter);
   app.listen(config.port, () => {
     console.log(`Server listening on http://0.0.0.0:${config.port}`);
   });

@@ -11,6 +11,8 @@
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="stylesheet" href="/library.css" />
+  <meta name="referrer" content="no-referrer" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Pretty Text" />
@@ -2049,6 +2051,15 @@
             </svg>
             <span>اشتراک‌گذاری</span><kbd class="kbd">S</kbd>
           </button>
+          <button class="share" id="saveBtn" type="button" onclick="saveCurrent()" title="ذخیره متن فعلی">
+            <span>ذخیره</span>
+          </button>
+          <button class="share" type="button" onclick="openLibrary()">
+            <span>کتابخانه</span>
+          </button>
+          <button class="share" id="accountBtn" type="button" onclick="openAccount()">
+            <span>ورود</span>
+          </button>
         </div>
 
         <div class="tool-group">
@@ -2291,14 +2302,45 @@
     </div>
   </div>
 
+  <div id="libraryBackdrop" class="library-backdrop" hidden>
+    <section class="library-panel" role="dialog" aria-modal="true" aria-labelledby="libraryTitle">
+      <header class="library-header">
+        <div><h2 id="libraryTitle">کتابخانه</h2><p id="librarySubtitle">متن‌های ذخیره‌شده و فولدرها</p></div>
+        <button type="button" id="libraryScopeBtn" onclick="switchLibraryScope()" hidden>کتابخانهٔ من</button>
+        <button type="button" class="library-close" onclick="closeLibrary()" aria-label="بستن">×</button>
+      </header>
+      <div id="libraryMessage" class="library-message" role="status"></div>
+      <div id="libraryControls" class="library-controls">
+        <button type="button" onclick="createFolder()">فولدر جدید</button>
+        <label>نمایش <select id="libraryFolderFilter" onchange="renderLibrary()"><option value="all">همه</option></select></label>
+      </div>
+      <div id="libraryFolders" class="library-folders"></div>
+      <div id="libraryItems" class="library-items"></div>
+    </section>
+  </div>
+
+  <div id="accountBackdrop" class="library-backdrop" hidden>
+    <section class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+      <header class="library-header"><h2 id="accountTitle">حساب کاربری</h2><button type="button" class="library-close" onclick="closeAccount()" aria-label="بستن">×</button></header>
+      <p id="accountState">در حال بررسی…</p>
+      <label class="account-email-label">ایمیل<input id="accountEmail" type="email" autocomplete="username webauthn" dir="ltr" placeholder="name@example.com" /></label>
+      <div class="account-actions">
+        <button type="button" onclick="registerPasskey()">ساخت حساب با passkey</button>
+        <button type="button" onclick="loginPasskey()">ورود با passkey</button>
+        <button type="button" id="logoutBtn" onclick="logoutAccount()" hidden>خروج</button>
+      </div>
+      <p class="account-note">ایمیل برای شناسایی حساب است و پیام تأیید فرستاده نمی‌شود. برای ورود دوباره به passkey خود نیاز دارید.</p>
+      <p id="accountMessage" class="library-message" role="status"></p>
+    </section>
+  </div>
+
   <script>
     const input = document.getElementById("input");
     const preview = document.getElementById("preview");
 
     input.addEventListener("input", render);
 
-    // Nothing is persisted; instead, warn before an accidental refresh/close so
-    // the text isn't lost without confirmation.
+    // Warn before an accidental refresh/close while text is in the editor.
     window.addEventListener("beforeunload", (event) => {
       if (input.value.trim()) {
         event.preventDefault();
@@ -2320,6 +2362,7 @@
     // Pasting with Ctrl/Cmd+V collapses the editor too (not just the button).
     // Defer one tick so the pasted text is in place before we collapse.
     input.addEventListener("paste", () => {
+      if (!editingInput) activeSavedItem = null;
       setTimeout(() => {
         if (!editingInput && input.value.trim()) {
           collapseInput();
@@ -2339,6 +2382,7 @@
         const text = await navigator.clipboard.readText();
         if (!text.trim()) return;
         input.value = text;
+        activeSavedItem = null;
         render();
         expandInput();        // keep open & focused for review
         pendingAutoPaste = true;
@@ -2929,6 +2973,7 @@
       try {
         const text = await navigator.clipboard.readText();
         input.value = text;
+        activeSavedItem = null;
         render();
         // Explicit fresh paste via the button → always collapse (ends editing).
         if (text.trim()) collapseInput();
@@ -2945,6 +2990,7 @@
       const reader = new FileReader();
       reader.onload = () => {
         input.value = typeof reader.result === "string" ? reader.result : "";
+        activeSavedItem = null;
         render();
         if (input.value.trim()) collapseInput();
         scrollToTop();
@@ -3155,6 +3201,7 @@
 
     function clearAll() {
       input.value = "";
+      activeSavedItem = null;
       render();
       // Fresh start: open the editor but stay out of editing mode, so the next
       // paste collapses it again.
@@ -3732,5 +3779,6 @@
       });
     }
   </script>
+  <script src="/library.js"></script>
 </body>
 </html>
