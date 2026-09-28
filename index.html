@@ -148,6 +148,12 @@
       grid-area: footer;
     }
 
+    .library-island { grid-area: library; }
+    .profile-island { grid-area: profile; }
+
+    .app.mode-header .right-rail,
+    .app.mode-header .left-rail { display: contents; }
+
     /* Header mode: text + tools on one top row, content full-width below. */
     .app.mode-header {
       grid-template-columns: 1fr auto;
@@ -155,8 +161,9 @@
         "text tools"
         "input input"
         "preview preview"
+        "library profile"
         "footer footer";
-      align-items: center;
+      align-items: start;
     }
 
     .app.mode-header .head-text {
@@ -166,19 +173,32 @@
     /* Sidebar mode: header removed; text becomes the right sidebar, tools the
        left sidebar, with the input/output stacked in the center. */
     .app.mode-sidebar {
-      max-width: 1300px;
-      grid-template-columns: 230px minmax(0, 1fr) 190px;
+      max-width: 1500px;
+      grid-template-columns: 260px minmax(0, 1fr) 220px;
       grid-template-areas:
-        "text input tools"
-        "text preview tools"
+        "right input left"
+        "right preview left"
         "footer footer footer";
       align-items: start;
     }
 
+    .app.mode-sidebar .right-rail,
+    .app.mode-sidebar .left-rail {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+      align-content: start;
+    }
+
+    .app.mode-sidebar .right-rail { grid-area: right; }
+    .app.mode-sidebar .left-rail { grid-area: left; position: sticky; top: 20px; }
+    .app.mode-sidebar .head-text,
+    .app.mode-sidebar .toolbar,
+    .app.mode-sidebar .library-island,
+    .app.mode-sidebar .profile-island { grid-area: auto; }
+
     .app.mode-sidebar .head-text,
     .app.mode-sidebar .toolbar {
-      position: sticky;
-      top: 20px;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 18px;
@@ -262,6 +282,7 @@
     .app.mode-sidebar .toolbar button.copy { --btn: #6fa07a; }
     .app.mode-sidebar .toolbar button.download { --btn: #8a7fc0; }
     .app.mode-sidebar .toolbar button.share { --btn: #c0925f; }
+    .app.mode-sidebar .toolbar button.save { --btn: #6fa07a; }
     .app.mode-sidebar .toolbar button.raw-toggle { --btn: #8a8fa0; }
     .app.mode-sidebar .toolbar button.clear { --btn: #bd7676; }
 
@@ -312,22 +333,33 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    @media (max-width: 820px) {
+    @media (max-width: 1100px) {
       /* Narrow screens always stack — sidebars would be too cramped. */
       .app.mode-sidebar {
         max-width: 1100px;
         grid-template-columns: 1fr;
         grid-template-areas:
-          "text"
-          "tools"
+          "right"
+          "left"
           "input"
           "preview"
           "footer";
       }
 
-      .app.mode-sidebar .head-text,
-      .app.mode-sidebar .toolbar {
+      .app.mode-sidebar .left-rail {
         position: static;
+      }
+
+      .app.mode-sidebar.tab-date .date-view {
+        grid-column: 1;
+        grid-row: auto;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .app.mode-header {
+        grid-template-columns: 1fr;
+        grid-template-areas: "text" "tools" "input" "preview" "library" "profile" "footer";
       }
     }
 
@@ -1181,9 +1213,9 @@
       display: none;
     }
 
-    /* In sidebar mode let the date view use the freed tools column too. */
+    /* Keep the date view between the library and profile islands. */
     .app.mode-sidebar.tab-date .date-view {
-      grid-column: 2 / 4;
+      grid-column: 2;
       grid-row: 1 / 3;
     }
 
@@ -1966,6 +1998,7 @@
 <body>
   <main class="app">
     <header id="appHeader">
+      <div class="right-rail">
       <div class="head-text">
         <div class="head-title-row">
           <h1>Pretty Text Viewer</h1>
@@ -1995,6 +2028,24 @@
         </div>
       </div>
 
+  <section id="libraryBackdrop" class="library-island" aria-labelledby="libraryTitle">
+    <div class="library-panel">
+      <header class="library-header">
+        <div><h2 id="libraryTitle">کتابخانه</h2><p id="librarySubtitle">متن‌های ذخیره‌شده و فولدرها</p></div>
+        <button type="button" id="libraryScopeBtn" onclick="switchLibraryScope()" hidden>کتابخانهٔ من</button>
+      </header>
+      <div id="libraryMessage" class="library-message" role="status"></div>
+      <div id="libraryControls" class="library-controls">
+        <button type="button" onclick="createFolder()">فولدر جدید</button>
+        <label>نمایش <select id="libraryFolderFilter" onchange="renderLibrary()"><option value="all">همه</option></select></label>
+      </div>
+      <section class="library-section" aria-labelledby="libraryFoldersTitle"><h3 id="libraryFoldersTitle">فولدرها</h3><div id="libraryFolders" class="library-folders"></div></section>
+      <section class="library-section" aria-labelledby="libraryItemsTitle"><h3 id="libraryItemsTitle">ذخیره‌شده‌ها</h3><div id="libraryItems" class="library-items"></div></section>
+    </div>
+  </section>
+
+      </div>
+      <div class="left-rail">
       <div class="toolbar">
         <input type="file" id="fileInput" hidden onchange="handleFileUpload(event)" />
 
@@ -2051,14 +2102,9 @@
             </svg>
             <span>اشتراک‌گذاری</span><kbd class="kbd">S</kbd>
           </button>
-          <button class="share" id="saveBtn" type="button" onclick="saveCurrent()" title="ذخیره متن فعلی">
+          <button class="save" id="saveBtn" type="button" onclick="saveCurrent()" title="ذخیره متن فعلی">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path><path d="M17 21v-8H7v8M7 3v5h8"></path></svg>
             <span>ذخیره</span>
-          </button>
-          <button class="share" type="button" onclick="openLibrary()">
-            <span>کتابخانه</span>
-          </button>
-          <button class="share" id="accountBtn" type="button" onclick="openAccount()">
-            <span>ورود</span>
           </button>
         </div>
 
@@ -2080,6 +2126,22 @@
             <span>پاک کردن</span><kbd class="kbd">⇧K</kbd>
           </button>
         </div>
+      </div>
+  <section id="accountBackdrop" class="profile-island" aria-labelledby="accountTitle">
+    <div class="account-panel">
+      <header class="library-header"><h2 id="accountTitle">پروفایل</h2></header>
+      <p id="accountState">در حال بررسی…</p>
+      <label class="account-email-label">ایمیل<input id="accountEmail" type="email" autocomplete="username webauthn" dir="ltr" placeholder="name@example.com" /></label>
+      <div class="account-actions">
+        <button type="button" onclick="registerPasskey()">ساخت حساب با passkey</button>
+        <button type="button" onclick="loginPasskey()">ورود با passkey</button>
+        <button type="button" id="logoutBtn" onclick="logoutAccount()" hidden>خروج</button>
+      </div>
+      <p class="account-note">ایمیل برای شناسایی حساب است و پیام تأیید فرستاده نمی‌شود. برای ورود دوباره به passkey خود نیاز دارید.</p>
+      <p id="accountMessage" class="library-message" role="status"></p>
+    </div>
+  </section>
+
       </div>
     </header>
 
@@ -2231,6 +2293,18 @@
       </a>
     </footer>
   </main>
+  <dialog id="libraryDialog" class="library-dialog" aria-labelledby="libraryDialogTitle">
+    <form id="libraryDialogForm" method="dialog">
+      <h2 id="libraryDialogTitle"></h2>
+      <p id="libraryDialogDescription"></p>
+      <label id="libraryDialogFieldLabel"><span id="libraryDialogLabel"></span><input id="libraryDialogInput" type="text" maxlength="200" /></label>
+      <div class="library-dialog-actions">
+        <button type="button" id="libraryDialogCancel">انصراف</button>
+        <button type="submit" id="libraryDialogSubmit" class="library-dialog-submit">تأیید</button>
+      </div>
+    </form>
+  </dialog>
+  <div id="libraryToast" class="library-toast" role="status" hidden></div>
 
 
   <!-- Problem-report widget, shown only on shared (/s/:id) pages. -->
@@ -2300,38 +2374,6 @@
       </svg>
       <div>فایل را اینجا رها کن</div>
     </div>
-  </div>
-
-  <div id="libraryBackdrop" class="library-backdrop" hidden>
-    <section class="library-panel" role="dialog" aria-modal="true" aria-labelledby="libraryTitle">
-      <header class="library-header">
-        <div><h2 id="libraryTitle">کتابخانه</h2><p id="librarySubtitle">متن‌های ذخیره‌شده و فولدرها</p></div>
-        <button type="button" id="libraryScopeBtn" onclick="switchLibraryScope()" hidden>کتابخانهٔ من</button>
-        <button type="button" class="library-close" onclick="closeLibrary()" aria-label="بستن">×</button>
-      </header>
-      <div id="libraryMessage" class="library-message" role="status"></div>
-      <div id="libraryControls" class="library-controls">
-        <button type="button" onclick="createFolder()">فولدر جدید</button>
-        <label>نمایش <select id="libraryFolderFilter" onchange="renderLibrary()"><option value="all">همه</option></select></label>
-      </div>
-      <div id="libraryFolders" class="library-folders"></div>
-      <div id="libraryItems" class="library-items"></div>
-    </section>
-  </div>
-
-  <div id="accountBackdrop" class="library-backdrop" hidden>
-    <section class="account-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
-      <header class="library-header"><h2 id="accountTitle">حساب کاربری</h2><button type="button" class="library-close" onclick="closeAccount()" aria-label="بستن">×</button></header>
-      <p id="accountState">در حال بررسی…</p>
-      <label class="account-email-label">ایمیل<input id="accountEmail" type="email" autocomplete="username webauthn" dir="ltr" placeholder="name@example.com" /></label>
-      <div class="account-actions">
-        <button type="button" onclick="registerPasskey()">ساخت حساب با passkey</button>
-        <button type="button" onclick="loginPasskey()">ورود با passkey</button>
-        <button type="button" id="logoutBtn" onclick="logoutAccount()" hidden>خروج</button>
-      </div>
-      <p class="account-note">ایمیل برای شناسایی حساب است و پیام تأیید فرستاده نمی‌شود. برای ورود دوباره به passkey خود نیاز دارید.</p>
-      <p id="accountMessage" class="library-message" role="status"></p>
-    </section>
   </div>
 
   <script>

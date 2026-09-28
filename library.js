@@ -24,6 +24,54 @@ function libraryNotice(message, error = false, target = "libraryMessage") {
   el.textContent = message;
   el.classList.toggle("error", error);
 }
+let libraryToastTimer;
+function libraryToast(message, error = false) {
+  const toast = libraryEl("libraryToast");
+  toast.textContent = message;
+  toast.classList.toggle("error", error);
+  toast.hidden = false;
+  clearTimeout(libraryToastTimer);
+  libraryToastTimer = setTimeout(() => { toast.hidden = true; }, 4000);
+}
+function libraryAsk({ title, description = "", label = "", value = "", options = null, confirm = "تأیید", destructive = false }) {
+  const dialog = libraryEl("libraryDialog");
+  const form = libraryEl("libraryDialogForm");
+  const field = libraryEl("libraryDialogFieldLabel");
+  const previous = libraryEl("libraryDialogInput");
+  const input = options ? document.createElement("select") : document.createElement("input");
+  input.id = "libraryDialogInput";
+  if (options) for (const option of options) input.add(new Option(option.label, option.value));
+  else { input.type = "text"; input.maxLength = 200; input.value = value; input.required = !!label; }
+  previous.replaceWith(input);
+  if (options && value) input.value = value;
+  field.hidden = !label;
+  libraryEl("libraryDialogTitle").textContent = title;
+  libraryEl("libraryDialogDescription").textContent = description;
+  libraryEl("libraryDialogDescription").hidden = !description;
+  libraryEl("libraryDialogLabel").textContent = label;
+  const submit = libraryEl("libraryDialogSubmit");
+  submit.textContent = confirm;
+  submit.classList.toggle("destructive", destructive);
+  dialog.showModal();
+  if (label) input.focus();
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = result => {
+      if (settled) return;
+      settled = true;
+      form.removeEventListener("submit", onSubmit);
+      libraryEl("libraryDialogCancel").removeEventListener("click", onCancel);
+      dialog.removeEventListener("cancel", onCancel);
+      if (dialog.open) dialog.close();
+      resolve(result);
+    };
+    const onSubmit = event => { event.preventDefault(); finish(label ? input.value.trim() : true); };
+    const onCancel = event => { event.preventDefault(); finish(null); };
+    form.addEventListener("submit", onSubmit);
+    libraryEl("libraryDialogCancel").addEventListener("click", onCancel);
+    dialog.addEventListener("cancel", onCancel);
+  });
+}
 function libraryButton(label, action) {
   const button = document.createElement("button");
   button.type = "button";
@@ -98,10 +146,9 @@ function renderLibraryItems() {
 }
 async function openLibrary() {
   await libraryReady;
-  libraryEl("libraryBackdrop").hidden = false;
+  libraryEl("libraryBackdrop").scrollIntoView({ behavior: "smooth", block: "nearest" });
   try { await refreshLibrary(); } catch (error) { libraryNotice(error.message, true); }
 }
-function closeLibrary() { libraryEl("libraryBackdrop").hidden = true; }
 async function switchLibraryScope() {
   sharedFolder = sharedFolder ? null : availableSharedFolder;
   activeSavedItem = null;
@@ -109,32 +156,29 @@ async function switchLibraryScope() {
   catch (error) { libraryNotice(error.message, true); }
 }
 async function createFolder() {
-  const name = prompt("نام فولدر جدید"); if (!name) return;
+  const name = await libraryAsk({ title: "فولدر جدید", label: "نام فولدر", confirm: "ساخت فولدر" }); if (!name) return;
   try { await libraryApi("/folders", "POST", { name }); await refreshLibrary(); libraryNotice("فولدر ساخته شد."); }
   catch (error) { libraryNotice(error.message, true); }
 }
 async function renameFolder(folder) {
-  const name = prompt("نام جدید فولدر", folder.name); if (!name || name === folder.name) return;
+  const name = await libraryAsk({ title: "تغییر نام فولدر", label: "نام جدید", value: folder.name, confirm: "ذخیره نام" }); if (!name || name === folder.name) return;
   try { await libraryApi(`/folders/${folder.id}`, "PATCH", { name }, !!sharedFolder); await refreshLibrary(); libraryNotice("نام فولدر تغییر کرد."); }
   catch (error) { libraryNotice(error.message, true); }
 }
 async function deleteFolder(folder) {
-  if (!confirm(`فولدر «${folder.name}» حذف شود؟ متن‌های آن بدون فولدر باقی می‌مانند.`)) return;
+  if (!await libraryAsk({ title: "حذف فولدر", description: `فولدر «${folder.name}» حذف شود؟ متن‌های آن بدون فولدر باقی می‌مانند.`, confirm: "حذف فولدر", destructive: true })) return;
   try { await libraryApi(`/folders/${folder.id}`, "DELETE", undefined, !!sharedFolder); if (sharedFolder) { sharedFolder = null; availableSharedFolder = null; history.replaceState(null, "", "/"); } await refreshLibrary(); libraryNotice("فولدر حذف شد."); }
   catch (error) { libraryNotice(error.message, true); }
 }
 async function moveSavedItem(item) {
-  const options = libraryData.folders.map((folder, i) => `${i + 1}: ${folder.name}`).join("\n");
-  const choice = prompt(`شماره فولدر را وارد کنید. برای بدون فولدر، ۰ را بزنید.\n${options}`, "0");
+  const choice = await libraryAsk({ title: "انتقال متن", label: "فولدر مقصد", options: [{ label: "بدون فولدر", value: "" }, ...libraryData.folders.map(folder => ({ label: folder.name, value: folder.id }))], confirm: "انتقال" });
   if (choice === null) return;
-  const number = Number(choice);
-  if (!Number.isInteger(number) || number < 0 || number > libraryData.folders.length) { libraryNotice("شماره فولدر معتبر نیست.", true); return; }
-  const folderId = number === 0 ? null : libraryData.folders[number - 1].id;
+  const folderId = choice || null;
   try { await libraryApi(`/items/${item.id}`, "PATCH", { folderId }); await refreshLibrary(); libraryNotice("متن منتقل شد."); }
   catch (error) { libraryNotice(error.message, true); }
 }
 async function deleteSavedItem(item) {
-  if (!confirm(`متن «${item.title}» حذف شود؟`)) return;
+  if (!await libraryAsk({ title: "حذف متن", description: `متن «${item.title}» حذف شود؟`, confirm: "حذف متن", destructive: true })) return;
   try { await libraryApi(`/items/${item.id}`, "DELETE", undefined, !!sharedFolder); if (activeSavedItem?.id === item.id) activeSavedItem = null; await refreshLibrary(); libraryNotice("متن حذف شد."); }
   catch (error) { libraryNotice(error.message, true); }
 }
@@ -142,18 +186,17 @@ function openSavedItem(item) {
   input.value = item.content;
   activeSavedItem = item;
   render();
-  closeLibrary();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 async function saveCurrent() {
   await libraryReady;
   const content = input.value;
-  if (!content.trim()) { alert("ابتدا متنی وارد کنید."); return; }
+  if (!content.trim()) { libraryToast("ابتدا متنی وارد کنید.", true); input.focus(); return; }
   // A read-only folder cannot be changed, but its text can be copied into the
   // visitor's own library. Do not send the folder grant for that personal save.
   const personalCopy = sharedFolder?.access === "read";
   const currentTitle = activeSavedItem?.title || content.split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 200) || "متن بدون عنوان";
-  const title = prompt("عنوان متن", currentTitle); if (!title) return;
+  const title = await libraryAsk({ title: "ذخیره متن", label: "عنوان متن", value: currentTitle, confirm: "ذخیره" }); if (!title) return;
   const folderId = personalCopy ? null : sharedFolder?.folderId || (libraryEl("libraryFolderFilter").value !== "all" && libraryEl("libraryFolderFilter").value !== "none" ? libraryEl("libraryFolderFilter").value : null);
   try {
     if (activeSavedItem && (personalCopy ? activeSavedItem.folder_id === null : (!sharedFolder || activeSavedItem.folder_id === sharedFolder.folderId))) {
@@ -161,11 +204,12 @@ async function saveCurrent() {
     } else {
       activeSavedItem = await libraryApi("/items", "POST", { title, content, folderId }, !!sharedFolder && !personalCopy);
     }
-    if (!libraryEl("libraryBackdrop").hidden) await refreshLibrary();
-    alert(personalCopy ? "یک نسخه در کتابخانهٔ خودتان ذخیره شد." : "متن ذخیره شد.");
-  } catch (error) { alert(`ذخیره انجام نشد: ${error.message}`); }
+    await refreshLibrary();
+    libraryToast(personalCopy ? "یک نسخه در کتابخانهٔ خودتان ذخیره شد." : "متن ذخیره شد.");
+  } catch (error) { libraryToast(`ذخیره انجام نشد: ${error.message}`, true); }
 }
 async function showFolderLinks(folder) {
+  libraryEl("libraryFolders").querySelector(".library-share-box")?.remove();
   const box = document.createElement("div"); box.className = "library-share-box";
   libraryText(box, "strong", `اشتراک فولدر «${folder.name}»`);
   const options = document.createElement("div"); options.className = "library-share-options";
@@ -204,13 +248,12 @@ function b64encode(value) { return btoa(String.fromCharCode(...new Uint8Array(va
 function accountEmail() { const value = libraryEl("accountEmail").value.trim(); if (!value) throw new Error("ایمیل را وارد کنید."); return value; }
 async function refreshIdentity() {
   const identity = await libraryApi("/identity");
+  libraryEl("accountBackdrop").classList.toggle("authenticated", !!identity.email);
   libraryEl("accountState").textContent = identity.email ? `واردشده با ${identity.email}` : "می‌توانید بدون ورود از همه قابلیت‌ها استفاده کنید. برای دسترسی در دستگاه‌های دیگر، حساب بسازید.";
-  libraryEl("accountBtn").querySelector("span").textContent = identity.email ? "حساب" : "ورود";
   libraryEl("logoutBtn").hidden = !identity.email;
   if (identity.email) libraryEl("accountEmail").value = identity.email;
 }
-async function openAccount() { await libraryReady; libraryEl("accountBackdrop").hidden = false; try { await refreshIdentity(); } catch (error) { libraryNotice(error.message, true, "accountMessage"); } }
-function closeAccount() { libraryEl("accountBackdrop").hidden = true; }
+async function openAccount() { await libraryReady; libraryEl("accountBackdrop").scrollIntoView({ behavior: "smooth", block: "nearest" }); try { await refreshIdentity(); } catch (error) { libraryNotice(error.message, true, "accountMessage"); } }
 async function passkeyFlow(mode) {
   if (!window.PublicKeyCredential || !navigator.credentials) { libraryNotice("این مرورگر از passkey پشتیبانی نمی‌کند یا صفحه با اتصال امن باز نشده است.", true, "accountMessage"); return; }
   const buttons = [...libraryEl("accountBackdrop").querySelectorAll("button")]; buttons.forEach(b => b.disabled = true);
@@ -252,7 +295,6 @@ async function initLibrary() {
       const hadGrant = !!sharedFolder;
       if (!sharedFolder) { sharedFolder = await libraryApi(`/folder-links/${match[1]}/redeem`, "POST"); sessionStorage.setItem(key, JSON.stringify(sharedFolder)); }
       availableSharedFolder = sharedFolder;
-      libraryEl("libraryBackdrop").hidden = false;
       try { await refreshLibrary(); }
       catch (error) {
         if (!hadGrant || error.status !== 403) throw error;
@@ -263,9 +305,7 @@ async function initLibrary() {
         await refreshLibrary();
       }
     }
-  } catch (error) { libraryNotice(error.message, true); if (location.pathname.startsWith("/f/")) libraryEl("libraryBackdrop").hidden = false; }
+    else await refreshLibrary();
+  } catch (error) { libraryNotice(error.message, true); }
 }
-libraryEl("libraryBackdrop").addEventListener("click", event => { if (event.target === libraryEl("libraryBackdrop")) closeLibrary(); });
-libraryEl("accountBackdrop").addEventListener("click", event => { if (event.target === libraryEl("accountBackdrop")) closeAccount(); });
-document.addEventListener("keydown", event => { if (event.key === "Escape") { closeLibrary(); closeAccount(); } });
 const libraryReady = initLibrary();
