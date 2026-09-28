@@ -69,18 +69,25 @@
 .library-link-result input { flex: 1; width: 0; direction: ltr; }
 .library-existing-links { display: grid; gap: 7px; margin-top: 10px; }
 .library-existing-links .library-row { display: grid; gap: 6px; }
+.profile-island { padding: 7px; }
+.profile-island .account-summary { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 5px 7px; border: 0; border-radius: 12px; background: transparent; color: var(--text); text-align: right; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none; }
+.profile-island .account-summary:hover { background: var(--panel-soft); filter: none; }
+.profile-island .account-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.account-avatar { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 50%; background: var(--panel-soft); color: var(--accent); }
+.account-avatar svg { width: 19px; height: 19px; }
+.account-summary-text { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-panel #accountState { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
 .account-email-label { display: grid; gap: 5px; margin: 12px 0; color: var(--muted); font-size: 12px; }
 .account-email-label input { width: 100%; }
-.account-actions { flex-wrap: wrap; align-items: stretch; }
+.account-actions { flex-wrap: wrap; align-items: stretch; margin-top: 16px; }
 .account-actions button { flex: 1 1 100%; justify-content: center; }
-.account-actions button:first-child, .library-dialog .library-dialog-submit { background: var(--accent); color: #fff; border-color: var(--accent); }
+.library-dialog .library-dialog-submit { background: var(--accent); color: #fff; border-color: var(--accent); }
 .account-actions #logoutBtn { color: var(--danger); }
-.account-note { margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
-.profile-island.authenticated .account-email-label,
-.profile-island.authenticated .account-actions button:not(#logoutBtn),
-.profile-island.authenticated .account-note { display: none; }
-.profile-island.authenticated .account-actions { margin-top: 12px; }
+.account-dialog .account-note { margin: 4px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.account-dialog.authenticated .account-email-label,
+.account-dialog.authenticated #passkeyBtn,
+.account-dialog.authenticated .account-note { display: none; }
+.account-dialog .account-close { display: block; margin: 12px 0 0 auto; }
 .library-toast[hidden] { display: none; }
 .library-toast { position: fixed; bottom: 20px; left: 50%; z-index: 2000; transform: translateX(-50%); max-width: min(440px, calc(100vw - 32px)); padding: 10px 15px; border: 1px solid var(--border); border-radius: 11px; background: var(--panel-soft); color: var(--text); box-shadow: 0 12px 32px rgba(0,0,0,.24); font-size: 13px; text-align: center; direction: rtl; }
 .library-toast.error { border-color: var(--danger); color: var(--danger); }
@@ -98,6 +105,6 @@
   .app.mode-sidebar .left-rail { max-height: calc(100vh - 40px); overflow: auto; scrollbar-width: thin; }
 }
 @media (max-width: 700px) {
-  .library-island, .profile-island { padding: 16px; }
+  .library-island { padding: 16px; }
   .account-actions button { flex-basis: auto; }
 }
