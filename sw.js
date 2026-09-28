@@ -1,6 +1,6 @@
 // Service worker: offline app shell + asset caching. Bump CACHE on releases
 // that change cached static assets.
-const CACHE = "pf-v4";
+const CACHE = "pf-v5";
 const SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -9,6 +9,8 @@ const SHELL = [
   "/apple-touch-icon.png",
   "/date.wasm",
   "/wasm_exec.js",
+  "/library.js",
+  "/library.css",
 ];
 
 self.addEventListener("install", (event) => {
