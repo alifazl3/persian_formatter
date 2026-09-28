@@ -15,6 +15,7 @@ async function libraryApi(path, method = "GET", body, shared = false) {
   if (!response.ok) {
     const error = new Error(data.error?.message || data.message || `خطای ${response.status}`);
     error.status = response.status;
+    error.code = data.error?.code;
     throw error;
   }
   return data;
@@ -248,18 +249,32 @@ function b64encode(value) { return btoa(String.fromCharCode(...new Uint8Array(va
 function accountEmail() { const value = libraryEl("accountEmail").value.trim(); if (!value) throw new Error("ایمیل را وارد کنید."); return value; }
 async function refreshIdentity() {
   const identity = await libraryApi("/identity");
-  libraryEl("accountBackdrop").classList.toggle("authenticated", !!identity.email);
-  libraryEl("accountState").textContent = identity.email ? `واردشده با ${identity.email}` : "می‌توانید بدون ورود از همه قابلیت‌ها استفاده کنید. برای دسترسی در دستگاه‌های دیگر، حساب بسازید.";
+  libraryEl("accountDialog").classList.toggle("authenticated", !!identity.email);
+  libraryEl("accountSummary").textContent = identity.email || "لاگین";
+  libraryEl("accountState").textContent = identity.email ? `واردشده با ${identity.email}` : "می‌توانید بدون ورود از همهٔ قابلیت‌ها استفاده کنید. برای دسترسی در دستگاه‌های دیگر، با ایمیل و passkey ادامه دهید.";
   libraryEl("logoutBtn").hidden = !identity.email;
-  if (identity.email) libraryEl("accountEmail").value = identity.email;
+  libraryEl("accountEmail").value = identity.email || "";
 }
-async function openAccount() { await libraryReady; libraryEl("accountBackdrop").scrollIntoView({ behavior: "smooth", block: "nearest" }); try { await refreshIdentity(); } catch (error) { libraryNotice(error.message, true, "accountMessage"); } }
-async function passkeyFlow(mode) {
+async function openAccount() {
+  libraryEl("accountMessage").textContent = "";
+  libraryEl("accountDialog").showModal();
+  try { await refreshIdentity(); } catch (error) { libraryNotice(error.message, true, "accountMessage"); }
+  if (libraryEl("accountDialog").open && !libraryEl("accountDialog").classList.contains("authenticated")) libraryEl("accountEmail").focus();
+}
+function closeAccount() { if (libraryEl("accountDialog").open) libraryEl("accountDialog").close(); }
+async function passkeyFlow() {
   if (!window.PublicKeyCredential || !navigator.credentials) { libraryNotice("این مرورگر از passkey پشتیبانی نمی‌کند یا صفحه با اتصال امن باز نشده است.", true, "accountMessage"); return; }
-  const buttons = [...libraryEl("accountBackdrop").querySelectorAll("button")]; buttons.forEach(b => b.disabled = true);
+  const buttons = [...libraryEl("accountDialog").querySelectorAll("button")]; buttons.forEach(b => b.disabled = true);
   try {
     const email = accountEmail();
-    const options = await libraryApi(`/auth/${mode}/options`, "POST", { email });
+    let mode = "login";
+    let options;
+    try { options = await libraryApi("/auth/login/options", "POST", { email }); }
+    catch (error) {
+      if (error.code !== "ACCOUNT_NOT_FOUND") throw error;
+      mode = "register";
+      options = await libraryApi("/auth/register/options", "POST", { email });
+    }
     options.challenge = b64decode(options.challenge);
     let credential;
     if (mode === "register") {
@@ -275,14 +290,13 @@ async function passkeyFlow(mode) {
     else { response.response.authenticatorData = b64encode(credential.response.authenticatorData); response.response.signature = b64encode(credential.response.signature); }
     await libraryApi(`/auth/${mode}/verify`, "POST", response);
     await refreshIdentity(); await refreshLibrary();
-    libraryNotice("حساب آماده است.", false, "accountMessage");
+    closeAccount();
+    libraryToast("حساب آماده است.");
   } catch (error) { libraryNotice(error.message, true, "accountMessage"); }
   finally { buttons.forEach(b => b.disabled = false); }
 }
-function registerPasskey() { return passkeyFlow("register"); }
-function loginPasskey() { return passkeyFlow("login"); }
 async function logoutAccount() {
-  try { await libraryApi("/auth/logout", "POST"); activeSavedItem = null; await refreshIdentity(); await refreshLibrary(); libraryNotice("خارج شدید.", false, "accountMessage"); }
+  try { await libraryApi("/auth/logout", "POST"); activeSavedItem = null; await refreshIdentity(); await refreshLibrary(); closeAccount(); libraryToast("خارج شدید."); }
   catch (error) { libraryNotice(error.message, true, "accountMessage"); }
 }
 async function initLibrary() {

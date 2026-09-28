@@ -2127,19 +2127,11 @@
           </button>
         </div>
       </div>
-  <section id="accountBackdrop" class="profile-island" aria-labelledby="accountTitle">
-    <div class="account-panel">
-      <header class="library-header"><h2 id="accountTitle">پروفایل</h2></header>
-      <p id="accountState">در حال بررسی…</p>
-      <label class="account-email-label">ایمیل<input id="accountEmail" type="email" autocomplete="username webauthn" dir="ltr" placeholder="name@example.com" /></label>
-      <div class="account-actions">
-        <button type="button" onclick="registerPasskey()">ساخت حساب با passkey</button>
-        <button type="button" onclick="loginPasskey()">ورود با passkey</button>
-        <button type="button" id="logoutBtn" onclick="logoutAccount()" hidden>خروج</button>
-      </div>
-      <p class="account-note">ایمیل برای شناسایی حساب است و پیام تأیید فرستاده نمی‌شود. برای ورود دوباره به passkey خود نیاز دارید.</p>
-      <p id="accountMessage" class="library-message" role="status"></p>
-    </div>
+  <section id="accountBackdrop" class="profile-island" aria-label="پروفایل">
+    <button id="accountSummaryButton" class="account-summary" type="button" onclick="openAccount()" aria-haspopup="dialog" aria-controls="accountDialog">
+      <span class="account-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20a7 7 0 0 1 14 0"></path></svg></span>
+      <span id="accountSummary" class="account-summary-text" dir="auto">لاگین</span>
+    </button>
   </section>
 
       </div>
@@ -2303,6 +2295,22 @@
         <button type="submit" id="libraryDialogSubmit" class="library-dialog-submit">تأیید</button>
       </div>
     </form>
+  </dialog>
+  <dialog id="accountDialog" class="library-dialog account-dialog" aria-labelledby="accountTitle">
+    <div class="account-panel">
+      <h2 id="accountTitle">حساب کاربری</h2>
+      <p id="accountState">می‌توانید بدون ورود از همهٔ قابلیت‌ها استفاده کنید.</p>
+      <form id="accountForm" onsubmit="event.preventDefault(); passkeyFlow()">
+        <label class="account-email-label">ایمیل<input id="accountEmail" type="email" autocomplete="username webauthn" dir="ltr" placeholder="name@example.com" required /></label>
+        <p class="account-note">ایمیل فقط برای شناسایی حساب است و پیام تأیید فرستاده نمی‌شود.</p>
+        <div class="account-actions">
+          <button type="submit" id="passkeyBtn" class="library-dialog-submit">ادامه با passkey</button>
+          <button type="button" id="logoutBtn" onclick="logoutAccount()" hidden>خروج از حساب</button>
+        </div>
+      </form>
+      <p id="accountMessage" class="library-message" role="status"></p>
+      <button type="button" class="account-close" onclick="closeAccount()">بستن</button>
+    </div>
   </dialog>
   <div id="libraryToast" class="library-toast" role="status" hidden></div>
 
