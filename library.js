@@ -3,6 +3,7 @@ let libraryData = { folders: [], items: [] };
 let sharedFolder = null;
 let availableSharedFolder = null;
 let activeSavedItem = null;
+const libraryOpenFolders = new Set();
 const libraryEl = id => document.getElementById(id);
 
 async function libraryApi(path, method = "GET", body, shared = false) {
@@ -80,6 +81,20 @@ function libraryButton(label, action) {
   button.addEventListener("click", action);
   return button;
 }
+const libraryIcons = {
+  delete: '<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 4v7m4-7v7"/>',
+  rename: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4L16.5 3.5Z"/>',
+  share: '<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5M8 13l8 5"/>',
+  move: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10H3V7Zm5 6h8m-3-3 3 3-3 3"/>',
+};
+function libraryIconButton(icon, label, action) {
+  const button = libraryButton("", action);
+  button.className = `library-icon-button library-icon-${icon}`;
+  button.title = label;
+  button.setAttribute("aria-label", label);
+  button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${libraryIcons[icon]}</svg>`;
+  return button;
+}
 function libraryText(parent, tag, value) {
   const node = document.createElement(tag);
   node.textContent = value;
@@ -92,6 +107,7 @@ async function refreshLibrary() {
   if (sharedFolder) {
     const data = await libraryApi(`/folders/${sharedFolder.folderId}`, "GET", undefined, true);
     libraryData = { folders: [data.folder], items: data.items };
+    libraryOpenFolders.add(data.folder.id);
     libraryEl("librarySubtitle").textContent = `${data.folder.name} · دسترسی ${sharedFolder.access === "full" ? "کامل" : "فقط خواندن"}`;
   } else {
     libraryData = await libraryApi("/library");
@@ -100,50 +116,82 @@ async function refreshLibrary() {
   renderLibrary();
 }
 function renderLibrary() {
-  const filter = libraryEl("libraryFolderFilter");
-  const previous = filter.value;
-  filter.replaceChildren(new Option("همه", "all"));
-  if (!sharedFolder) filter.add(new Option("بدون فولدر", "none"));
-  for (const folder of libraryData.folders) filter.add(new Option(folder.name, folder.id));
-  filter.value = [...filter.options].some(o => o.value === previous) ? previous : "all";
   libraryEl("libraryControls").hidden = !!sharedFolder;
+  libraryEl("libraryUnfiledSection").hidden = !!sharedFolder;
   const folderRoot = libraryEl("libraryFolders");
   folderRoot.replaceChildren();
   if (!libraryData.folders.length) libraryText(folderRoot, "p", "هنوز فولدری ساخته نشده است.").className = "library-empty";
   for (const folder of libraryData.folders) {
-    const row = document.createElement("div"); row.className = "library-row";
-    const main = document.createElement("div"); main.className = "library-row-main";
-    libraryText(main, "strong", folder.name);
-    libraryText(main, "small", `${libraryData.items.filter(item => item.folder_id === folder.id).length} متن`);
+    const items = libraryData.items.filter(item => item.folder_id === folder.id);
+    const row = document.createElement("section"); row.className = "library-folder";
+    const heading = document.createElement("div"); heading.className = "library-folder-heading";
+    const contents = document.createElement("div"); contents.className = "library-folder-items";
+    contents.id = `library-folder-items-${folder.id}`;
+    renderSavedItems(contents, items);
+    contents.hidden = !libraryOpenFolders.has(folder.id);
+    const toggle = libraryButton("", () => {
+      const expanded = contents.hidden;
+      contents.hidden = !expanded;
+      toggle.setAttribute("aria-expanded", String(expanded));
+      if (expanded) libraryOpenFolders.add(folder.id);
+      else libraryOpenFolders.delete(folder.id);
+    });
+    toggle.className = "library-folder-toggle";
+    toggle.setAttribute("aria-expanded", String(libraryOpenFolders.has(folder.id)));
+    toggle.setAttribute("aria-controls", contents.id);
+    toggle.title = folder.name;
+    toggle.innerHTML = '<span class="library-folder-chevron" aria-hidden="true">▸</span><span class="library-folder-name"></span><span class="library-folder-count"></span>';
+    toggle.querySelector(".library-folder-name").textContent = folder.name;
+    toggle.querySelector(".library-folder-count").textContent = String(items.length);
     const actions = document.createElement("div"); actions.className = "library-row-actions";
-    if (!sharedFolder) actions.append(libraryButton("نمایش", () => { filter.value = folder.id; renderLibraryItems(); }));
-    if (!sharedFolder) actions.append(libraryButton("لینک اشتراک", () => showFolderLinks(folder)));
+    if (!sharedFolder) actions.append(libraryIconButton("share", `اشتراک فولدر ${folder.name}`, () => showFolderLinks(folder)));
     if (!sharedFolder || sharedFolder.access === "full") {
-      actions.append(libraryButton("تغییر نام", () => renameFolder(folder)));
-      actions.append(libraryButton("حذف", () => deleteFolder(folder)));
+      actions.append(libraryIconButton("rename", `تغییر نام فولدر ${folder.name}`, () => renameFolder(folder)));
+      actions.append(libraryIconButton("delete", `حذف فولدر ${folder.name}`, () => deleteFolder(folder)));
     }
-    row.append(main, actions); folderRoot.append(row);
+    heading.append(toggle, actions); row.append(heading, contents);
+    folderRoot.append(row);
   }
   renderLibraryItems();
 }
 function renderLibraryItems() {
   const root = libraryEl("libraryItems"); root.replaceChildren();
-  const filter = libraryEl("libraryFolderFilter").value;
-  const items = libraryData.items.filter(item => filter === "all" || (filter === "none" ? !item.folder_id : item.folder_id === filter));
+  if (!sharedFolder) renderSavedItems(root, libraryData.items.filter(item => !item.folder_id));
+}
+function renderSavedItems(root, items) {
   if (!items.length) libraryText(root, "p", "هنوز متنی در این بخش ذخیره نشده است.").className = "library-empty";
   for (const item of items) {
-    const row = document.createElement("div"); row.className = "library-row";
-    const main = document.createElement("div"); main.className = "library-row-main";
-    libraryText(main, "strong", item.title);
-    libraryText(main, "small", item.content.replace(/\s+/g, " ").slice(0, 120));
+    const row = document.createElement("div"); row.className = "library-item-row";
+    const main = libraryButton(item.title, () => openSavedItem(item));
+    main.className = "library-item-title";
+    main.title = item.title;
+    main.setAttribute("aria-label", `باز کردن ${item.title}`);
     const actions = document.createElement("div"); actions.className = "library-row-actions";
-    actions.append(libraryButton("باز کردن", () => openSavedItem(item)));
+    actions.append(libraryIconButton("share", `اشتراک متن ${item.title}`, () => shareSavedItem(item)));
     if (!sharedFolder || sharedFolder.access === "full") {
-      if (!sharedFolder) actions.append(libraryButton("انتقال", () => moveSavedItem(item)));
-      actions.append(libraryButton("حذف", () => deleteSavedItem(item)));
+      if (!sharedFolder) actions.append(libraryIconButton("move", `انتقال متن ${item.title}`, () => moveSavedItem(item)));
+      actions.append(libraryIconButton("rename", `تغییر نام متن ${item.title}`, () => renameSavedItem(item)));
+      actions.append(libraryIconButton("delete", `حذف متن ${item.title}`, () => deleteSavedItem(item)));
     }
     row.append(main, actions); root.append(row);
   }
+}
+async function renameSavedItem(item) {
+  const title = await libraryAsk({ title: "تغییر نام متن", label: "نام جدید", value: item.title, confirm: "ذخیره نام" });
+  if (!title || title === item.title) return;
+  try {
+    const updated = await libraryApi(`/items/${item.id}`, "PATCH", { title }, !!sharedFolder);
+    if (activeSavedItem?.id === item.id) activeSavedItem = updated;
+    await refreshLibrary(); libraryNotice("نام متن تغییر کرد.");
+  } catch (error) { libraryNotice(error.message, true); }
+}
+async function shareSavedItem(item) {
+  try {
+    const result = await libraryApi("/shares", "POST", { content: item.content });
+    const url = `${location.origin}/s/${result.id}`;
+    showShareToast(url);
+    try { await navigator.clipboard.writeText(url); } catch (_) { /* Link remains visible for manual copy. */ }
+  } catch (error) { libraryNotice(error.message, true); }
 }
 async function openLibrary() {
   await libraryReady;
@@ -172,10 +220,10 @@ async function deleteFolder(folder) {
   catch (error) { libraryNotice(error.message, true); }
 }
 async function moveSavedItem(item) {
-  const choice = await libraryAsk({ title: "انتقال متن", label: "فولدر مقصد", options: [{ label: "بدون فولدر", value: "" }, ...libraryData.folders.map(folder => ({ label: folder.name, value: folder.id }))], confirm: "انتقال" });
+  const choice = await libraryAsk({ title: "انتقال متن", label: "فولدر مقصد", value: item.folder_id || "", options: [{ label: "بدون فولدر", value: "" }, ...libraryData.folders.map(folder => ({ label: folder.name, value: folder.id }))], confirm: "انتقال" });
   if (choice === null) return;
   const folderId = choice || null;
-  try { await libraryApi(`/items/${item.id}`, "PATCH", { folderId }); await refreshLibrary(); libraryNotice("متن منتقل شد."); }
+  try { await libraryApi(`/items/${item.id}`, "PATCH", { folderId }); if (folderId) libraryOpenFolders.add(folderId); await refreshLibrary(); libraryNotice("متن منتقل شد."); }
   catch (error) { libraryNotice(error.message, true); }
 }
 async function deleteSavedItem(item) {
@@ -198,7 +246,7 @@ async function saveCurrent() {
   const personalCopy = sharedFolder?.access === "read";
   const currentTitle = activeSavedItem?.title || content.split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 200) || "متن بدون عنوان";
   const title = await libraryAsk({ title: "ذخیره متن", label: "عنوان متن", value: currentTitle, confirm: "ذخیره" }); if (!title) return;
-  const folderId = personalCopy ? null : sharedFolder?.folderId || (libraryEl("libraryFolderFilter").value !== "all" && libraryEl("libraryFolderFilter").value !== "none" ? libraryEl("libraryFolderFilter").value : null);
+  const folderId = personalCopy ? null : sharedFolder?.folderId || activeSavedItem?.folder_id || null;
   try {
     if (activeSavedItem && (personalCopy ? activeSavedItem.folder_id === null : (!sharedFolder || activeSavedItem.folder_id === sharedFolder.folderId))) {
       activeSavedItem = await libraryApi(`/items/${activeSavedItem.id}`, "PATCH", { title, content }, !!sharedFolder && !personalCopy);
