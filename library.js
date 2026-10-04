@@ -237,25 +237,53 @@ function openSavedItem(item) {
   render();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+async function chooseSaveFolder(personalCopy) {
+  const folders = sharedFolder && !personalCopy
+    ? libraryData.folders
+    : (await libraryApi("/library")).folders;
+  const currentFolderId = personalCopy ? null : sharedFolder?.folderId || activeSavedItem?.folder_id;
+  const options = folders.map(folder => ({ label: folder.name, value: folder.id }));
+  if (!sharedFolder || personalCopy) {
+    options.unshift({ label: "بدون پوشه", value: "" });
+    options.push({ label: "＋ ساخت پوشهٔ جدید", value: "new-folder" });
+  }
+  const choice = await libraryAsk({
+    title: "محل ذخیرهٔ متن",
+    description: personalCopy ? "نسخهٔ متن در کتابخانهٔ خودتان ذخیره می‌شود." : "می‌خواهید متن در کدام پوشه ذخیره شود؟",
+    label: "پوشهٔ مقصد", value: currentFolderId || "", options, confirm: "ذخیره",
+  });
+  if (choice === null) return undefined;
+  if (choice !== "new-folder") return choice || null;
+  const name = await libraryAsk({ title: "پوشهٔ جدید", label: "نام پوشه", confirm: "ساخت پوشه و ذخیره" });
+  if (!name) return undefined;
+  const folder = await libraryApi("/folders", "POST", { name });
+  return folder.id;
+}
+let savingCurrent = false;
 async function saveCurrent() {
-  await libraryReady;
-  const content = input.value;
-  if (!content.trim()) { libraryToast("ابتدا متنی وارد کنید.", true); input.focus(); return; }
-  // A read-only folder cannot be changed, but its text can be copied into the
-  // visitor's own library. Do not send the folder grant for that personal save.
-  const personalCopy = sharedFolder?.access === "read";
-  const currentTitle = activeSavedItem?.title || content.split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 200) || "متن بدون عنوان";
-  const title = await libraryAsk({ title: "ذخیره متن", label: "عنوان متن", value: currentTitle, confirm: "ذخیره" }); if (!title) return;
-  const folderId = personalCopy ? null : sharedFolder?.folderId || activeSavedItem?.folder_id || null;
+  if (savingCurrent) return;
+  savingCurrent = true;
   try {
+    await libraryReady;
+    const content = input.value;
+    if (!content.trim()) { libraryToast("ابتدا متنی وارد کنید.", true); input.focus(); return; }
+    // A read-only folder cannot be changed, but its text can be copied into the
+    // visitor's own library. Do not send the folder grant for that personal save.
+    const personalCopy = sharedFolder?.access === "read";
+    const currentTitle = activeSavedItem?.title || content.split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 200) || "متن بدون عنوان";
+    const title = await libraryAsk({ title: "ذخیره متن", label: "عنوان متن", value: currentTitle, confirm: "ادامه" }); if (!title) return;
+    const folderId = await chooseSaveFolder(personalCopy);
+    if (folderId === undefined) return;
     if (activeSavedItem && (personalCopy ? activeSavedItem.folder_id === null : (!sharedFolder || activeSavedItem.folder_id === sharedFolder.folderId))) {
-      activeSavedItem = await libraryApi(`/items/${activeSavedItem.id}`, "PATCH", { title, content }, !!sharedFolder && !personalCopy);
+      activeSavedItem = await libraryApi(`/items/${activeSavedItem.id}`, "PATCH", { title, content, folderId }, !!sharedFolder && !personalCopy);
     } else {
       activeSavedItem = await libraryApi("/items", "POST", { title, content, folderId }, !!sharedFolder && !personalCopy);
     }
+    if (folderId) libraryOpenFolders.add(folderId);
     await refreshLibrary();
     libraryToast(personalCopy ? "یک نسخه در کتابخانهٔ خودتان ذخیره شد." : "متن ذخیره شد.");
   } catch (error) { libraryToast(`ذخیره انجام نشد: ${error.message}`, true); }
+  finally { savingCurrent = false; }
 }
 async function showFolderLinks(folder) {
   libraryEl("libraryFolders").querySelector(".library-share-box")?.remove();
