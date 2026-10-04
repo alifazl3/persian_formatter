@@ -9,10 +9,12 @@ import { ShareHandler } from "./handlers/shareHandler";
 import { ReportHandler } from "./handlers/reportHandler";
 import { createApp } from "./app";
 import { createAuthRouter, AuthRouter } from "./auth";
-import { createLibraryRouter } from "./library";
+import { createLibraryRouter, cleanupLibrary } from "./library";
 
 async function main(): Promise<void> {
   await migrate(pool);
+  await cleanupLibrary(pool);
+  setInterval(() => { cleanupLibrary(pool).catch(error => console.error("Library cleanup failed", error)); }, 60 * 60 * 1000).unref();
 
   // Compose the layers: repository → service → handler.
   const repository = new PgShareRepository(pool);

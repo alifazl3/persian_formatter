@@ -81,5 +81,23 @@ export async function migrate(pool: Pool): Promise<void> {
       access TEXT NOT NULL CHECK (access IN ('read', 'full')),
       expires_at TIMESTAMPTZ NOT NULL
     );
+    ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE folder_links ADD COLUMN IF NOT EXISTS label TEXT NOT NULL DEFAULT '';
+    ALTER TABLE folder_links ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+    ALTER TABLE folder_links ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ;
+    ALTER TABLE folder_grants ADD COLUMN IF NOT EXISTS session_hash TEXT REFERENCES sessions(token_hash) ON DELETE CASCADE;
+    ALTER TABLE folder_links DROP CONSTRAINT IF EXISTS folder_links_access_check;
+    ALTER TABLE folder_links ADD CONSTRAINT folder_links_access_check CHECK (access IN ('read', 'edit', 'full'));
+    ALTER TABLE folder_grants DROP CONSTRAINT IF EXISTS folder_grants_access_check;
+    ALTER TABLE folder_grants ADD CONSTRAINT folder_grants_access_check CHECK (access IN ('read', 'edit', 'full'));
+    CREATE UNIQUE INDEX IF NOT EXISTS folder_grants_link_session_idx ON folder_grants(link_hash,session_hash);
+    CREATE INDEX IF NOT EXISTS folder_links_folder_idx ON folder_links(folder_id);
+    CREATE INDEX IF NOT EXISTS folder_grants_expiry_idx ON folder_grants(expires_at);
+    CREATE INDEX IF NOT EXISTS folder_grants_session_idx ON folder_grants(session_hash);
+    CREATE TABLE IF NOT EXISTS library_rate_limits (
+      key TEXT PRIMARY KEY,
+      window_start TIMESTAMPTZ NOT NULL,
+      count INTEGER NOT NULL
+    );
   `);
 }

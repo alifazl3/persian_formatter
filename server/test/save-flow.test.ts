@@ -19,14 +19,14 @@ async function save(answers: (string | null)[], setup = "", failPath = "") {
       if (path === failPath) throw new Error("Unavailable");
       if (path === "/library") return { folders: [{ id: "personal", name: "My folder" }] };
       if (path === "/folders") return { id: "created" };
-      return { id: "saved", folder_id: body?.folderId, ...body };
+      return { id: "saved", folder_id: body?.folderId, version: 1, ...body };
     },
     notice: (...args: any[]) => notices.push(args),
   });
   runInContext(source, context);
   runInContext(`libraryAsk = ask; libraryApi = api; libraryToast = notice; refreshLibrary = async () => {}; ${setup}`, context);
   await runInContext("saveCurrent()", context);
-  return { calls, prompts, notices };
+  return { calls, prompts, notices, context, answers };
 }
 
 test("save selects an existing folder or explicitly saves unfiled", async () => {
@@ -77,4 +77,71 @@ test("a failed folder creation does not save the text", async () => {
   const { calls, notices } = await save(["Title", "new-folder", "New"], "", "/folders");
   assert.ok(calls.every(call => call.path !== "/items"));
   assert.equal(notices.at(-1)[1], true);
+});
+
+test("saving a read-only copy switches to personal scope and updates that copy next time", async () => {
+  const run = await save(["Title", "personal"], 'sharedFolder = { folderId: "shared", access: "read" }; activeSavedItem = { id: "original", folder_id: "shared" };');
+  run.answers.push("Updated", "personal");
+  await runInContext("saveCurrent()", run.context);
+  assert.equal(run.calls.filter(call => call.path === "/items" && call.method === "POST").length, 1);
+  assert.equal(run.calls.at(-1).path, "/items/saved");
+  assert.equal(run.calls.at(-1).method, "PATCH");
+  assert.equal(run.calls.at(-1).body.version, 1);
+  assert.equal(run.prompts.at(-1).value, "personal");
+});
+
+test("moving the open text updates the next save destination", async () => {
+  const run = await save([null], 'activeSavedItem = { id: "existing", title: "Old", folder_id: "old", version: 2 }; libraryData.folders = [{ id: "personal", name: "New" }]; libraryNotice = notice;');
+  run.answers.push("personal");
+  await runInContext("moveSavedItem(activeSavedItem)", run.context);
+  run.answers.push("Title", "personal");
+  await runInContext("saveCurrent()", run.context);
+  assert.equal(run.prompts.at(-1).value, "personal");
+  assert.equal(run.calls.at(-1).body.folderId, "personal");
+});
+
+test("refresh failure after a successful save is not reported as a failed save", async () => {
+  const { calls, notices } = await save(["Title", ""], 'refreshLibrary = async () => { throw new Error("offline"); };');
+  assert.equal(calls.at(-1).path, "/items");
+  assert.notEqual(notices.at(-1)[1], true);
+  assert.match(notices.at(-1)[0], /ذخیره شد/);
+});
+
+test("conflict preserves the editor and can save a separate personal copy", async () => {
+  const run = await save(["Title", "personal", "yes"], `
+    activeSavedItem = { id: "existing", title: "Old", folder_id: "personal", version: 1 };
+    const originalApi = libraryApi;
+    libraryApi = async (...args) => { if (args[1] === "PATCH") throw Object.assign(new Error("Conflict"), { code: "VERSION_CONFLICT" }); return originalApi(...args); };
+  `);
+  assert.equal(run.calls.at(-1).path, "/items");
+  assert.equal(run.calls.at(-1).body.content, "Text");
+  assert.equal(run.calls.at(-1).body.folderId, null);
+  assert.equal(runInContext("input.value", run.context), "Text");
+});
+
+test("declining a conflict copy keeps the draft without overwriting the server", async () => {
+  const run = await save(["Title", "personal", null], `
+    activeSavedItem = { id: "existing", title: "Old", folder_id: "personal", version: 1 };
+    const originalApi = libraryApi;
+    libraryApi = async (...args) => { if (args[1] === "PATCH") throw Object.assign(new Error("Conflict"), { code: "VERSION_CONFLICT" }); return originalApi(...args); };
+  `);
+  assert.equal(run.calls.filter(call => call.method !== "GET").length, 0);
+  assert.equal(runInContext("input.value", run.context), "Text");
+});
+
+test("expired grant is renewed once and the original request retried", async () => {
+  const requests: string[] = [];
+  const context = createContext({
+    fetch: async (url: string) => {
+      requests.push(url);
+      const renewal = url.includes("redeem");
+      const ok = renewal || requests.length > 1;
+      return { ok, status: ok ? 200 : 403, json: async () => renewal ? { grant: "new", folderId: "folder", access: "edit" } : { items: [] } };
+    },
+    sessionStorage: { setItem() {} },
+  });
+  runInContext(source, context);
+  runInContext('sharedFolder = { folderId: "folder", linkToken: "link", access: "edit", grant: "expired" };', context);
+  await runInContext('libraryApi("/folders/folder", "GET", undefined, true)', context);
+  assert.deepEqual(requests, ["/api/folders/folder", "/api/folder-links/link/redeem", "/api/folders/folder"]);
 });

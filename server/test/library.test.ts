@@ -16,6 +16,8 @@ type Query = { sql: string; values: unknown[] };
 type FakeDb = {
   queries: Query[];
   access: "read" | "full" | null;
+  connect: () => Promise<any>;
+  release: () => void;
   query: (sql: string, values?: unknown[]) => Promise<{ rows: any[]; rowCount: number }>;
 };
 
@@ -23,13 +25,16 @@ function fakeDb(): FakeDb {
   const db: FakeDb = {
     queries: [],
     access: null,
+    connect: async () => db,
+    release() {},
     async query(sql, values = []) {
       db.queries.push({ sql, values });
+      if (["BEGIN", "COMMIT", "ROLLBACK"].includes(sql)) return { rows: [], rowCount: 0 };
       if (sql.includes("SELECT 1 FROM folders")) return { rows: [], rowCount: 0 };
       if (sql.includes("FROM folder_grants")) return { rows: db.access && values[0] === grantHash ? [{ folder_id: folderId, access: db.access }] : [], rowCount: db.access ? 1 : 0 };
       if (sql.includes("SELECT owner_id FROM folders")) return { rows: [{ owner_id: ownerId }], rowCount: 1 };
-      if (sql.includes("SELECT owner_id,folder_id,title,content FROM saved_items")) return { rows: [{ owner_id: ownerId, folder_id: folderId, title: "Old", content: "Old text" }], rowCount: 1 };
-      if (sql.includes("UPDATE saved_items SET")) return { rows: [{ id: itemId, folder_id: folderId, title: values[0], content: values[1] }], rowCount: 1 };
+      if (sql.includes("SELECT owner_id,folder_id,version FROM saved_items")) return { rows: [{ owner_id: ownerId, folder_id: folderId, version: 1, title: "Old", content: "Old text" }], rowCount: 1 };
+      if (sql.includes("UPDATE saved_items SET")) return { rows: [{ id: itemId, folder_id: folderId, title: "Old", content: values[1] }], rowCount: 1 };
       if (sql.includes("INSERT INTO saved_items")) return { rows: [{ id: itemId, folder_id: values[2], title: values[3], content: values[4] }], rowCount: 1 };
       throw new Error(`Unexpected SQL: ${sql}`);
     },
@@ -45,6 +50,7 @@ async function call(db: FakeDb, method: "post" | "patch", path: string, body: ob
   const handler = layer.route.stack[0].handle;
   const req = {
     body,
+    headers: {},
     params: path.includes(":id") ? { id: itemId } : {},
     get: (header: string) => header === "X-Folder-Grant" && withGrant ? grantToken : undefined,
   };
@@ -74,7 +80,7 @@ test("read-only grant cannot add or edit a folder item", async () => {
   const db = fakeDb(); db.access = "read";
   const create = await call(db, "post", "/items", { title: "Test", content: "Text", folderId }, true);
   assert.equal((create.error as any)?.statusCode, 403);
-  const edit = await call(db, "patch", "/items/:id", { content: "Changed" }, true);
+  const edit = await call(db, "patch", "/items/:id", { content: "Changed", version: 1 }, true);
   assert.equal((edit.error as any)?.statusCode, 403);
   assert.equal(db.queries.some(q => q.sql.includes("INSERT INTO saved_items") || q.sql.includes("UPDATE saved_items SET")), false);
 });
@@ -86,7 +92,7 @@ test("full grant can add and edit items owned by the folder owner", async () => 
   assert.equal(create.response.statusCode, 201);
   const insert = db.queries.find(q => q.sql.includes("INSERT INTO saved_items"));
   assert.deepEqual(insert?.values.slice(1, 3), [ownerId, folderId]);
-  const edit = await call(db, "patch", "/items/:id", { content: "Changed" }, true);
+  const edit = await call(db, "patch", "/items/:id", { content: "Changed", version: 1 }, true);
   assert.equal(edit.error, undefined);
   assert.equal(edit.response.body.content, "Changed");
 });

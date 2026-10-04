@@ -207,12 +207,16 @@ export function createAuthRouter(pool: Pool): Router {
     try {
       await client.query("BEGIN");
       await client.query("UPDATE webauthn_credentials SET sign_count=$1 WHERE id=$2", [count, id]);
+      await client.query("INSERT INTO sessions(token_hash,owner_id,expires_at) VALUES($1,$2,now()+interval '90 days')", [hash(session), credential.owner_id]);
+      if (old && (!old.email || old.id === credential.owner_id)) {
+        const oldSession = cookie(req, cookieName);
+        if (oldSession) await client.query("UPDATE folder_grants SET session_hash=$1 WHERE session_hash=$2", [hash(session), hash(oldSession)]);
+      }
       if (old && !old.email && old.id !== credential.owner_id) {
         await client.query("UPDATE folders SET owner_id=$1 WHERE owner_id=$2", [credential.owner_id, old.id]);
         await client.query("UPDATE saved_items SET owner_id=$1 WHERE owner_id=$2", [credential.owner_id, old.id]);
         await client.query("DELETE FROM owners WHERE id=$1", [old.id]);
       }
-      await client.query("INSERT INTO sessions(token_hash,owner_id,expires_at) VALUES($1,$2,now()+interval '90 days')", [hash(session), credential.owner_id]);
       await client.query("COMMIT");
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
     setCookie(req, res, cookieName, session, 90 * 86400);

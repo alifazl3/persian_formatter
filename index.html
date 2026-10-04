@@ -3411,6 +3411,14 @@
       const btn = document.getElementById("shareBtn");
       btn.setAttribute("disabled", "true");
       try {
+        await libraryReady;
+        if (sharedFolder) {
+          if (!activeSavedItem || activeSavedItem.content.trim() !== content) {
+            libraryToast("برای اشتراک نوشتهٔ تازه، ابتدا آن را ذخیره کنید.", true);
+          } else await shareSavedItem(activeSavedItem);
+          return;
+        }
+        if (activeSavedItem?.folder_id && !await libraryAsk({ title: "ساخت نسخهٔ عمومی", description: "این لینک یک نسخهٔ مستقل و عمومی می‌سازد و با لغو اشتراک پوشه از دسترس خارج نمی‌شود. ادامه می‌دهید؟", confirm: "ساخت لینک عمومی" })) return;
         const res = await fetch("/api/shares", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

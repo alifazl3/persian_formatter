@@ -81,6 +81,8 @@
 .library-share-box strong { display: block; line-height: 1.5; }
 .library-share-options { flex-wrap: wrap; margin: 10px 0; }
 .library-share-options select { flex: 1 1 100px; }
+.library-share-options > input { flex: 1 1 100%; min-width: 0; }
+.library-share-box p, .library-existing-links small { color: var(--muted); line-height: 1.8; }
 .library-link-result { margin: 8px 0; }
 .library-link-result input { flex: 1; width: 0; direction: ltr; }
 .library-existing-links { display: grid; gap: 7px; margin-top: 10px; }
