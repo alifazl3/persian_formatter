@@ -377,7 +377,7 @@ async function saveAsNew(tab, description = "") {
 }
 
 /** The save dialog: title plus destination folder, optionally a new folder. */
-function askSaveDestination({ title, description }) {
+function askSaveDestination({ title, description, folderId = undefined, confirm = "ذخیره" }) {
   const dialog = document.getElementById("saveDialog");
   const form = document.getElementById("saveDialogForm");
   const titleField = document.getElementById("saveTitle");
@@ -401,7 +401,9 @@ function askSaveDestination({ title, description }) {
   folderField.append(new Option("＋ پوشهٔ تازه…", "__new__"));
   let last = "";
   try { last = localStorage.getItem(LAST_FOLDER_KEY) || ""; } catch (_) { /* Optional. */ }
-  folderField.value = [...folderField.options].some(option => option.value === last) ? last : "";
+  const preferred = folderId === undefined ? last : folderId || "";
+  folderField.value = [...folderField.options].some(option => option.value === preferred) ? preferred : "";
+  document.getElementById("saveSubmit").textContent = confirm;
   const toggleNewFolder = () => {
     newFolderLabel.hidden = folderField.value !== "__new__";
     newFolderField.required = !newFolderLabel.hidden;

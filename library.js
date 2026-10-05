@@ -104,6 +104,7 @@ const libraryIcons = {
   rename: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4L16.5 3.5Z"/>',
   share: '<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5M8 13l8 5"/>',
   move: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10H3V7Zm5 6h8m-3-3 3 3-3 3"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
   leave: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11"/>',
 };
 function libraryIconButton(icon, label, action) {
@@ -230,31 +231,35 @@ function renderDocuments(root, docs) {
     const actions = document.createElement("div"); actions.className = "library-row-actions";
     actions.append(libraryIconButton("share", `لینک عمومی از ${doc.title}`, () => shareDocumentSnapshot(doc)));
     if (role === "owner") actions.append(libraryIconButton("move", `انتقال ${doc.title}`, () => moveDocument(doc)));
+    actions.append(libraryIconButton("copy", role === "owner" ? `ساخت کپی از ${doc.title}` : `کپی ${doc.title} در کتابخانهٔ من`, () => copyDocument(doc)));
     if (canEditRole(role)) {
       actions.append(libraryIconButton("rename", `تغییر نام ${doc.title}`, () => renameDocument(doc)));
       actions.append(libraryIconButton("delete", `حذف ${doc.title}`, () => deleteDocument(doc)));
     }
-    if (role === "owner") {
-      row.draggable = true;
-      row.addEventListener("dragstart", event => {
-        event.dataTransfer.setData("application/x-pf-document", doc.id);
-        event.dataTransfer.effectAllowed = "move";
-        row.classList.add("dragging");
-      });
-      row.addEventListener("dragend", () => row.classList.remove("dragging"));
-    }
+    row.draggable = true;
+    row.addEventListener("dragstart", event => {
+      draggedDocument = doc;
+      event.dataTransfer.setData("application/x-pf-document", doc.id);
+      event.dataTransfer.effectAllowed = "copyMove";
+      row.classList.add("dragging");
+    });
+    row.addEventListener("dragend", () => { draggedDocument = null; row.classList.remove("dragging"); });
     row.append(main, actions);
     root.append(row);
   }
 }
 
-/** Own documents can be dropped onto own folders or the unfiled section. */
+let draggedDocument = null;
+
+/** Own documents move between own folders; anything else dropped becomes a copy. */
+const dropMoves = (doc, folderId) => documentRole(doc) === "owner" && (!folderId || folderById(folderId)?.role === "owner");
+
 function makeDropTarget(element, folderId) {
-  const accepts = event => event.dataTransfer?.types?.includes("application/x-pf-document") && (!folderId || folderById(folderId)?.role === "owner");
+  const accepts = event => event.dataTransfer?.types?.includes("application/x-pf-document") && draggedDocument?.folderId !== folderId;
   element.addEventListener("dragover", event => {
     if (!accepts(event)) return;
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.dropEffect = draggedDocument && !dropMoves(draggedDocument, folderId) ? "copy" : "move";
     element.classList.add("drop-target");
   });
   element.addEventListener("dragleave", event => {
@@ -266,7 +271,9 @@ function makeDropTarget(element, folderId) {
     event.preventDefault();
     event.stopPropagation();
     const doc = library.documents.find(item => item.id === event.dataTransfer.getData("application/x-pf-document"));
-    if (doc && doc.folderId !== folderId) moveDocumentTo(doc, folderId);
+    if (!doc || doc.folderId === folderId) return;
+    if (dropMoves(doc, folderId)) moveDocumentTo(doc, folderId);
+    else copyDocument(doc, folderId, true);
   });
 }
 
@@ -315,6 +322,33 @@ async function deleteDocument(doc) {
 
 function conflictMessage(error) {
   return error.code === "VERSION_CONFLICT" ? "این متن همین حالا جای دیگری تغییر کرد؛ فهرست به‌روز شد، دوباره امتحان کنید." : error.message;
+}
+
+/**
+ * Saves an independent copy of a document in a folder the user can write to.
+ * Documents in someone else's folder cannot be moved out (they stay the
+ * owner's), so copying is how a member keeps their own version.
+ */
+async function copyDocument(doc, folderId = undefined, dropped = false) {
+  try {
+    const full = await libraryApi(`/documents/${doc.id}`);
+    const mine = documentRole(doc) === "owner";
+    const choice = await askSaveDestination({
+      title: mine ? `${full.title} (کپی)` : full.title,
+      folderId,
+      description: dropped && !mine
+        ? "این متن مال صاحب پوشهٔ اشتراکی است و جابه‌جا نمی‌شود؛ یک نسخهٔ مستقل از آن ذخیره می‌شود و اصل متن سر جایش می‌ماند."
+        : "یک نسخهٔ مستقل ذخیره می‌شود؛ تغییرات بعدی آن روی متن اصلی اثری ندارد.",
+      confirm: "ذخیرهٔ کپی",
+    });
+    if (!choice) return;
+    let target = choice.folderId;
+    if (choice.newFolderName) target = (await libraryApi("/folders", "POST", { name: choice.newFolderName })).id;
+    await libraryApi("/documents", "POST", { title: choice.title, content: full.content, folderId: target });
+    if (target) { openFolders.add(target); rememberOpenFolders(); }
+    await refreshLibrary();
+    libraryToast("کپی ذخیره شد.");
+  } catch (error) { libraryToast(error.message, true); }
 }
 
 /** A public, independent snapshot (/s/:id) of a saved document. */
