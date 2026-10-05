@@ -1,6 +1,6 @@
 // Service worker: offline app shell + asset caching. Bump CACHE on releases
 // that change cached static assets.
-const CACHE = "pf-v11";
+const CACHE = "pf-v12";
 const SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -10,6 +10,7 @@ const SHELL = [
   "/date.wasm",
   "/wasm_exec.js",
   "/library.js",
+  "/workspace.js",
   "/library.css",
 ];
 
