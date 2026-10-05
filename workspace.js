@@ -8,14 +8,16 @@ const workspace = { tabs: [], activeId: null, persistent: true };
 
 const newTabId = () => (crypto.randomUUID ? crypto.randomUUID() : `t${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`);
 const activeTab = () => workspace.tabs.find(tab => tab.id === workspace.activeId);
-const isDirty = tab => tab.doc ? tab.content !== tab.doc.content : tab.content.trim() !== "";
+/* Besides text tabs there are tool tabs (the date converter), at most one each. */
+const isTextTab = tab => !tab.kind || tab.kind === "text";
+const isDirty = tab => isTextTab(tab) && (tab.doc ? tab.content !== tab.doc.content : tab.content.trim() !== "");
 const canEditTab = tab => !tab.doc || canEditRole(tab.doc.role);
 
 function deriveTitle(content) {
   const line = content.split(/\r?\n/).map(part => part.replace(/^[#>*\-\s]+/, "").trim()).find(Boolean);
   return line ? line.slice(0, 80) : "";
 }
-function tabTitle(tab) { return tab.doc?.title || deriveTitle(tab.content) || "متن تازه"; }
+function tabTitle(tab) { if (tab.kind === "date") return "تبدیل تاریخ"; return tab.doc?.title || deriveTitle(tab.content) || "متن تازه"; }
 
 /** The saved state a tab is linked to; `content` is the last saved body. */
 function docState(doc) {
@@ -30,6 +32,7 @@ function loadWorkspace() {
   for (const raw of Array.isArray(stored?.tabs) ? stored.tabs : []) {
     if (typeof raw?.id !== "string" || typeof raw.content !== "string") continue;
     const tab = { id: raw.id, content: raw.content, doc: null };
+    if (raw.kind === "date") tab.kind = "date";
     if (raw.doc && typeof raw.doc.id === "string") {
       // Clean tabs store their body once; the saved baseline equals the content.
       tab.doc = { ...raw.doc, content: typeof raw.doc.content === "string" ? raw.doc.content : raw.content };
@@ -46,6 +49,7 @@ function persistWorkspace(now = false) {
   const write = () => {
     const tabs = workspace.tabs.map(tab => ({
       id: tab.id,
+      kind: tab.kind,
       content: tab.content,
       doc: tab.doc && { ...tab.doc, content: isDirty(tab) ? tab.doc.content : undefined },
     }));
@@ -63,12 +67,13 @@ window.addEventListener("pagehide", () => persistWorkspace(true));
 
 // --- tab lifecycle ---
 
-function createTab({ content = "", doc = null } = {}) {
+function createTab({ content = "", doc = null, kind = undefined } = {}) {
   if (workspace.tabs.length >= MAX_TABS) {
     libraryToast(`حداکثر ${MAX_TABS.toLocaleString("fa-IR")} زبانه می‌توانید باز کنید؛ چند زبانه را ببندید.`, true);
     return null;
   }
   const tab = { id: newTabId(), content, doc: doc && docState(doc) };
+  if (kind) tab.kind = kind;
   const at = workspace.tabs.findIndex(item => item.id === workspace.activeId);
   workspace.tabs.splice(at + 1, 0, tab);
   return tab;
@@ -81,8 +86,30 @@ function newTab() {
   expandInput();
 }
 
-/** Shows the tab's text in the editor and preview. */
+/** Sidebar "پرشین فرمتر": a fresh text tab (or the current one, if it is still empty). */
+function openFormatterTab() {
+  const tab = activeTab();
+  if (isTextTab(tab) && !tab.doc && !tab.content.trim()) { selectTab(tab.id); input.focus(); return; }
+  newTab();
+}
+
+/** Sidebar "تاریخ": the date converter tab, opened once and focused afterwards. */
+function openDateTab() {
+  const existing = workspace.tabs.find(tab => tab.kind === "date");
+  const tab = existing || createTab({ kind: "date" });
+  if (tab) selectTab(tab.id);
+}
+
+/** A text tab for new content: the active one if it is an empty draft, else a new tab. */
+function textTabForNewContent() {
+  const tab = activeTab();
+  return isTextTab(tab) && !tab.doc && !tab.content.trim() ? tab : createTab();
+}
+
+/** Shows the tab: the date view, or its text in the editor and preview. */
 function showTab(tab) {
+  if (!isTextTab(tab)) { switchTab(tab.kind, false); return; }
+  switchTab("format", false);
   input.value = tab.content;
   render();
   if (tab.content.trim()) collapseInput();
@@ -121,7 +148,7 @@ async function closeTab(id) {
 /** Editor input: the textarea always edits the active tab. */
 function workspaceInput() {
   const tab = activeTab();
-  if (!tab) return;
+  if (!tab || !isTextTab(tab)) return;
   tab.content = input.value;
   updateTabChrome(tab);
   persistWorkspace();
@@ -129,10 +156,9 @@ function workspaceInput() {
 
 /** New text (paste button, file, shared link) opens in a fresh tab unless the current one is empty. */
 function placeText(text) {
-  let tab = activeTab();
-  if (tab.content.trim() || tab.doc) tab = createTab({ content: text });
-  else tab.content = text;
+  const tab = textTabForNewContent();
   if (!tab) return false;
+  tab.content = text;
   selectTab(tab.id);
   return true;
 }
@@ -140,7 +166,7 @@ function placeText(text) {
 /** "Clear": empties a draft; a saved text is left intact and a fresh tab opens instead. */
 function clearActiveTab() {
   const tab = activeTab();
-  if (tab.doc) {
+  if (tab.doc || !isTextTab(tab)) {
     const fresh = createTab();
     if (fresh) selectTab(fresh.id);
     return;
@@ -184,18 +210,20 @@ function updateTabChrome(tab, item = document.querySelector(`.doc-tab[data-tab-i
   const active = tab.id === workspace.activeId;
   const dirty = isDirty(tab);
   const title = tabTitle(tab);
-  const state = !tab.doc ? "پیش‌نویس ذخیره‌نشده" : dirty ? "تغییرات ذخیره‌نشده" : !canEditTab(tab) ? "فقط خواندنی" : "ذخیره‌شده";
+  const text = isTextTab(tab);
+  const state = !text ? "ابزار" : !tab.doc ? "پیش‌نویس ذخیره‌نشده" : dirty ? "تغییرات ذخیره‌نشده" : !canEditTab(tab) ? "فقط خواندنی" : "ذخیره‌شده";
   item.classList.toggle("active", active);
-  item.classList.toggle("draft", !tab.doc);
+  item.classList.toggle("draft", text && !tab.doc);
+  item.classList.toggle("tool", !text);
   item.classList.toggle("dirty", dirty);
-  item.classList.toggle("readonly", !canEditTab(tab));
+  item.classList.toggle("readonly", text && !canEditTab(tab));
   const main = item.querySelector(".doc-tab-main");
   main.setAttribute("aria-selected", String(active));
   main.tabIndex = active ? 0 : -1;
   main.title = `${title} — ${state}${tab.doc ? " (دوبار کلیک برای تغییر نام)" : ""}`;
   item.querySelector(".doc-tab-title").textContent = title;
   item.querySelector(".doc-tab-close").setAttribute("aria-label", `بستن ${title}`);
-  if (active) updateSaveButton(tab);
+  if (active && text) updateSaveButton(tab);
 }
 
 function updateSaveButton(tab) {
@@ -220,6 +248,7 @@ function moveTabFocus(event, tab) {
 }
 
 async function renameTab(tab) {
+  if (!isTextTab(tab)) return;
   if (!tab.doc) { libraryToast("عنوان متن هنگام ذخیره تعیین می‌شود."); return; }
   const doc = library.documents.find(item => item.id === tab.doc.id);
   if (doc) await renameDocument(doc);
@@ -234,16 +263,14 @@ function workspaceOpenDocumentIds() {
 /** Opens a saved document, focusing its tab if it is already open. */
 async function workspaceOpenDocument(id) {
   const existing = workspace.tabs.find(tab => tab.doc?.id === id);
-  if (existing) { selectTab(existing.id); switchTab("format", false); return; }
+  if (existing) { selectTab(existing.id); return; }
   try {
     const doc = await libraryApi(`/documents/${id}`);
-    let tab = activeTab();
-    if (tab.doc || tab.content.trim()) tab = createTab({ doc });
-    else tab.doc = docState(doc);
+    const tab = textTabForNewContent();
     if (!tab) return;
+    tab.doc = docState(doc);
     tab.content = doc.content;
     selectTab(tab.id);
-    switchTab("format", false);
     renderLibrary();
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (error) {
@@ -326,6 +353,7 @@ let savingTab = false;
 async function saveActiveTab() {
   if (savingTab) return;
   const tab = activeTab();
+  if (!isTextTab(tab)) return;
   if (!tab.content.trim()) { libraryToast("ابتدا متنی بنویسید.", true); input.focus(); return; }
   savingTab = true;
   try {
@@ -465,5 +493,10 @@ async function resolveConflict(tab) {
 loadWorkspace();
 input.addEventListener("input", workspaceInput);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && activeTab()) syncTab(activeTab()); });
-selectTab(workspace.activeId);
-if (!activeTab().content.trim() && location.pathname !== "/date") input.focus();
+if (location.pathname === "/date") openDateTab();
+else {
+  // A date tab restored as active would rewrite "/" to "/date"; start on a text tab.
+  if (!isTextTab(activeTab())) workspace.activeId = (workspace.tabs.find(isTextTab) || workspace.tabs[0]).id;
+  selectTab(workspace.activeId);
+  if (isTextTab(activeTab()) && !activeTab().content.trim()) input.focus();
+}

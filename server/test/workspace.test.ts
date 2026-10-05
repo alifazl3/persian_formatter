@@ -232,3 +232,43 @@ test("logging out forgets saved tabs but keeps drafts", () => {
   run("workspaceForgetSavedDocuments()");
   assert.deepEqual(JSON.parse(run("JSON.stringify(workspace.tabs.map(t => t.content))")), ["draft"]);
 });
+
+test("the date button opens one date tab and focuses it afterwards", () => {
+  const { run, type } = setup();
+  type("some text");
+  run("openDateTab()");
+  assert.equal(run("workspace.tabs.length"), 2);
+  assert.equal(run("activeTab().kind"), "date");
+  assert.equal(run("tabTitle(activeTab())"), "تبدیل تاریخ");
+  assert.equal(run("isDirty(activeTab())"), false);
+  run("selectTab(workspace.tabs[0].id); openDateTab()");
+  assert.equal(run("workspace.tabs.length"), 2, "an existing date tab is reused");
+  assert.equal(run("activeTab().kind"), "date");
+});
+
+test("new text never lands in the date tab", () => {
+  const { run } = setup();
+  run("openDateTab()");
+  run(`placeText("pasted")`);
+  assert.equal(run("activeTab().kind"), undefined);
+  assert.equal(run("activeTab().content"), "pasted");
+  run("openDateTab(); workspaceInput()");
+  assert.equal(run(`workspace.tabs.find(t => t.kind === "date").content`), "");
+});
+
+test("the formatter button reuses an empty draft, otherwise opens a new text tab", () => {
+  const { run, type } = setup();
+  run("openFormatterTab()");
+  assert.equal(run("workspace.tabs.length"), 1);
+  type("text");
+  run("openFormatterTab()");
+  assert.equal(run("workspace.tabs.length"), 2);
+  assert.equal(run("activeTab().content"), "");
+});
+
+test("the date tab survives a reload", () => {
+  const first = setup();
+  first.run("openDateTab(); persistWorkspace(true)");
+  const reloaded = setup(JSON.parse(first.storage.get("pf_tabs_v1")!));
+  assert.equal(reloaded.run(`workspace.tabs.filter(t => t.kind === "date").length`), 1);
+});

@@ -1189,13 +1189,11 @@
 
     .app.tab-date .date-view {
       display: grid;
-      /* The formatter columns are hidden on this tab — take the whole row and
-         center, instead of hugging one edge with the rest left empty. */
-      grid-column: 1 / -1;
+      /* Takes the editor's place, right under the tab bar. */
+      grid-area: input;
     }
 
     /* On the Date tab, hide the formatter center + its tools. */
-    .app.tab-date .doc-tabs,
     .app.tab-date .input-shell,
     .app.tab-date .preview-shell,
     .app.tab-date .toolbar {
@@ -1205,8 +1203,9 @@
     /* Keep the date view in the center column, between the sidebars. */
     @media (min-width: 1101px) {
       .app.mode-sidebar.tab-date .date-view {
+        grid-area: auto;
         grid-column: 2;
-        grid-row: 1 / 4;
+        grid-row: 2 / 4;
       }
     }
 
@@ -2006,8 +2005,8 @@
         </div>
         <div class="hint">متن خام را Paste کن؛ پایین تمیز، بخش‌بندی‌شده و خوانا نمایش داده می‌شود.</div>
         <div class="tabs" role="tablist">
-          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="switchTab('format')">پرشین فرمتر <kbd class="kbd">1</kbd></button>
-          <button class="tab" id="tabDate" type="button" role="tab" onclick="switchTab('date')">تاریخ <kbd class="kbd">2</kbd></button>
+          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="openFormatterTab()" title="متن تازه در زبانهٔ جدید">پرشین فرمتر <kbd class="kbd">1</kbd></button>
+          <button class="tab" id="tabDate" type="button" role="tab" onclick="openDateTab()" title="تبدیل تاریخ در زبانهٔ جدید">تاریخ <kbd class="kbd">2</kbd></button>
         </div>
       </div>
 
@@ -2371,8 +2370,8 @@
         <button type="button" class="kbd-help-close" onclick="toggleKbdHelp(false)" aria-label="بستن">×</button>
       </div>
       <div class="kbd-group-title">عمومی</div>
-      <div class="kbd-row"><span>تب پرشین فرمتر</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
-      <div class="kbd-row"><span>تب تاریخ</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
+      <div class="kbd-row"><span>زبانهٔ پرشین فرمتر (متن تازه)</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
+      <div class="kbd-row"><span>زبانهٔ تبدیل تاریخ</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
       <div class="kbd-row"><span>تغییر تم (روشن / تیره)</span><span class="keys"><kbd class="kbd">T</kbd></span></div>
       <div class="kbd-row"><span>این راهنما</span><span class="keys"><kbd class="kbd">?</kbd></span></div>
       <div class="kbd-row"><span>خروج از فیلد متنی / جمع کردن ورودی / بستن</span><span class="keys"><kbd class="kbd">Esc</kbd></span></div>
@@ -3754,9 +3753,10 @@
       document.title = isDate ? "تبدیل تاریخ — Pretty Text Viewer" : "Pretty Text Viewer";
 
       // Keep the URL in sync for /  ⇄ /date (don't rewrite a /s/:id share link).
+      // Tabs switch views, so the URL is replaced rather than stacked in history.
       const path = isDate ? "/date" : "/";
       if (location.pathname !== path && (location.pathname === "/" || location.pathname === "/date")) {
-        history.pushState({}, "", path);
+        history.replaceState({}, "", path);
       }
 
       if (isDate) {
@@ -3769,10 +3769,6 @@
         input.focus();
       }
     }
-
-    window.addEventListener("popstate", () => {
-      switchTab(location.pathname === "/date" ? "date" : "format");
-    });
 
     // ---- Keyboard shortcuts ----
     // Matched on e.code (the physical key), so they work the same under the
@@ -3863,8 +3859,8 @@
       }
 
       switch (e.code) {
-        case "Digit1": run(() => switchTab("format", false), "#tabFormat"); break;
-        case "Digit2": run(() => switchTab("date", false), "#tabDate"); break;
+        case "Digit1": run(openFormatterTab, "#tabFormat"); break;
+        case "Digit2": run(openDateTab, "#tabDate"); break;
         case "KeyT": run(toggleTheme, ".theme-toggle"); break;
       }
 
