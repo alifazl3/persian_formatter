@@ -208,13 +208,14 @@ export function createAuthRouter(pool: Pool): Router {
       await client.query("BEGIN");
       await client.query("UPDATE webauthn_credentials SET sign_count=$1 WHERE id=$2", [count, id]);
       await client.query("INSERT INTO sessions(token_hash,owner_id,expires_at) VALUES($1,$2,now()+interval '90 days')", [hash(session), credential.owner_id]);
-      if (old && (!old.email || old.id === credential.owner_id)) {
-        const oldSession = cookie(req, cookieName);
-        if (oldSession) await client.query("UPDATE folder_grants SET session_hash=$1 WHERE session_hash=$2", [hash(session), hash(oldSession)]);
-      }
       if (old && !old.email && old.id !== credential.owner_id) {
+        // Move the guest's library and shared-folder memberships to the account.
+        await client.query(`INSERT INTO folder_members(folder_id,member_id,access,link_hash,joined_at)
+          SELECT m.folder_id,$1,m.access,m.link_hash,m.joined_at FROM folder_members m JOIN folders f ON f.id=m.folder_id
+          WHERE m.member_id=$2 AND f.owner_id<>$1 ON CONFLICT (folder_id,member_id) DO NOTHING`, [credential.owner_id, old.id]);
         await client.query("UPDATE folders SET owner_id=$1 WHERE owner_id=$2", [credential.owner_id, old.id]);
         await client.query("UPDATE saved_items SET owner_id=$1 WHERE owner_id=$2", [credential.owner_id, old.id]);
+        await client.query("DELETE FROM folder_members m USING folders f WHERE f.id=m.folder_id AND m.member_id=$1 AND f.owner_id=$1", [credential.owner_id]);
         await client.query("DELETE FROM owners WHERE id=$1", [old.id]);
       }
       await client.query("COMMIT");
