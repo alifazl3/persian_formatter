@@ -106,6 +106,7 @@
 .doc-tab-main:focus-visible, .doc-tab-close:focus-visible, .doc-tab-new:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .doc-tab-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .doc-tab.draft .doc-tab-title { font-style: italic; }
+.doc-tab.tool .doc-tab-dot { opacity: 1; width: 8px; height: 8px; border: 0; border-radius: 2px; background: var(--accent); }
 .doc-tab-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--muted); opacity: 0; }
 .doc-tab.draft .doc-tab-dot { opacity: .9; }
 .doc-tab.dirty:not(.draft) .doc-tab-dot { opacity: 1; border-color: var(--warning); background: var(--warning); }

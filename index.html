@@ -155,220 +155,183 @@
     .library-island { grid-area: library; }
     .profile-island { grid-area: profile; }
 
-    .app.mode-header .right-rail,
-    .app.mode-header .left-rail { display: contents; }
+    /* Sidebar layout: text is the right sidebar, tools the left sidebar, with
+       the input/output stacked in the center. */
+    /* Wide screens: two sidebars around the editor. */
+    @media (min-width: 1101px) {
+      .app.mode-sidebar {
+        max-width: 1500px;
+        grid-template-columns: 260px minmax(0, 1fr) 220px;
+        /* Tall rails grow the preview row, not the tab bar or the editor. */
+        grid-template-rows: auto auto 1fr auto;
+        grid-template-areas:
+          "right doctabs left"
+          "right input left"
+          "right preview left"
+          "footer footer footer";
+        align-items: start;
+      }
 
-    /* Header mode: text + tools on one top row, content full-width below. */
-    .app.mode-header {
-      grid-template-columns: 1fr auto;
-      grid-template-areas:
-        "text tools"
-        "doctabs doctabs"
-        "input input"
-        "preview preview"
-        "library profile"
-        "footer footer";
-      align-items: start;
-    }
+      .app.mode-sidebar .right-rail,
+      .app.mode-sidebar .left-rail {
+        display: grid;
+        gap: 16px;
+        min-width: 0;
+        align-content: start;
+      }
 
-    .app.mode-header .head-text {
-      align-self: center;
-    }
+      .app.mode-sidebar .right-rail { grid-area: right; }
+      .app.mode-sidebar .left-rail { grid-area: left; position: sticky; top: 20px; }
+      .app.mode-sidebar .head-text,
+      .app.mode-sidebar .toolbar,
+      .app.mode-sidebar .library-island,
+      .app.mode-sidebar .profile-island { grid-area: auto; }
 
-    /* Sidebar mode: header removed; text becomes the right sidebar, tools the
-       left sidebar, with the input/output stacked in the center. */
-    .app.mode-sidebar {
-      max-width: 1500px;
-      grid-template-columns: 260px minmax(0, 1fr) 220px;
-      /* Tall rails grow the preview row, not the tab bar or the editor. */
-      grid-template-rows: auto auto 1fr auto;
-      grid-template-areas:
-        "right doctabs left"
-        "right input left"
-        "right preview left"
-        "footer footer footer";
-      align-items: start;
-    }
+      .app.mode-sidebar .head-text,
+      .app.mode-sidebar .toolbar {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+      }
 
-    .app.mode-sidebar .right-rail,
-    .app.mode-sidebar .left-rail {
-      display: grid;
-      gap: 16px;
-      min-width: 0;
-      align-content: start;
-    }
+      .app.mode-sidebar h1 {
+        font-size: 20px;
+      }
 
-    .app.mode-sidebar .right-rail { grid-area: right; }
-    .app.mode-sidebar .left-rail { grid-area: left; position: sticky; top: 20px; }
-    .app.mode-sidebar .head-text,
-    .app.mode-sidebar .toolbar,
-    .app.mode-sidebar .library-island,
-    .app.mode-sidebar .profile-island { grid-area: auto; }
+      /* In the narrow right sidebar, put the title on its own full-width line and
+         let the toggle buttons wrap onto the row below (instead of squeezing into
+         the title and forcing it to wrap mid-word). */
+      .app.mode-sidebar .head-title-row {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
 
-    .app.mode-sidebar .head-text,
-    .app.mode-sidebar .toolbar {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-    }
+      .app.mode-sidebar .head-title-row h1 {
+        flex-basis: 100%;
+      }
 
-    .app.mode-sidebar h1 {
-      font-size: 20px;
-    }
+      .app.mode-sidebar .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+      }
 
-    /* In the narrow right sidebar, put the title on its own full-width line and
-       let the toggle buttons wrap onto the row below (instead of squeezing into
-       the title and forcing it to wrap mid-word). */
-    .app.mode-sidebar .head-title-row {
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+      /* Sidebar tools: compact icon-only buttons grouped into sections, each with
+         a quiet "dusty" accent and a label that appears as a tooltip on hover. */
+      .app.mode-sidebar .tool-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
 
-    .app.mode-sidebar .head-title-row h1 {
-      flex-basis: 100%;
-    }
+      .app.mode-sidebar .tool-group + .tool-group {
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+      }
 
-    .app.mode-sidebar .toolbar {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 16px;
-    }
+      .app.mode-sidebar .tool-group-label {
+        display: block;
+        flex-basis: 100%;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-bottom: 2px;
+        padding-inline-start: 2px;
+      }
 
-    /* Sidebar tools: compact icon-only buttons grouped into sections, each with
-       a quiet "dusty" accent and a label that appears as a tooltip on hover. */
-    .app.mode-sidebar .tool-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+      .app.mode-sidebar .toolbar button {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        justify-content: center;
+        box-shadow: none;
+        color: var(--btn, var(--text));
+        background: color-mix(in srgb, var(--btn, var(--muted)) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--btn, var(--muted)) 24%, var(--border));
+      }
 
-    .app.mode-sidebar .tool-group + .tool-group {
-      padding-top: 14px;
-      border-top: 1px solid var(--border);
-    }
+      .app.mode-sidebar .toolbar button svg {
+        width: 18px;
+        height: 18px;
+        color: var(--btn, var(--muted));
+      }
 
-    .app.mode-sidebar .tool-group-label {
-      display: block;
-      flex-basis: 100%;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      margin-bottom: 2px;
-      padding-inline-start: 2px;
-    }
+      .app.mode-sidebar .toolbar button:hover {
+        filter: none;
+        background: color-mix(in srgb, var(--btn, var(--accent)) 24%, transparent);
+        border-color: var(--btn, var(--accent));
+      }
 
-    .app.mode-sidebar .toolbar button {
-      position: relative;
-      width: 42px;
-      height: 42px;
-      padding: 0;
-      justify-content: center;
-      box-shadow: none;
-      color: var(--btn, var(--text));
-      background: color-mix(in srgb, var(--btn, var(--muted)) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--btn, var(--muted)) 24%, var(--border));
-    }
+      /* dusty, desaturated accents — used sparingly */
+      .app.mode-sidebar .toolbar button.paste { --btn: #7c7fb8; }
+      .app.mode-sidebar .toolbar button.upload { --btn: #5fa3a0; }
+      .app.mode-sidebar .toolbar button.copy-input { --btn: #5f8fb0; }
+      .app.mode-sidebar .toolbar button.copy { --btn: #6fa07a; }
+      .app.mode-sidebar .toolbar button.download { --btn: #8a7fc0; }
+      .app.mode-sidebar .toolbar button.share { --btn: #c0925f; }
+      .app.mode-sidebar .toolbar button.save { --btn: #6fa07a; }
+      .app.mode-sidebar .toolbar button.raw-toggle { --btn: #8a8fa0; }
+      .app.mode-sidebar .toolbar button.clear { --btn: #bd7676; }
 
-    .app.mode-sidebar .toolbar button svg {
-      width: 18px;
-      height: 18px;
-      color: var(--btn, var(--muted));
-    }
+      .app.mode-sidebar .toolbar button.raw-toggle.active {
+        background: color-mix(in srgb, var(--btn) 28%, transparent);
+        border-color: var(--btn);
+      }
 
-    .app.mode-sidebar .toolbar button:hover {
-      filter: none;
-      background: color-mix(in srgb, var(--btn, var(--accent)) 24%, transparent);
-      border-color: var(--btn, var(--accent));
-    }
+      /* Icon-only squares: the key-hint chip becomes a tiny badge pinned to the
+         button corner (it must not join the flex layout of the 42px square). */
+      .app.mode-sidebar .toolbar button .kbd {
+        position: absolute;
+        bottom: -6px;
+        left: -6px;
+        z-index: 2;
+        pointer-events: none;
+        font-size: 8.5px;
+        padding: 2px 4px;
+        background: var(--panel);
+        border-color: var(--border);
+        color: var(--muted);
+        opacity: 1;
+      }
 
-    /* dusty, desaturated accents — used sparingly */
-    .app.mode-sidebar .toolbar button.paste { --btn: #7c7fb8; }
-    .app.mode-sidebar .toolbar button.upload { --btn: #5fa3a0; }
-    .app.mode-sidebar .toolbar button.copy-input { --btn: #5f8fb0; }
-    .app.mode-sidebar .toolbar button.copy { --btn: #6fa07a; }
-    .app.mode-sidebar .toolbar button.download { --btn: #8a7fc0; }
-    .app.mode-sidebar .toolbar button.share { --btn: #c0925f; }
-    .app.mode-sidebar .toolbar button.save { --btn: #6fa07a; }
-    .app.mode-sidebar .toolbar button.raw-toggle { --btn: #8a8fa0; }
-    .app.mode-sidebar .toolbar button.clear { --btn: #bd7676; }
+      /* label → tooltip below the icon on hover */
+      .app.mode-sidebar .toolbar button span {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%) translateY(-4px);
+        white-space: nowrap;
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 4px 9px;
+        font-size: 12px;
+        font-weight: 600;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s, transform 0.15s;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+        z-index: 20;
+      }
 
-    .app.mode-sidebar .toolbar button.raw-toggle.active {
-      background: color-mix(in srgb, var(--btn) 28%, transparent);
-      border-color: var(--btn);
-    }
-
-    /* Icon-only squares: the key-hint chip becomes a tiny badge pinned to the
-       button corner (it must not join the flex layout of the 42px square). */
-    .app.mode-sidebar .toolbar button .kbd {
-      position: absolute;
-      bottom: -6px;
-      left: -6px;
-      z-index: 2;
-      pointer-events: none;
-      font-size: 8.5px;
-      padding: 2px 4px;
-      background: var(--panel);
-      border-color: var(--border);
-      color: var(--muted);
-      opacity: 1;
-    }
-
-    /* label → tooltip below the icon on hover */
-    .app.mode-sidebar .toolbar button span {
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%) translateY(-4px);
-      white-space: nowrap;
-      background: var(--panel);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 4px 9px;
-      font-size: 12px;
-      font-weight: 600;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.15s, transform 0.15s;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
-      z-index: 20;
-    }
-
-    .app.mode-sidebar .toolbar button:hover span {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
+      .app.mode-sidebar .toolbar button:hover span {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
     }
 
     @media (max-width: 1100px) {
-      /* Narrow screens always stack — sidebars would be too cramped. */
+      /* Narrow screens stack everything in reading order: tools, the editor
+         and preview first, then the library and account. */
+      .app.mode-sidebar .right-rail,
+      .app.mode-sidebar .left-rail { display: contents; }
+
       .app.mode-sidebar {
-        max-width: 1100px;
-        grid-template-columns: 1fr;
-        grid-template-rows: none;
-        grid-template-areas:
-          "right"
-          "left"
-          "doctabs"
-          "input"
-          "preview"
-          "footer";
-      }
-
-      .app.mode-sidebar .left-rail {
-        position: static;
-      }
-
-      .app.mode-sidebar.tab-date .date-view {
-        grid-column: 1;
-        grid-row: auto;
-      }
-    }
-
-    @media (max-width: 700px) {
-      .app.mode-header {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         grid-template-areas: "text" "tools" "doctabs" "input" "preview" "library" "profile" "footer";
       }
     }
@@ -1207,8 +1170,10 @@
     }
 
     /* In the right sidebar, stack the tabs vertically. */
-    .app.mode-sidebar .tabs {
-      flex-direction: column;
+    @media (min-width: 1101px) {
+      .app.mode-sidebar .tabs {
+        flex-direction: column;
+      }
     }
 
     /* Date-converter view (a tab inside the main app, in the center column) */
@@ -1224,23 +1189,24 @@
 
     .app.tab-date .date-view {
       display: grid;
-      /* The formatter columns are hidden on this tab — take the whole row and
-         center, instead of hugging one edge with the rest left empty. */
-      grid-column: 1 / -1;
+      /* Takes the editor's place, right under the tab bar. */
+      grid-area: input;
     }
 
     /* On the Date tab, hide the formatter center + its tools. */
-    .app.tab-date .doc-tabs,
     .app.tab-date .input-shell,
     .app.tab-date .preview-shell,
     .app.tab-date .toolbar {
       display: none;
     }
 
-    /* Keep the date view between the library and profile islands. */
-    .app.mode-sidebar.tab-date .date-view {
-      grid-column: 2;
-      grid-row: 1 / 4;
+    /* Keep the date view in the center column, between the sidebars. */
+    @media (min-width: 1101px) {
+      .app.mode-sidebar.tab-date .date-view {
+        grid-area: auto;
+        grid-column: 2;
+        grid-row: 2 / 4;
+      }
     }
 
     .date-card {
@@ -2020,20 +1986,12 @@
 </head>
 
 <body>
-  <main class="app">
+  <main class="app mode-sidebar">
     <header id="appHeader">
       <div class="right-rail">
       <div class="head-text">
         <div class="head-title-row">
           <h1>Pretty Text Viewer</h1>
-          <button class="layout-toggle" type="button" onclick="toggleLayout()" title="تغییر چیدمان (هدر / ساید‌بار)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-              <line x1="9" y1="3" x2="9" y2="21"></line>
-              <line x1="15" y1="3" x2="15" y2="21"></line>
-            </svg>
-            <span class="layout-label">ساید‌بار</span><kbd class="kbd">B</kbd>
-          </button>
           <button class="layout-toggle theme-toggle" type="button" onclick="toggleTheme()" title="تغییر تم (روشن / تیره)">
             <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -2047,8 +2005,8 @@
         </div>
         <div class="hint">متن خام را Paste کن؛ پایین تمیز، بخش‌بندی‌شده و خوانا نمایش داده می‌شود.</div>
         <div class="tabs" role="tablist">
-          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="switchTab('format')">پرشین فرمتر <kbd class="kbd">1</kbd></button>
-          <button class="tab" id="tabDate" type="button" role="tab" onclick="switchTab('date')">تاریخ <kbd class="kbd">2</kbd></button>
+          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="openFormatterTab()" title="متن تازه در زبانهٔ جدید">پرشین فرمتر <kbd class="kbd">1</kbd></button>
+          <button class="tab" id="tabDate" type="button" role="tab" onclick="openDateTab()" title="تبدیل تاریخ در زبانهٔ جدید">تاریخ <kbd class="kbd">2</kbd></button>
         </div>
       </div>
 
@@ -2412,10 +2370,9 @@
         <button type="button" class="kbd-help-close" onclick="toggleKbdHelp(false)" aria-label="بستن">×</button>
       </div>
       <div class="kbd-group-title">عمومی</div>
-      <div class="kbd-row"><span>تب پرشین فرمتر</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
-      <div class="kbd-row"><span>تب تاریخ</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
+      <div class="kbd-row"><span>زبانهٔ پرشین فرمتر (متن تازه)</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
+      <div class="kbd-row"><span>زبانهٔ تبدیل تاریخ</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
       <div class="kbd-row"><span>تغییر تم (روشن / تیره)</span><span class="keys"><kbd class="kbd">T</kbd></span></div>
-      <div class="kbd-row"><span>تغییر چیدمان (هدر / سایدبار)</span><span class="keys"><kbd class="kbd">B</kbd></span></div>
       <div class="kbd-row"><span>این راهنما</span><span class="keys"><kbd class="kbd">?</kbd></span></div>
       <div class="kbd-row"><span>خروج از فیلد متنی / جمع کردن ورودی / بستن</span><span class="keys"><kbd class="kbd">Esc</kbd></span></div>
       <div class="kbd-group-title">پرشین فرمتر</div>
@@ -3396,38 +3353,7 @@
       input.focus();
     }
 
-    // Layout mode (header bar vs. two sidebars), persisted in localStorage.
-    const LAYOUT_KEY = "pf:layout";
     const appEl = document.querySelector(".app");
-
-    function setLayout(mode) {
-      const sidebar = mode === "sidebar";
-      appEl.classList.toggle("mode-sidebar", sidebar);
-      appEl.classList.toggle("mode-header", !sidebar);
-
-      const label = document.querySelector(".layout-label");
-      if (label) label.textContent = sidebar ? "هدر" : "ساید‌بار";
-
-      try {
-        localStorage.setItem(LAYOUT_KEY, mode);
-      } catch (err) {
-        /* localStorage unavailable (private mode) — ignore */
-      }
-    }
-
-    function toggleLayout() {
-      setLayout(appEl.classList.contains("mode-sidebar") ? "header" : "sidebar");
-    }
-
-    (function initLayout() {
-      let mode = "header";
-      try {
-        if (localStorage.getItem(LAYOUT_KEY) === "sidebar") mode = "sidebar";
-      } catch (err) {
-        /* ignore */
-      }
-      setLayout(mode);
-    })();
 
     // Light / dark theme, persisted in localStorage. The highlight.js stylesheet
     // is swapped so code tokens stay legible in both themes.
@@ -3827,9 +3753,10 @@
       document.title = isDate ? "تبدیل تاریخ — Pretty Text Viewer" : "Pretty Text Viewer";
 
       // Keep the URL in sync for /  ⇄ /date (don't rewrite a /s/:id share link).
+      // Tabs switch views, so the URL is replaced rather than stacked in history.
       const path = isDate ? "/date" : "/";
       if (location.pathname !== path && (location.pathname === "/" || location.pathname === "/date")) {
-        history.pushState({}, "", path);
+        history.replaceState({}, "", path);
       }
 
       if (isDate) {
@@ -3842,10 +3769,6 @@
         input.focus();
       }
     }
-
-    window.addEventListener("popstate", () => {
-      switchTab(location.pathname === "/date" ? "date" : "format");
-    });
 
     // ---- Keyboard shortcuts ----
     // Matched on e.code (the physical key), so they work the same under the
@@ -3936,10 +3859,9 @@
       }
 
       switch (e.code) {
-        case "Digit1": run(() => switchTab("format", false), "#tabFormat"); break;
-        case "Digit2": run(() => switchTab("date", false), "#tabDate"); break;
+        case "Digit1": run(openFormatterTab, "#tabFormat"); break;
+        case "Digit2": run(openDateTab, "#tabDate"); break;
         case "KeyT": run(toggleTheme, ".theme-toggle"); break;
-        case "KeyB": run(toggleLayout, ".layout-toggle"); break;
       }
 
       if (!onDate) {
