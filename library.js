@@ -298,7 +298,12 @@ async function moveDocument(doc) {
 
 async function moveDocumentTo(doc, folderId) {
   const folder = folderId && folderById(folderId);
-  if (folder?.memberCount && !await libraryAsk({ title: "انتقال به پوشهٔ اشتراکی", description: `پوشهٔ «${folder.name}» با ${folder.memberCount.toLocaleString("fa-IR")} نفر به اشتراک گذاشته شده است و آن‌ها این متن را خواهند دید.`, confirm: "انتقال" })) return;
+  const source = doc.folderId && folderById(doc.folderId);
+  // Moving into or out of a shared folder changes who can see the text.
+  const notes = [];
+  if (source?.memberCount) notes.push(`اعضای «${source.name}» دیگر این متن را نمی‌بینند.`);
+  if (folder?.memberCount) notes.push(`پوشهٔ «${folder.name}» با ${folder.memberCount.toLocaleString("fa-IR")} نفر به اشتراک گذاشته شده است و آن‌ها این متن را خواهند دید.`);
+  if (notes.length && !await libraryAsk({ title: `انتقال «${doc.title}»`, description: notes.join(" "), confirm: "انتقال" })) return;
   try {
     const updated = await libraryApi(`/documents/${doc.id}`, "PATCH", { folderId, version: doc.version });
     workspaceDocumentUpdated(updated);
