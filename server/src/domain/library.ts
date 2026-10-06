@@ -38,6 +38,15 @@ export interface Document extends DocumentSummary {
   readonly role: Role;
 }
 
+/** A document matching a library search, with a short excerpt around the hit. */
+export interface SearchResult {
+  readonly id: string;
+  readonly folderId: string | null;
+  readonly title: string;
+  readonly snippet: string;
+  readonly updatedAt: Date;
+}
+
 export interface Library {
   readonly folders: FolderSummary[];
   readonly documents: DocumentSummary[];

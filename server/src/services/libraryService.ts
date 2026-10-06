@@ -10,6 +10,7 @@ import {
   Library,
   LinkPreview,
   Role,
+  SearchResult,
   canEditDocuments,
   canManageFolder,
   rank,
@@ -79,6 +80,15 @@ export class LibraryService {
       this.repository.listDocuments(userId),
     ]);
     return { folders, documents };
+  }
+
+  /** Finds documents whose title or text contains the query. */
+  async search(userId: string, query: unknown): Promise<SearchResult[]> {
+    if (typeof query !== "string") throw new ValidationError("Query is required");
+    const needle = query.trim().replace(/ي/g, "ی").replace(/ك/g, "ک").toLowerCase();
+    if (needle.length < 2 || needle.length > 100) throw new ValidationError("Query must be 2–100 characters");
+    await this.limit(`search:${userId}`, 120);
+    return this.repository.searchDocuments(userId, needle, 50);
   }
 
   // --- documents ---

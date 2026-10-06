@@ -66,6 +66,18 @@ test("documents, folders and folder sharing against PostgreSQL", async t => {
       assert.equal((await stranger(`/documents/${unfiled.id}`)).status, 404);
     });
 
+    await t.test("search finds titles and text the user can open, folding ي/ك", async () => {
+      await owner("/documents", "POST", { title: "یادداشت شبکه", content: "کارت شبکه را با دستور ip پیدا کن. " + "x".repeat(200) + " کلمهٔ نادر در انتها" });
+      const byText = (await owner("/library/search?q=" + encodeURIComponent("كلمهٔ نادر"))).data.results;
+      assert.equal(byText.length, 1);
+      assert.match(byText[0].snippet, /^…/);
+      assert.match(byText[0].snippet, /کلمهٔ نادر/);
+      const byTitle = (await owner("/library/search?q=" + encodeURIComponent("يادداشت"))).data.results;
+      assert.equal(byTitle[0].title, "یادداشت شبکه");
+      assert.equal((await stranger("/library/search?q=" + encodeURIComponent("کلمهٔ نادر"))).data.results.length, 0);
+      assert.equal((await owner("/library/search?q=a")).status, 400);
+    });
+
     await t.test("joining makes the visitor a member; the folder appears in their library", async () => {
       const preview = (await reader(`/folder-links/${readToken}`)).data;
       assert.equal(preview.name, "Shared"); assert.equal(preview.role, null);

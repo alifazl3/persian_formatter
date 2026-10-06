@@ -6,6 +6,7 @@ import {
   FolderMember,
   FolderSummary,
   Role,
+  SearchResult,
 } from "../domain/library";
 
 /** Either the pool or a client inside a transaction. */
@@ -138,6 +139,42 @@ export class PgLibraryRepository {
       [userId]
     );
     return rows.map(toSummary);
+  }
+
+  /**
+   * Case-insensitive search in titles and bodies of every document the user
+   * can open. Arabic ي/ك are folded to Persian ی/ک on both sides, so either
+   * spelling finds the other. `needle` must already be lowercased and folded.
+   */
+  async searchDocuments(userId: string, needle: string, limit: number): Promise<SearchResult[]> {
+    const { rows } = await this.pool.query(
+      `WITH accessible AS (
+         SELECT id, folder_id, title, content, updated_at,
+           strpos(lower(translate(title, 'يك', 'یک')), $2) AS title_at,
+           strpos(lower(translate(content, 'يك', 'یک')), $2) AS content_at
+         FROM saved_items i
+         WHERE (i.folder_id IS NULL AND i.owner_id = $1)
+            OR i.folder_id IN (SELECT id FROM folders WHERE owner_id = $1)
+            OR i.folder_id IN (SELECT folder_id FROM folder_members WHERE member_id = $1)
+       )
+       SELECT id, folder_id, title, updated_at,
+         CASE WHEN content_at > 0
+           THEN substring(content FROM greatest(content_at - 60, 1) FOR 160)
+           ELSE left(content, 160) END AS snippet,
+         content_at > 0 AND content_at > 61 AS clipped
+       FROM accessible
+       WHERE title_at > 0 OR content_at > 0
+       ORDER BY (title_at > 0) DESC, updated_at DESC
+       LIMIT $3`,
+      [userId, needle, limit]
+    );
+    return rows.map(row => ({
+      id: row.id,
+      folderId: row.folder_id,
+      title: row.title,
+      snippet: `${row.clipped ? "…" : ""}${row.snippet.replace(/\s+/g, " ").trim()}`,
+      updatedAt: row.updated_at,
+    }));
   }
 
   // --- folders ---

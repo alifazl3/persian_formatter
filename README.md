@@ -27,6 +27,7 @@
 | `POST` | `/api/auth/login/options` و `/verify` | ورود با ایمیل و passkey |
 | `POST` | `/api/auth/logout` | خروج |
 | `GET` | `/api/library` | فهرست پوشه‌ها (با نقش کاربر) و متن‌ها (بدون بدنه) |
+| `GET` | `/api/library/search?q=` | جستجو در عنوان و متن همهٔ متن‌های در دسترس (ي/ك با ی/ک یکی حساب می‌شود)، با بخشی از متن اطراف نتیجه |
 | `GET`، `PATCH`، `DELETE` | `/api/documents/:id` | خواندن، ویرایش/تغییر نام/انتقال (`version` الزامی) و حذف (`?version=`) |
 | `POST` | `/api/documents` | ذخیرهٔ متن تازه `{ title, content, folderId? }` |
 | `POST`، `PATCH`، `DELETE` | `/api/folders` و `/api/folders/:id` | ساخت، تغییر نام و حذف پوشه؛ `?documents=delete` متن‌ها را هم حذف می‌کند |

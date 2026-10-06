@@ -18,6 +18,9 @@ export function createLibraryRouter(service: LibraryService, auth: AuthRouter): 
   router.get("/library", route(async (req, res) => {
     res.json(await service.library(await user(req, res)));
   }));
+  router.get("/library/search", route(async (req, res) => {
+    res.json({ results: await service.search(await user(req, res), req.query.q) });
+  }));
 
   router.get("/documents/:id", route(async (req, res) => {
     res.json(await service.getDocument(await user(req, res), req.params.id));

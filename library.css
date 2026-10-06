@@ -64,6 +64,13 @@
 .library-badge.shared { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); color: var(--accent); }
 .library-folder-count { flex: 0 0 auto; margin-inline-start: auto; color: var(--muted); font-size: 11px; }
 .library-folder-items { padding: 0 6px 6px; }
+.library-panel .library-result { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 2px; width: 100%; margin-bottom: 4px; padding: 8px 10px !important; border: 1px solid var(--border) !important; border-radius: 10px; background: var(--panel-soft) !important; text-align: right; font-weight: 500 !important; }
+.library-panel .library-result:hover { border-color: var(--accent) !important; }
+.library-result strong { overflow: hidden; color: var(--text); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.library-result.is-open strong::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-inline-end: 6px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+.library-result-folder { color: var(--accent); font-size: 10.5px; }
+.library-result-snippet { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: 11.5px; line-height: 1.7; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.library-result mark { border-radius: 3px; background: var(--glow); color: var(--accent); font-weight: 700; }
 .library-folder-items .library-empty { margin: 3px 8px 5px; }
 .library-doc { min-height: 40px; padding: 3px 5px; border: 1px solid transparent; border-radius: 9px; }
 .library-doc:hover { border-color: var(--border); background: var(--panel); }

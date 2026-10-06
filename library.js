@@ -1,7 +1,7 @@
 /* Library: saved documents, folders, folder sharing and the passkey account.
    Unsaved texts live only in the document tabs (workspace.js). */
 const libraryEl = id => document.getElementById(id);
-const library = { folders: [], documents: [], loaded: false, query: "" };
+const library = { folders: [], documents: [], loaded: false, query: "", results: null };
 const OPEN_FOLDERS_KEY = "pf_open_folders";
 const openFolders = new Set(readOpenFolders());
 
@@ -146,17 +146,70 @@ async function refreshLibrary() {
   library.folders = data.folders;
   library.documents = data.documents;
   library.loaded = true;
-  renderLibrary();
+  if (library.query.trim().length >= 2) scheduleSearch(); else renderLibrary();
   if (typeof workspaceLibraryChanged === "function") workspaceLibraryChanged();
 }
 async function refreshLibrarySafely() {
   try { await refreshLibrary(); } catch (error) { libraryNotice(error.message, true); }
 }
 
+// --- search (titles and text, on the server) ---
+
+const foldPersian = text => text.replace(/ي/g, "ی").replace(/ك/g, "ک").toLowerCase();
+let searchTimer;
+let searchSeq = 0;
+
+function scheduleSearch() {
+  clearTimeout(searchTimer);
+  const query = library.query.trim();
+  if (query.length < 2) { library.results = null; renderLibrary(); return; }
+  renderLibrary(); // title matches show right away; text matches follow
+  const seq = ++searchSeq;
+  searchTimer = setTimeout(async () => {
+    try {
+      const { results } = await libraryApi(`/library/search?q=${encodeURIComponent(query)}`);
+      if (seq !== searchSeq) return;
+      library.results = results;
+      renderLibrary();
+    } catch (error) { if (seq === searchSeq) libraryNotice(error.message, true); }
+  }, 250);
+}
+
+/** Text with the first occurrence of the query marked. */
+function highlighted(text, query) {
+  const span = document.createElement("span");
+  const at = foldPersian(text).indexOf(foldPersian(query));
+  if (at < 0) { span.textContent = text; return span; }
+  const mark = document.createElement("mark");
+  mark.textContent = text.slice(at, at + query.length);
+  span.append(text.slice(0, at), mark, text.slice(at + query.length));
+  return span;
+}
+
+function renderSearchResults(root, query) {
+  const box = document.createElement("section"); box.className = "library-section";
+  libraryText(box, "h3", "نتیجه‌های جستجو");
+  if (!library.results.length) libraryText(box, "p", "در عنوان و متن‌ها چیزی پیدا نشد.", "library-empty");
+  const openIds = typeof workspaceOpenDocumentIds === "function" ? workspaceOpenDocumentIds() : new Set();
+  for (const result of library.results) {
+    const row = libraryButton("", () => workspaceOpenDocument(result.id), "library-result");
+    if (openIds.has(result.id)) row.classList.add("is-open");
+    const title = document.createElement("strong"); title.append(highlighted(result.title, query));
+    const where = libraryText(row, "small", result.folderId ? folderById(result.folderId)?.name ?? "پوشه" : "بدون پوشه", "library-result-folder");
+    row.prepend(title);
+    where.after(Object.assign(document.createElement("span"), { className: "library-result-snippet" }));
+    row.querySelector(".library-result-snippet").append(highlighted(result.snippet, query));
+    row.setAttribute("aria-label", `باز کردن ${result.title}`);
+    box.append(row);
+  }
+  root.append(box);
+}
+
 function renderLibrary() {
   const root = libraryEl("libraryTree");
   root.replaceChildren();
   const query = library.query.trim().toLowerCase();
+  if (library.results && query.length >= 2) { renderSearchResults(root, library.query.trim()); return; }
   const matches = doc => !query || doc.title.toLowerCase().includes(query);
   const docsIn = folderId => library.documents.filter(doc => doc.folderId === folderId && matches(doc));
   const own = library.folders.filter(folder => folder.role === "owner");
@@ -633,7 +686,7 @@ async function logoutAccount() {
 // --- startup ---
 
 async function initLibrary() {
-  libraryEl("librarySearch").addEventListener("input", event => { library.query = event.target.value; renderLibrary(); });
+  libraryEl("librarySearch").addEventListener("input", event => { library.query = event.target.value; library.results = null; scheduleSearch(); });
   libraryEl("folderShareForm").addEventListener("submit", createFolderLink);
   renderLibrary();
   try {
