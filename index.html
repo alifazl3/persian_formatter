@@ -913,6 +913,41 @@
       list-style: none;
     }
 
+    .list li.task {
+      list-style: none;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .task-box {
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      width: 1.05em;
+      height: 1.05em;
+      border: 1.5px solid var(--muted);
+      border-radius: 4px;
+      color: var(--on-accent, #fff);
+      font-size: .8em;
+      font-weight: 800;
+      line-height: 1;
+      transform: translateY(.12em);
+    }
+
+    .list li.task.done .task-box { border-color: var(--accent); background: var(--accent); }
+    .list li.task.done { color: var(--muted); }
+
+    .md-img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 8px auto;
+      border-radius: 10px;
+    }
+
+    .preview del { color: var(--muted); }
+
     .list li {
       background: var(--panel-soft);
       border: 1px solid var(--border);
@@ -2962,26 +2997,40 @@
         .replaceAll("❌", '<span class="bad">❌</span>');
     }
 
-    // decorate + lightweight inline markdown (**bold**, `code`). Asterisks and
-    // backticks survive escapeHtml, so this stays safe.
+    // decorate + lightweight inline markdown: **bold**, *italic* / _italic_,
+    // ~~strike~~, `code`, [links](url) and ![images](url). Code spans, math and
+    // links are set aside first so the emphasis rules never touch them, and
+    // every URL is attribute-escaped (escapeHtml leaves quotes alone).
+    const SAFE_URL = /^(https?:\/\/|mailto:)/i;
     function inlineMd(text) {
-      return decorate(text)
-        // Markdown links [label](url). Only web and mail links become anchors;
-        // any other scheme (javascript:, data:, vbscript:, …) stays plain text.
-        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) =>
-          /^(https?:\/\/|mailto:)/i.test(url)
-            ? `<a class="md-link" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
-            : m)
-        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      const kept = [];
+      const keep = html => `\uE010${kept.push(html) - 1}\uE011`;
+      let html = decorate(text)
         // Real inline code here is always Latin/identifier text. A "span" made
         // of mis-paired backticks often swallows Persian prose (or wraps a lone
         // "/"): if the content has Persian letters or no alphanumerics at all,
         // it isn't code — drop the backticks and keep the text literal.
         .replace(/`([^`]+)`/g, (m, code) =>
           !/[؀-ۿ]/.test(code) && /[A-Za-z0-9]/.test(code)
-            ? `<code class="inline-code">${code}</code>`
-            : code
-        );
+            ? keep(`<code class="inline-code">${code}</code>`)
+            : code)
+        // Math is rendered later by KaTeX from the raw text.
+        .replace(/\$\$[^$]+\$\$|\$[^$\n]+\$|\\\(.+?\\\)/g, keep)
+        .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, url) =>
+          /^https?:\/\//i.test(url)
+            ? keep(`<img class="md-img" src="${escapeAttr(url)}" alt="${escapeAttr(alt)}" loading="lazy" referrerpolicy="no-referrer" />`)
+            : m)
+        // Only web and mail links become anchors; any other scheme
+        // (javascript:, data:, vbscript:, …) stays plain text.
+        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) =>
+          SAFE_URL.test(url)
+            ? keep(`<a class="md-link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`)
+            : m)
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/~~(?=\S)([^~\n]+?)~~/g, "<del>$1</del>")
+        .replace(/(^|[^*\w])\*(?=[^\s*])([^*\n]*?[^\s*])\*(?!\*)/g, "$1<em>$2</em>")
+        .replace(/(^|[\s(«])_(?=\S)([^_\n]*?\S)_(?=$|[\s.,،؛!?؟:)»])/g, "$1<em>$2</em>");
+      return html.replace(/\uE010(\d+)\uE011/g, (m, i) => kept[Number(i)]);
     }
 
     function splitRow(line) {
@@ -3132,7 +3181,13 @@
             items.push(lines[i].trim().replace(/^[-•*]\s+/, ""));
             i++;
           }
-          html += `<ul class="list">${items.map(it => `<li${dirAttr(it)}>${inlineMd(it)}</li>`).join("")}</ul>`;
+          html += `<ul class="list">${items.map(it => {
+            // "- [ ] task" / "- [x] done" become a checklist item.
+            const task = it.match(/^\[([ xX])\]\s+(.*)$/);
+            if (!task) return `<li${dirAttr(it)}>${inlineMd(it)}</li>`;
+            const done = task[1] !== " ";
+            return `<li class="task${done ? " done" : ""}"${dirAttr(task[2])}><span class="task-box" role="img" aria-label="${done ? "انجام‌شده" : "انجام‌نشده"}">${done ? "✓" : ""}</span>${inlineMd(task[2])}</li>`;
+          }).join("")}</ul>`;
         } else {
           const line = lines[i].trim();
           const heading = line.match(/^(#{1,6})\s+(.*\S)\s*#*$/);
@@ -3565,9 +3620,12 @@
         if (n.classList.contains("code-copy") || n.classList.contains("lang")) return;
         switch (n.tagName) {
           case "STRONG": out += `**${inlineMdOf(n)}**`; break;
+          case "EM": out += `*${inlineMdOf(n)}*`; break;
+          case "DEL": out += `~~${inlineMdOf(n)}~~`; break;
+          case "IMG": out += `![${n.getAttribute("alt") || ""}](${n.getAttribute("src") || ""})`; break;
           case "CODE": out += "`" + inlineMdOf(n) + "`"; break;
           case "A": out += `[${inlineMdOf(n)}](${n.getAttribute("href") || ""})`; break;
-          default: out += inlineMdOf(n);
+          default: if (!n.classList.contains("task-box")) out += inlineMdOf(n);
         }
       });
       return out;
@@ -3590,7 +3648,8 @@
       const c = el.classList;
       const heading = el.className.match(/md-h([1-6])/);
       if (heading) return "#".repeat(+heading[1]) + " " + inlineMdOf(el).trim();
-      if (el.tagName === "UL") return Array.from(el.children).map(li => "- " + inlineMdOf(li).trim()).join("\n");
+      if (el.tagName === "UL") return Array.from(el.children).map(li =>
+        "- " + (li.classList.contains("task") ? (li.classList.contains("done") ? "[x] " : "[ ] ") : "") + inlineMdOf(li).trim()).join("\n");
       if (el.tagName === "BLOCKQUOTE") return "> " + inlineMdOf(el).trim();
       if (el.tagName === "HR" || c.contains("md-hr")) return "---";
       if (c.contains("table-wrap")) return tableToMd(el);
