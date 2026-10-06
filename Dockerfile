@@ -35,7 +35,7 @@ COPY --from=build /app/server/dist ./dist
 COPY server/package.json ./
 # The static frontend lives in its own dir so only these assets are served.
 COPY index.html /app/public/index.html
-COPY library.js workspace.js library.css /app/public/
+COPY library.js workspace.js virastar.js library.css /app/public/
 # PWA assets (manifest, service worker, icons).
 COPY manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png apple-touch-icon.png /app/public/
 # Go→WASM date converter assets, served at /date.wasm and /wasm_exec.js.

@@ -331,6 +331,7 @@
       /* dusty, desaturated accents — used sparingly */
       .app.mode-sidebar .toolbar button.paste { --btn: #7c7fb8; }
       .app.mode-sidebar .toolbar button.upload { --btn: #5fa3a0; }
+      .app.mode-sidebar .toolbar button.cleanup { --btn: #b08a5f; }
       .app.mode-sidebar .toolbar button.copy-input { --btn: #5f8fb0; }
       .app.mode-sidebar .toolbar button.copy { --btn: #6fa07a; }
       .app.mode-sidebar .toolbar button.download { --btn: #8a7fc0; }
@@ -561,6 +562,11 @@
     button.upload {
       background: linear-gradient(135deg, #14b8a6, #0d9488);
       box-shadow: 0 4px 14px rgba(20, 184, 166, 0.28);
+    }
+
+    button.cleanup {
+      background: linear-gradient(135deg, #d4a373, #a16207);
+      box-shadow: 0 4px 14px rgba(212, 163, 115, 0.25);
     }
 
     button.download {
@@ -2109,6 +2115,13 @@
             </svg>
             <span>بارگذاری فایل</span><kbd class="kbd">U</kbd>
           </button>
+          <button class="cleanup" type="button" onclick="cleanupPersian()" title="ویرایش فارسی: نیم‌فاصله، ی و ک، علائم نگارشی (V)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m15 4 5 5L9 20H4v-5L15 4Z"></path>
+              <path d="M19 2v3M17.5 3.5h3M5 3v2M4 4h2"></path>
+            </svg>
+            <span>ویرایش فارسی</span><kbd class="kbd">V</kbd>
+          </button>
         </div>
 
         <div class="tool-group">
@@ -2448,6 +2461,7 @@
       <div class="kbd-row"><span>متن تازه در زبانهٔ جدید</span><span class="keys"><kbd class="kbd">N</kbd></span></div>
       <div class="kbd-row"><span>ذخیره در کتابخانه</span><span class="keys"><kbd class="kbd">⌘S</kbd></span></div>
       <div class="kbd-row"><span>Paste از کلیپ‌بورد</span><span class="keys"><kbd class="kbd">P</kbd></span></div>
+      <div class="kbd-row"><span>ویرایش فارسی (نیم‌فاصله، ی و ک، علائم)</span><span class="keys"><kbd class="kbd">V</kbd></span></div>
       <div class="kbd-row"><span>بارگذاری فایل</span><span class="keys"><kbd class="kbd">U</kbd></span></div>
       <div class="kbd-row"><span>کپی ورودی</span><span class="keys"><kbd class="kbd">I</kbd></span></div>
       <div class="kbd-row"><span>کپی خروجی</span><span class="keys"><kbd class="kbd">C</kbd></span></div>
@@ -3213,6 +3227,42 @@
       reader.readAsText(file);
     }
 
+    // Persian cleanup (virastar.js). The fix goes through the editor's own
+    // undo stack, so Ctrl/⌘+Z brings the previous text back.
+    const CLEANUP_LABELS = { arabic: "حرف و عدد عربی", tatweel: "کشیدگی حروف", zwnj: "نیم‌فاصله", punctuation: "علامت نگارشی", spacing: "فاصله" };
+    async function cleanupPersian() {
+      const text = input.value;
+      if (!text.trim()) { libraryToast("ابتدا متنی وارد کنید.", true); return; }
+      const result = persianCleanup(text);
+      if (!result.total) { libraryToast("متن مرتب است؛ چیزی برای اصلاح پیدا نشد."); return; }
+      const summary = Object.entries(result.changes)
+        .filter(([, count]) => count)
+        .map(([kind, count]) => `${count.toLocaleString("fa-IR")} ${CLEANUP_LABELS[kind]}`)
+        .join("، ");
+      const ok = await libraryAsk({
+        title: "ویرایش فارسی",
+        description: `${summary} اصلاح می‌شود. کد، فرمول و لینک‌ها دست نمی‌خورند. بعداً با Ctrl/⌘+Z برمی‌گردد.`,
+        confirm: "اعمال",
+      });
+      if (!ok) return;
+      // A hidden (collapsed) textarea cannot take an undoable edit; show it
+      // for the edit and restore the view afterwards.
+      const shell = document.getElementById("inputShell");
+      const wasCollapsed = shell.classList.contains("collapsed");
+      const wasEditing = editingInput;
+      shell.classList.remove("collapsed");
+      input.focus();
+      input.select();
+      if (!document.execCommand("insertText", false, result.text)) {
+        input.value = result.text;
+        input.dispatchEvent(new Event("input"));
+      }
+      input.setSelectionRange(0, 0);
+      if (wasCollapsed) { collapseInput(); input.blur(); }
+      else editingInput = wasEditing;
+      libraryToast("متن ویرایش شد. برای برگرداندن، Ctrl/⌘+Z را در ویرایشگر بزنید.");
+    }
+
     function handleFileUpload(event) {
       loadFile(event.target.files && event.target.files[0]);
       // Reset so selecting the same file again still fires onchange.
@@ -3946,6 +3996,7 @@
           case "KeyN": run(newTab, ".doc-tab-new"); break;
           case "KeyP": run(pasteInput, ".toolbar .paste"); break;
           case "KeyU": run(() => document.getElementById("fileInput").click(), ".toolbar .upload"); break;
+          case "KeyV": run(cleanupPersian, ".toolbar .cleanup"); break;
           case "KeyI": run(copyInput, ".toolbar .copy-input"); break;
           case "KeyC": run(copyOutput, ".toolbar .copy"); break;
           case "KeyD": run(downloadOutput, ".toolbar .download"); break;
@@ -3972,6 +4023,7 @@
       });
     }
   </script>
+  <script src="/virastar.js"></script>
   <script src="/library.js"></script>
   <script src="/workspace.js"></script>
 </body>
