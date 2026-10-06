@@ -22,6 +22,23 @@ export function createLibraryRouter(service: LibraryService, auth: AuthRouter): 
     res.json({ results: await service.search(await user(req, res), req.query.q) });
   }));
 
+  router.get("/library/trash", route(async (req, res) => {
+    res.json({ documents: await service.listTrash(await user(req, res)) });
+  }));
+  router.post("/documents/:id/restore", route(async (req, res) => {
+    res.json(await service.restoreDocument(await user(req, res), req.params.id));
+  }));
+  router.delete("/documents/:id/permanent", route(async (req, res) => {
+    await service.purgeDocument(await user(req, res), req.params.id);
+    res.status(204).end();
+  }));
+  router.get("/documents/:id/versions", route(async (req, res) => {
+    res.json({ versions: await service.listVersions(await user(req, res), req.params.id) });
+  }));
+  router.get("/documents/:id/versions/:version", route(async (req, res) => {
+    res.json(await service.getVersion(await user(req, res), req.params.id, req.params.version));
+  }));
+
   router.get("/documents/:id", route(async (req, res) => {
     res.json(await service.getDocument(await user(req, res), req.params.id));
   }));

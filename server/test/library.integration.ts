@@ -153,7 +153,7 @@ test("documents, folders and folder sharing against PostgreSQL", async t => {
       const pending = editor(`/documents/${doc.id}`, "PATCH", { title: "Late edit", version });
       let blocked = false;
       for (let attempt = 0; attempt < 100; attempt++) {
-        const waiting = await pool.query("SELECT 1 FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%FROM saved_items WHERE id = $1 FOR UPDATE%'");
+        const waiting = await pool.query("SELECT 1 FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%FROM saved_items%deleted_at IS NULL FOR UPDATE%'");
         if (waiting.rowCount) { blocked = true; break; }
         await new Promise(resolve => setTimeout(resolve, 10));
       }
@@ -176,6 +176,44 @@ test("documents, folders and folder sharing against PostgreSQL", async t => {
       assert.equal((await owner(`/documents/${temp.id}`, "DELETE")).status, 428);
       assert.equal((await owner(`/documents/${temp.id}?version=7`, "DELETE")).status, 409);
       assert.equal((await owner(`/documents/${temp.id}?version=1`, "DELETE")).status, 204);
+    });
+
+    await t.test("edits keep earlier versions; content of a version can be read", async () => {
+      const draft = (await owner("/documents", "POST", { title: "Draft", content: "first" })).data;
+      const v2 = (await owner(`/documents/${draft.id}`, "PATCH", { content: "second", version: 1 })).data;
+      const v3 = (await owner(`/documents/${draft.id}`, "PATCH", { title: "Renamed", version: v2.version })).data;
+      await owner(`/documents/${draft.id}`, "PATCH", { folderId: privateFolder.id, version: v3.version });
+      const versions = (await owner(`/documents/${draft.id}/versions`)).data.versions;
+      assert.deepEqual(versions.map((v: any) => [v.version, v.title, v.length]), [[2, "Draft", 6], [1, "Draft", 5]], "moves are not versions");
+      assert.equal((await owner(`/documents/${draft.id}/versions/1`)).data.content, "first");
+      assert.equal((await stranger(`/documents/${draft.id}/versions`)).status, 404);
+      assert.equal((await owner(`/documents/${draft.id}/versions/9`)).status, 404);
+    });
+
+    await t.test("deleted documents go to the trash and can be restored or purged", async () => {
+      const temp = (await owner("/documents", "POST", { title: "Trash me", content: "x" })).data;
+      assert.equal((await owner(`/documents/${temp.id}?version=1`, "DELETE")).status, 204);
+      assert.equal((await owner(`/documents/${temp.id}`)).status, 404);
+      assert.ok(!(await owner("/library")).data.documents.some((d: any) => d.id === temp.id));
+      const trash = (await owner("/library/trash")).data.documents;
+      assert.ok(trash.some((d: any) => d.id === temp.id && d.deletedAt));
+      assert.equal((await stranger(`/documents/${temp.id}/restore`, "POST")).status, 404);
+      const restored = await owner(`/documents/${temp.id}/restore`, "POST");
+      assert.equal(restored.status, 200); assert.equal(restored.data.title, "Trash me");
+      assert.equal((await owner(`/documents/${temp.id}`)).status, 200);
+      assert.equal((await owner(`/documents/${temp.id}/permanent`, "DELETE")).status, 404, "only trashed documents can be purged");
+      await owner(`/documents/${temp.id}?version=${restored.data.version}`, "DELETE");
+      assert.equal((await owner(`/documents/${temp.id}/permanent`, "DELETE")).status, 204);
+      assert.equal((await pool.query("SELECT 1 FROM saved_items WHERE id=$1", [temp.id])).rowCount, 0);
+    });
+
+    await t.test("editors see and restore trashed documents of a shared folder; readers do not", async () => {
+      const shared = (await editor("/documents", "POST", { title: "Shared trash", content: "x", folderId: folder.id })).data;
+      await editor(`/documents/${shared.id}?version=1`, "DELETE");
+      assert.ok((await editor("/library/trash")).data.documents.some((d: any) => d.id === shared.id));
+      assert.ok(!(await reader("/library/trash")).data.documents.some((d: any) => d.id === shared.id));
+      assert.equal((await reader(`/documents/${shared.id}/restore`, "POST")).status, 404);
+      assert.equal((await editor(`/documents/${shared.id}/restore`, "POST")).status, 200);
     });
 
     await t.test("single-use link: preview does not consume, one visitor joins, retries resume", async () => {
@@ -265,13 +303,18 @@ test("documents, folders and folder sharing against PostgreSQL", async t => {
       const doomed = (await owner("/folders", "POST", { name: "Doomed" })).data;
       const inside = (await owner("/documents", "POST", { title: "Gone", content: "Text", folderId: doomed.id })).data;
       assert.equal((await owner(`/folders/${doomed.id}?documents=delete`, "DELETE")).status, 204);
-      assert.equal((await pool.query("SELECT 1 FROM saved_items WHERE id=$1", [inside.id])).rowCount, 0);
+      assert.equal((await owner(`/documents/${inside.id}`)).status, 404);
+      assert.ok((await owner("/library/trash")).data.documents.some((d: any) => d.id === inside.id), "folder documents go to the trash");
     });
 
     await t.test("cleanup removes expired sessions and rate records, keeping memberships", async () => {
       await pool.query("UPDATE library_rate_limits SET window_start=now()-interval '2 hours'");
       await pool.query("UPDATE folder_links SET expires_at=now()-interval '31 days' WHERE token_hash=$1", [hash(readToken)]);
+      const old = (await owner("/documents", "POST", { title: "Old trash", content: "x" })).data;
+      await owner(`/documents/${old.id}?version=1`, "DELETE");
+      await pool.query("UPDATE saved_items SET deleted_at=now()-interval '31 days' WHERE id=$1", [old.id]);
       await service.cleanup();
+      assert.equal((await pool.query("SELECT 1 FROM saved_items WHERE id=$1", [old.id])).rowCount, 0, "trash older than 30 days is emptied");
       assert.equal((await pool.query("SELECT 1 FROM library_rate_limits")).rowCount, 0);
       assert.equal((await pool.query("SELECT 1 FROM folder_links WHERE token_hash=$1", [hash(readToken)])).rowCount, 0);
       assert.equal((await reader(`/documents/${doc.id}`)).status, 200);

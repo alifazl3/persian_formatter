@@ -109,6 +109,18 @@ export async function migrate(pool: Pool): Promise<void> {
         DROP TABLE folder_grants;
       END IF;
     END $$;
+    -- Deleted documents stay in the trash for 30 days; edits keep the
+    -- previous title/body as a version (the last 50 per document).
+    ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+    CREATE INDEX IF NOT EXISTS saved_items_deleted_idx ON saved_items(deleted_at) WHERE deleted_at IS NOT NULL;
+    CREATE TABLE IF NOT EXISTS document_versions (
+      document_id UUID NOT NULL REFERENCES saved_items(id) ON DELETE CASCADE,
+      version INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      saved_at TIMESTAMPTZ NOT NULL,
+      PRIMARY KEY (document_id, version)
+    );
     CREATE TABLE IF NOT EXISTS library_rate_limits (
       key TEXT PRIMARY KEY,
       window_start TIMESTAMPTZ NOT NULL,

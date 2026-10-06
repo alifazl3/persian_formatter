@@ -5,8 +5,11 @@ import {
   FolderLink,
   FolderMember,
   FolderSummary,
+  DocumentVersion,
+  DocumentVersionContent,
   Role,
   SearchResult,
+  TrashedDocument,
 } from "../domain/library";
 
 /** Either the pool or a client inside a transaction. */
@@ -54,6 +57,7 @@ interface DocumentRow extends QueryResultRow {
 }
 
 const DOCUMENT_COLUMNS = "id, owner_id, folder_id, title, content, version, created_at, updated_at";
+const MAX_VERSIONS = 50;
 
 function toSummary(row: DocumentRow): DocumentSummary {
   return {
@@ -108,7 +112,7 @@ export class PgLibraryRepository {
     const { rows } = await this.pool.query(
       `SELECT f.id, f.name, f.created_at, f.updated_at,
          CASE WHEN f.owner_id = $1 THEN 'owner' ELSE m.access END AS role,
-         (SELECT count(*) FROM saved_items i WHERE i.folder_id = f.id)::int AS document_count,
+         (SELECT count(*) FROM saved_items i WHERE i.folder_id = f.id AND i.deleted_at IS NULL)::int AS document_count,
          CASE WHEN f.owner_id = $1
            THEN (SELECT count(*) FROM folder_members x WHERE x.folder_id = f.id)::int
            ELSE 0 END AS member_count
@@ -132,9 +136,10 @@ export class PgLibraryRepository {
   async listDocuments(userId: string): Promise<DocumentSummary[]> {
     const { rows } = await this.pool.query<DocumentRow>(
       `SELECT ${DOCUMENT_COLUMNS} FROM saved_items i
-       WHERE (i.folder_id IS NULL AND i.owner_id = $1)
+       WHERE i.deleted_at IS NULL AND (
+            (i.folder_id IS NULL AND i.owner_id = $1)
           OR i.folder_id IN (SELECT id FROM folders WHERE owner_id = $1)
-          OR i.folder_id IN (SELECT folder_id FROM folder_members WHERE member_id = $1)
+          OR i.folder_id IN (SELECT folder_id FROM folder_members WHERE member_id = $1))
        ORDER BY i.updated_at DESC`,
       [userId]
     );
@@ -153,9 +158,10 @@ export class PgLibraryRepository {
            strpos(lower(translate(title, 'يك', 'یک')), $2) AS title_at,
            strpos(lower(translate(content, 'يك', 'یک')), $2) AS content_at
          FROM saved_items i
-         WHERE (i.folder_id IS NULL AND i.owner_id = $1)
+         WHERE i.deleted_at IS NULL AND (
+              (i.folder_id IS NULL AND i.owner_id = $1)
             OR i.folder_id IN (SELECT id FROM folders WHERE owner_id = $1)
-            OR i.folder_id IN (SELECT folder_id FROM folder_members WHERE member_id = $1)
+            OR i.folder_id IN (SELECT folder_id FROM folder_members WHERE member_id = $1))
        )
        SELECT id, folder_id, title, updated_at,
          CASE WHEN content_at > 0
@@ -199,17 +205,18 @@ export class PgLibraryRepository {
     await this.pool.query("UPDATE folders SET name = $2, updated_at = now() WHERE id = $1", [id, name]);
   }
 
-  /** Deletes a folder. Its documents are deleted too, or kept unfiled for the owner. */
+  /** Deletes a folder. Its documents go to the trash too, or stay unfiled for the owner. */
   async deleteFolder(id: string, withDocuments: boolean, db: Db): Promise<void> {
-    if (withDocuments) await db.query("DELETE FROM saved_items WHERE folder_id = $1", [id]);
+    if (withDocuments) await db.query("UPDATE saved_items SET deleted_at = now() WHERE folder_id = $1 AND deleted_at IS NULL", [id]);
     await db.query("DELETE FROM folders WHERE id = $1", [id]);
   }
 
   // --- documents ---
 
-  async findDocument(id: string, db: Db = this.pool, lock = false): Promise<DocumentRecord | null> {
+  async findDocument(id: string, db: Db = this.pool, lock = false, trashed = false): Promise<DocumentRecord | null> {
     const { rows } = await db.query<DocumentRow>(
-      `SELECT ${DOCUMENT_COLUMNS} FROM saved_items WHERE id = $1${lock ? " FOR UPDATE" : ""}`,
+      `SELECT ${DOCUMENT_COLUMNS} FROM saved_items
+       WHERE id = $1 AND deleted_at IS ${trashed ? "NOT NULL" : "NULL"}${lock ? " FOR UPDATE" : ""}`,
       [id]
     );
     return rows[0] ? toRecord(rows[0]) : null;
@@ -239,7 +246,66 @@ export class PgLibraryRepository {
     return toRecord(rows[0]!);
   }
 
+  /** Keeps the current title and body as a version before they change. */
+  async archiveVersion(id: string, db: Db): Promise<void> {
+    await db.query(
+      `INSERT INTO document_versions(document_id, version, title, content, saved_at)
+       SELECT id, version, title, content, updated_at FROM saved_items WHERE id = $1
+       ON CONFLICT DO NOTHING`,
+      [id]
+    );
+    await db.query(
+      `DELETE FROM document_versions WHERE document_id = $1 AND version <=
+         (SELECT max(version) - $2 FROM document_versions WHERE document_id = $1)`,
+      [id, MAX_VERSIONS]
+    );
+  }
+
+  async listVersions(id: string): Promise<DocumentVersion[]> {
+    const { rows } = await this.pool.query(
+      `SELECT version, title, saved_at, length(content) AS length FROM document_versions
+       WHERE document_id = $1 ORDER BY version DESC`,
+      [id]
+    );
+    return rows.map(row => ({ version: row.version, title: row.title, savedAt: row.saved_at, length: row.length }));
+  }
+
+  async findVersion(id: string, version: number): Promise<DocumentVersionContent | null> {
+    const { rows } = await this.pool.query(
+      "SELECT version, title, content, saved_at FROM document_versions WHERE document_id = $1 AND version = $2",
+      [id, version]
+    );
+    const row = rows[0];
+    return row ? { version: row.version, title: row.title, content: row.content, savedAt: row.saved_at, length: row.content.length } : null;
+  }
+
+  /** Moves a document to the trash. */
   async deleteDocument(id: string, db: Db): Promise<void> {
+    await db.query("UPDATE saved_items SET deleted_at = now() WHERE id = $1", [id]);
+  }
+
+  /** Deleted documents the user may restore: their own, or in folders they can edit. */
+  async listTrash(userId: string): Promise<TrashedDocument[]> {
+    const { rows } = await this.pool.query<DocumentRow & { deleted_at: Date }>(
+      `SELECT ${DOCUMENT_COLUMNS}, deleted_at FROM saved_items i
+       WHERE i.deleted_at IS NOT NULL AND (
+            i.owner_id = $1
+         OR i.folder_id IN (SELECT folder_id FROM folder_members WHERE member_id = $1 AND access IN ('edit', 'full')))
+       ORDER BY i.deleted_at DESC`,
+      [userId]
+    );
+    return rows.map(row => ({ ...toSummary(row), deletedAt: row.deleted_at }));
+  }
+
+  async restoreDocument(id: string, db: Db): Promise<DocumentRecord> {
+    const { rows } = await db.query<DocumentRow>(
+      `UPDATE saved_items SET deleted_at = NULL, updated_at = now() WHERE id = $1 RETURNING ${DOCUMENT_COLUMNS}`,
+      [id]
+    );
+    return toRecord(rows[0]!);
+  }
+
+  async purgeDocument(id: string, db: Db): Promise<void> {
     await db.query("DELETE FROM saved_items WHERE id = $1", [id]);
   }
 
@@ -359,5 +425,6 @@ export class PgLibraryRepository {
     await this.pool.query("DELETE FROM webauthn_challenges WHERE expires_at <= now()");
     await this.pool.query("DELETE FROM library_rate_limits WHERE window_start < now() - interval '1 hour'");
     await this.pool.query("DELETE FROM folder_links WHERE expires_at < now() - interval '30 days'");
+    await this.pool.query("DELETE FROM saved_items WHERE deleted_at < now() - interval '30 days'");
   }
 }

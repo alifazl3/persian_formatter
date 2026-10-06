@@ -71,6 +71,12 @@
 .library-result-folder { color: var(--accent); font-size: 10.5px; }
 .library-result-snippet { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: 11.5px; line-height: 1.7; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .library-result mark { border-radius: 3px; background: var(--glow); color: var(--accent); font-weight: 700; }
+.library-trash summary { margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 800; cursor: pointer; }
+.library-trash-doc { gap: 6px; }
+.library-trash-doc .library-doc-title { cursor: default; }
+.library-trash-actions { display: flex; flex: 0 0 auto; gap: 4px; }
+.library-panel .library-small-button { padding: 3px 8px; font-size: 11px; }
+.library-panel .library-small-button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .library-folder-items .library-empty { margin: 3px 8px 5px; }
 .library-doc { min-height: 40px; padding: 3px 5px; border: 1px solid transparent; border-radius: 9px; }
 .library-doc:hover { border-color: var(--border); background: var(--panel); }
