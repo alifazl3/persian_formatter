@@ -172,7 +172,10 @@
 .library-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .library-dialog .library-dialog-submit.destructive { background: var(--danger); border-color: var(--danger); }
 @media (min-width: 1101px) {
-  .app.mode-sidebar .library-island { max-height: calc(100vh - 240px); min-height: 210px; overflow: auto; }
+  /* Both rails stay in view while the page scrolls; in the right rail the
+     library takes the remaining height and scrolls on its own. */
+  .app.mode-sidebar .right-rail { max-height: calc(100vh - 40px); grid-template-rows: auto minmax(0, 1fr); }
+  .app.mode-sidebar .library-island { min-height: 210px; overflow: auto; scrollbar-width: thin; }
   .app.mode-sidebar .left-rail { max-height: calc(100vh - 40px); overflow: auto; scrollbar-width: thin; }
 }
 @media (max-width: 700px) {
