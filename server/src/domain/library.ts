@@ -38,6 +38,32 @@ export interface Document extends DocumentSummary {
   readonly role: Role;
 }
 
+/** A deleted document waiting in the trash. */
+export interface TrashedDocument extends DocumentSummary {
+  readonly deletedAt: Date;
+}
+
+/** An earlier saved state of a document. */
+export interface DocumentVersion {
+  readonly version: number;
+  readonly title: string;
+  readonly savedAt: Date;
+  readonly length: number;
+}
+
+export interface DocumentVersionContent extends DocumentVersion {
+  readonly content: string;
+}
+
+/** A document matching a library search, with a short excerpt around the hit. */
+export interface SearchResult {
+  readonly id: string;
+  readonly folderId: string | null;
+  readonly title: string;
+  readonly snippet: string;
+  readonly updatedAt: Date;
+}
+
 export interface Library {
   readonly folders: FolderSummary[];
   readonly documents: DocumentSummary[];

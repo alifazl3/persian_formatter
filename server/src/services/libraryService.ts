@@ -9,7 +9,11 @@ import {
   JoinResult,
   Library,
   LinkPreview,
+  DocumentVersion,
+  DocumentVersionContent,
   Role,
+  SearchResult,
+  TrashedDocument,
   canEditDocuments,
   canManageFolder,
   rank,
@@ -81,6 +85,15 @@ export class LibraryService {
     return { folders, documents };
   }
 
+  /** Finds documents whose title or text contains the query. */
+  async search(userId: string, query: unknown): Promise<SearchResult[]> {
+    if (typeof query !== "string") throw new ValidationError("Query is required");
+    const needle = query.trim().replace(/ي/g, "ی").replace(/ك/g, "ک").toLowerCase();
+    if (needle.length < 2 || needle.length > 100) throw new ValidationError("Query must be 2–100 characters");
+    await this.limit(`search:${userId}`, 120);
+    return this.repository.searchDocuments(userId, needle, 50);
+  }
+
   // --- documents ---
 
   async getDocument(userId: string, documentId: unknown): Promise<Document> {
@@ -128,6 +141,7 @@ export class LibraryService {
       if (changes.folderId !== undefined && changes.folderId !== document.folderId) {
         await this.assertCanMove(userId, document, changes.folderId, db);
       }
+      if (changes.title !== undefined || changes.content !== undefined) await this.repository.archiveVersion(targetId, db);
       const updated = await this.repository.updateDocument(targetId, changes, db);
       return this.present(updated, await this.documentRole(userId, updated, db) ?? role);
     });
@@ -144,6 +158,39 @@ export class LibraryService {
       if (!canEditDocuments(role)) throw forbidden("دسترسی این پوشه فقط خواندنی است.");
       if (document.version !== expected) throw conflict();
       await this.repository.deleteDocument(targetId, db);
+    });
+  }
+
+  // --- versions and trash ---
+
+  async listVersions(userId: string, documentId: unknown): Promise<DocumentVersion[]> {
+    const document = await this.readable(userId, documentId);
+    return this.repository.listVersions(document.id);
+  }
+
+  async getVersion(userId: string, documentId: unknown, versionNumber: unknown): Promise<DocumentVersionContent> {
+    const document = await this.readable(userId, documentId);
+    const found = await this.repository.findVersion(document.id, version(versionNumber));
+    if (!found) throw new NotFoundError("این نسخه پیدا نشد.");
+    return found;
+  }
+
+  async listTrash(userId: string): Promise<TrashedDocument[]> {
+    return this.repository.listTrash(userId);
+  }
+
+  async restoreDocument(userId: string, documentId: unknown): Promise<Document> {
+    return this.repository.transaction(async db => {
+      const document = await this.trashed(userId, documentId, db);
+      const restored = await this.repository.restoreDocument(document.id, db);
+      return this.present(restored, await this.documentRole(userId, restored, db) ?? "owner");
+    });
+  }
+
+  async purgeDocument(userId: string, documentId: unknown): Promise<void> {
+    await this.repository.transaction(async db => {
+      const document = await this.trashed(userId, documentId, db);
+      await this.repository.purgeDocument(document.id, db);
     });
   }
 
@@ -285,6 +332,21 @@ export class LibraryService {
       throw new ValidationError(`Content must be 1–${this.maxContentLength} characters`);
     }
     return value;
+  }
+
+  private async readable(userId: string, documentId: unknown): Promise<DocumentRecord> {
+    const document = await this.repository.findDocument(id(documentId));
+    if (!document || !await this.documentRole(userId, document)) throw documentNotFound();
+    return document;
+  }
+
+  /** A trashed document the user may restore or delete for good. */
+  private async trashed(userId: string, documentId: unknown, db: Db): Promise<DocumentRecord> {
+    const document = await this.repository.findDocument(id(documentId), db, true, true);
+    if (!document) throw documentNotFound();
+    const role = document.ownerId === userId ? "owner" : await this.documentRole(userId, document, db);
+    if (!role || !canEditDocuments(role)) throw documentNotFound();
+    return document;
   }
 
   private async documentRole(userId: string, document: DocumentRecord, db?: Db): Promise<Role | null> {

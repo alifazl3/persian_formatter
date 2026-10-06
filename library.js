@@ -1,7 +1,7 @@
 /* Library: saved documents, folders, folder sharing and the passkey account.
    Unsaved texts live only in the document tabs (workspace.js). */
 const libraryEl = id => document.getElementById(id);
-const library = { folders: [], documents: [], loaded: false, query: "" };
+const library = { folders: [], documents: [], loaded: false, query: "", results: null };
 const OPEN_FOLDERS_KEY = "pf_open_folders";
 const openFolders = new Set(readOpenFolders());
 
@@ -122,6 +122,7 @@ const libraryIcons = {
   share: '<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5M8 13l8 5"/>',
   move: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10H3V7Zm5 6h8m-3-3 3 3-3 3"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
+  history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/>',
   leave: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11"/>',
 };
 function libraryIconButton(icon, label, action) {
@@ -146,17 +147,70 @@ async function refreshLibrary() {
   library.folders = data.folders;
   library.documents = data.documents;
   library.loaded = true;
-  renderLibrary();
+  if (library.query.trim().length >= 2) scheduleSearch(); else renderLibrary();
   if (typeof workspaceLibraryChanged === "function") workspaceLibraryChanged();
 }
 async function refreshLibrarySafely() {
   try { await refreshLibrary(); } catch (error) { libraryNotice(error.message, true); }
 }
 
+// --- search (titles and text, on the server) ---
+
+const foldPersian = text => text.replace(/ي/g, "ی").replace(/ك/g, "ک").toLowerCase();
+let searchTimer;
+let searchSeq = 0;
+
+function scheduleSearch() {
+  clearTimeout(searchTimer);
+  const query = library.query.trim();
+  if (query.length < 2) { library.results = null; renderLibrary(); return; }
+  renderLibrary(); // title matches show right away; text matches follow
+  const seq = ++searchSeq;
+  searchTimer = setTimeout(async () => {
+    try {
+      const { results } = await libraryApi(`/library/search?q=${encodeURIComponent(query)}`);
+      if (seq !== searchSeq) return;
+      library.results = results;
+      renderLibrary();
+    } catch (error) { if (seq === searchSeq) libraryNotice(error.message, true); }
+  }, 250);
+}
+
+/** Text with the first occurrence of the query marked. */
+function highlighted(text, query) {
+  const span = document.createElement("span");
+  const at = foldPersian(text).indexOf(foldPersian(query));
+  if (at < 0) { span.textContent = text; return span; }
+  const mark = document.createElement("mark");
+  mark.textContent = text.slice(at, at + query.length);
+  span.append(text.slice(0, at), mark, text.slice(at + query.length));
+  return span;
+}
+
+function renderSearchResults(root, query) {
+  const box = document.createElement("section"); box.className = "library-section";
+  libraryText(box, "h3", "نتیجه‌های جستجو");
+  if (!library.results.length) libraryText(box, "p", "در عنوان و متن‌ها چیزی پیدا نشد.", "library-empty");
+  const openIds = typeof workspaceOpenDocumentIds === "function" ? workspaceOpenDocumentIds() : new Set();
+  for (const result of library.results) {
+    const row = libraryButton("", () => workspaceOpenDocument(result.id), "library-result");
+    if (openIds.has(result.id)) row.classList.add("is-open");
+    const title = document.createElement("strong"); title.append(highlighted(result.title, query));
+    const where = libraryText(row, "small", result.folderId ? folderById(result.folderId)?.name ?? "پوشه" : "بدون پوشه", "library-result-folder");
+    row.prepend(title);
+    where.after(Object.assign(document.createElement("span"), { className: "library-result-snippet" }));
+    row.querySelector(".library-result-snippet").append(highlighted(result.snippet, query));
+    row.setAttribute("aria-label", `باز کردن ${result.title}`);
+    box.append(row);
+  }
+  root.append(box);
+}
+
 function renderLibrary() {
   const root = libraryEl("libraryTree");
   root.replaceChildren();
   const query = library.query.trim().toLowerCase();
+  if (library.results && query.length >= 2) { renderSearchResults(root, library.query.trim()); return; }
   const matches = doc => !query || doc.title.toLowerCase().includes(query);
   const docsIn = folderId => library.documents.filter(doc => doc.folderId === folderId && matches(doc));
   const own = library.folders.filter(folder => folder.role === "owner");
@@ -165,6 +219,7 @@ function renderLibrary() {
 
   if (!library.folders.length && !library.documents.length) {
     libraryText(root, "p", library.loaded ? "هنوز چیزی ذخیره نکرده‌اید. متن را بنویسید و «ذخیره» را بزنید تا اینجا بیاید." : "در حال بارگذاری…", "library-empty");
+    if (library.loaded) renderTrash(root);
     return;
   }
 
@@ -190,6 +245,128 @@ function renderLibrary() {
     root.append(box);
   }
   if (query && !root.querySelector(".library-doc")) libraryText(root, "p", "متنی با این عنوان پیدا نشد.", "library-empty");
+  if (!query) renderTrash(root);
+}
+
+// --- trash ---
+
+const trash = { open: false, documents: null };
+
+function renderTrash(root) {
+  const box = document.createElement("details");
+  box.className = "library-section library-trash";
+  box.open = trash.open;
+  const summary = document.createElement("summary");
+  summary.textContent = trash.documents?.length ? `سطل زباله (${trash.documents.length.toLocaleString("fa-IR")})` : "سطل زباله";
+  box.append(summary);
+  box.addEventListener("toggle", () => {
+    // Re-rendering an open box fires "toggle" too; only react to real changes.
+    if (box.open === trash.open) return;
+    trash.open = box.open;
+    if (box.open) loadTrash();
+  });
+  const list = document.createElement("div"); list.className = "library-documents";
+  if (!trash.documents) libraryText(list, "p", "در حال بارگذاری…", "library-empty");
+  else if (!trash.documents.length) libraryText(list, "p", "سطل زباله خالی است. متن‌های حذف‌شده ۳۰ روز اینجا می‌مانند.", "library-empty");
+  for (const doc of trash.documents ?? []) {
+    const row = document.createElement("div"); row.className = "library-doc library-trash-doc";
+    const info = document.createElement("div"); info.className = "library-doc-title";
+    libraryText(info, "span", doc.title, "library-doc-name");
+    libraryText(info, "small", `حذف: ${libraryDate(doc.deletedAt)}`, "library-doc-date");
+    const actions = document.createElement("div"); actions.className = "library-trash-actions";
+    actions.append(
+      libraryButton("بازیابی", () => restoreDocument(doc), "library-small-button"),
+      libraryButton("حذف همیشگی", () => purgeDocument(doc), "library-small-button danger"),
+    );
+    row.append(info, actions);
+    list.append(row);
+  }
+  box.append(list);
+  root.append(box);
+}
+
+async function loadTrash() {
+  try {
+    trash.documents = (await libraryApi("/library/trash")).documents;
+    renderLibrary();
+  } catch (error) { libraryNotice(error.message, true); }
+}
+
+async function restoreDocument(doc) {
+  try {
+    const restored = await libraryApi(`/documents/${doc.id}/restore`, "POST");
+    if (restored.folderId) { openFolders.add(restored.folderId); rememberOpenFolders(); }
+    await refreshLibrary();
+    await loadTrash();
+    libraryToast(`«${doc.title}» بازیابی شد.`);
+  } catch (error) { libraryToast(error.message, true); }
+}
+
+async function purgeDocument(doc) {
+  if (!await libraryAsk({ title: "حذف همیشگی", description: `«${doc.title}» و همهٔ نسخه‌های قبلی آن برای همیشه حذف شود؟ این کار برگشت ندارد.`, confirm: "حذف همیشگی", destructive: true })) return;
+  try {
+    await libraryApi(`/documents/${doc.id}/permanent`, "DELETE");
+    await loadTrash();
+  } catch (error) { libraryToast(error.message, true); }
+}
+
+// --- version history ---
+
+let historyDoc = null;
+
+async function openHistory(doc) {
+  historyDoc = doc;
+  const dialog = libraryEl("historyDialog");
+  libraryEl("historyTitle").textContent = `تاریخچهٔ «${doc.title}»`;
+  const list = libraryEl("historyList");
+  list.replaceChildren();
+  libraryText(list, "p", "در حال بارگذاری…", "library-empty");
+  dialog.showModal();
+  try {
+    const { versions } = await libraryApi(`/documents/${doc.id}/versions`);
+    list.replaceChildren();
+    if (!versions.length) libraryText(list, "p", "هنوز نسخهٔ قبلی‌ای ثبت نشده است. هر بار که متن یا عنوان را ذخیره کنید، نسخهٔ قبلی اینجا نگه داشته می‌شود.", "library-empty");
+    const editable = canEditRole(documentRole(doc));
+    for (const version of versions) {
+      const row = document.createElement("div"); row.className = "share-row";
+      const info = document.createElement("div"); info.className = "share-row-info";
+      libraryText(info, "strong", `نسخهٔ ${version.version.toLocaleString("fa-IR")} · ${version.title}`);
+      libraryText(info, "small", `${libraryDate(version.savedAt)} · ${version.length.toLocaleString("fa-IR")} حرف`);
+      row.append(info, libraryButton("مشاهده", () => viewVersion(doc, version), "share-row-action"));
+      if (editable) row.append(libraryButton("بازگرداندن", () => restoreVersion(doc, version), "share-row-action"));
+      list.append(row);
+    }
+  } catch (error) { list.replaceChildren(); libraryText(list, "p", error.message, "library-empty"); }
+}
+
+function closeHistory() {
+  historyDoc = null;
+  if (libraryEl("historyDialog").open) libraryEl("historyDialog").close();
+}
+
+/** Opens an earlier version as a separate, unsaved tab. */
+async function viewVersion(doc, version) {
+  try {
+    const full = await libraryApi(`/documents/${doc.id}/versions/${version.version}`);
+    closeHistory();
+    if (placeText(full.content)) libraryToast(`نسخهٔ ${version.version.toLocaleString("fa-IR")} از «${doc.title}» در زبانهٔ تازه باز شد.`);
+  } catch (error) { libraryToast(error.message, true); }
+}
+
+/** Saves an earlier version as the newest one; the current text becomes a version too. */
+async function restoreVersion(doc, version) {
+  if (!await libraryAsk({ title: "بازگرداندن نسخه", description: `متن فعلی با نسخهٔ ${version.version.toLocaleString("fa-IR")} جایگزین شود؟ متن فعلی هم در تاریخچه می‌ماند و می‌توانید دوباره به آن برگردید.`, confirm: "بازگرداندن" })) return;
+  try {
+    const [old, current] = await Promise.all([
+      libraryApi(`/documents/${doc.id}/versions/${version.version}`),
+      libraryApi(`/documents/${doc.id}`),
+    ]);
+    const updated = await libraryApi(`/documents/${doc.id}`, "PATCH", { title: old.title, content: old.content, version: current.version });
+    workspaceDocumentUpdated(updated);
+    closeHistory();
+    await refreshLibrary();
+    libraryToast("نسخهٔ قبلی بازگردانده شد.");
+  } catch (error) { libraryToast(conflictMessage(error), true); }
 }
 
 function renderFolder(folder, docs, expandForSearch) {
@@ -248,6 +425,7 @@ function renderDocuments(root, docs) {
     const actions = document.createElement("div"); actions.className = "library-row-actions";
     actions.append(libraryIconButton("share", `لینک عمومی از ${doc.title}`, () => shareDocumentSnapshot(doc)));
     if (role === "owner") actions.append(libraryIconButton("move", `انتقال ${doc.title}`, () => moveDocument(doc)));
+    actions.append(libraryIconButton("history", `تاریخچهٔ ${doc.title}`, () => openHistory(doc)));
     actions.append(libraryIconButton("copy", role === "owner" ? `ساخت کپی از ${doc.title}` : `کپی ${doc.title} در کتابخانهٔ من`, () => copyDocument(doc)));
     if (canEditRole(role)) {
       actions.append(libraryIconButton("rename", `تغییر نام ${doc.title}`, () => renameDocument(doc)));
@@ -333,12 +511,14 @@ async function moveDocumentTo(doc, folderId) {
 async function deleteDocument(doc) {
   const folder = doc.folderId && folderById(doc.folderId);
   const shared = folder && (folder.role !== "owner" || folder.memberCount);
-  if (!await libraryAsk({ title: "حذف متن", description: `«${doc.title}» از کتابخانه حذف شود؟${shared ? " این متن برای همهٔ اعضای پوشه حذف می‌شود." : ""} اگر در زبانه‌ای باز باشد، به‌صورت پیش‌نویس ذخیره‌نشده باقی می‌ماند.`, confirm: "حذف", destructive: true })) return;
+  if (!await libraryAsk({ title: "حذف متن", description: `«${doc.title}» به سطل زباله برود؟${shared ? " برای همهٔ اعضای پوشه هم حذف می‌شود." : ""} تا ۳۰ روز از سطل زباله قابل بازیابی است.`, confirm: "حذف", destructive: true })) return;
   try {
     await libraryApi(`/documents/${doc.id}?version=${doc.version}`, "DELETE");
     workspaceDocumentRemoved(doc.id);
+    trash.documents = null;
+    if (trash.open) loadTrash();
     await refreshLibrary();
-    libraryToast("متن حذف شد.");
+    libraryToast("متن به سطل زباله رفت.");
   } catch (error) { libraryToast(conflictMessage(error), true); await refreshLibrarySafely(); }
 }
 
@@ -413,7 +593,7 @@ async function deleteFolder(folder) {
     label: "متن‌های داخل پوشه",
     options: [
       { label: "نگه‌داشتن در «بدون پوشه»", value: "keep" },
-      { label: "حذف همراه پوشه", value: "delete" },
+      { label: "انتقال به سطل زباله همراه پوشه", value: "delete" },
     ],
     value: "keep", confirm: "حذف پوشه", destructive: true,
   });
@@ -633,7 +813,7 @@ async function logoutAccount() {
 // --- startup ---
 
 async function initLibrary() {
-  libraryEl("librarySearch").addEventListener("input", event => { library.query = event.target.value; renderLibrary(); });
+  libraryEl("librarySearch").addEventListener("input", event => { library.query = event.target.value; library.results = null; scheduleSearch(); });
   libraryEl("folderShareForm").addEventListener("submit", createFolderLink);
   renderLibrary();
   try {

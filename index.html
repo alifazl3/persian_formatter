@@ -331,9 +331,11 @@
       /* dusty, desaturated accents — used sparingly */
       .app.mode-sidebar .toolbar button.paste { --btn: #7c7fb8; }
       .app.mode-sidebar .toolbar button.upload { --btn: #5fa3a0; }
+      .app.mode-sidebar .toolbar button.cleanup { --btn: #b08a5f; }
       .app.mode-sidebar .toolbar button.copy-input { --btn: #5f8fb0; }
       .app.mode-sidebar .toolbar button.copy { --btn: #6fa07a; }
       .app.mode-sidebar .toolbar button.download { --btn: #8a7fc0; }
+      .app.mode-sidebar .toolbar button.print { --btn: #7a8b99; }
       .app.mode-sidebar .toolbar button.share { --btn: #c0925f; }
       .app.mode-sidebar .toolbar button.save { --btn: #6fa07a; }
       .app.mode-sidebar .toolbar button.raw-toggle { --btn: #8a8fa0; }
@@ -563,6 +565,16 @@
       box-shadow: 0 4px 14px rgba(20, 184, 166, 0.28);
     }
 
+    button.print {
+      background: linear-gradient(135deg, #64748b, #475569);
+      box-shadow: 0 4px 14px rgba(100, 116, 139, 0.25);
+    }
+
+    button.cleanup {
+      background: linear-gradient(135deg, #d4a373, #a16207);
+      box-shadow: 0 4px 14px rgba(212, 163, 115, 0.25);
+    }
+
     button.download {
       background: linear-gradient(135deg, #8b5cf6, #6d28d9);
       box-shadow: 0 4px 14px rgba(139, 92, 246, 0.28);
@@ -715,6 +727,110 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
+    .mermaid-block.drawn {
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel-soft);
+      direction: ltr;
+    }
+
+    .mermaid-block.drawn svg { max-width: 100%; height: auto; }
+
+    /* Reading aids: time, table of contents and text size, top-right of the
+       output (the lock sits top-left); a thin progress bar on the window. */
+    .preview-shell { position: relative; }
+    .preview > * { zoom: var(--preview-scale, 1); }
+    .preview [id^="section-"] { scroll-margin-top: 24px; }
+
+    .reading-bar {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: calc(100% - 150px);
+    }
+
+    .reading-bar[hidden], .reading-bar [hidden] { display: none !important; }
+
+    .reading-stats {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .reading-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: none;
+    }
+
+    .reading-btn:hover:not(:disabled) { filter: none; color: var(--text); border-color: var(--accent); }
+    .reading-btn:disabled { opacity: .4; cursor: default; }
+    .reading-btn svg { width: 14px; height: 14px; }
+
+    .toc-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      display: grid;
+      width: min(340px, 80vw);
+      max-height: min(60vh, 460px);
+      overflow: auto;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, .28);
+    }
+
+    .toc-item {
+      display: block;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.6;
+      text-align: right;
+      box-shadow: none;
+    }
+
+    .toc-item:hover, .toc-item:focus-visible { filter: none; background: var(--glow); color: var(--accent); }
+    .toc-level-1 { font-weight: 800; }
+    .toc-level-3 { padding-inline-start: 26px; font-weight: 500; color: var(--muted); }
+
+    .reading-progress {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 1000;
+      height: 3px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: right;
+      pointer-events: none;
+    }
+
+    .reading-progress[hidden] { display: none; }
+
     /* Lock toggle for the output — locked by default; unlock to edit. */
     .lock-btn {
       position: absolute;
@@ -796,6 +912,41 @@
       padding: 0;
       list-style: none;
     }
+
+    .list li.task {
+      list-style: none;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .task-box {
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      width: 1.05em;
+      height: 1.05em;
+      border: 1.5px solid var(--muted);
+      border-radius: 4px;
+      color: var(--on-accent, #fff);
+      font-size: .8em;
+      font-weight: 800;
+      line-height: 1;
+      transform: translateY(.12em);
+    }
+
+    .list li.task.done .task-box { border-color: var(--accent); background: var(--accent); }
+    .list li.task.done { color: var(--muted); }
+
+    .md-img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 8px auto;
+      border-radius: 10px;
+    }
+
+    .preview del { color: var(--muted); }
 
     .list li {
       background: var(--panel-soft);
@@ -2047,10 +2198,36 @@
         display: none;
       }
     }
+
+    /* Print / Save as PDF: only the formatted output, in ink-friendly colours,
+       without splitting code, tables or quotes across pages. */
+    @media print {
+      @page { margin: 16mm 14mm; }
+
+      :root, :root[data-theme] {
+        --bg: #fff; --panel: #fff; --panel-soft: #f4f4f4; --text: #111; --muted: #555;
+        --border: #ccc; --accent: #333; --code: #f6f6f6; --code-text: #111; --strong: #000;
+        --row-alt: rgba(0, 0, 0, .03); --glow: transparent;
+      }
+
+      body { padding: 0; background: #fff !important; color: #111; }
+      .app, .app.mode-sidebar { display: block; max-width: none; }
+      .right-rail, .left-rail, .doc-tabs, .input-shell, .lock-btn, .reading-bar,
+      .reading-progress, .footer, .code-copy, .json-bar, .date-view,
+      .library-toast, .share-toast, .report-widget, .kbd-help-backdrop, .drop-overlay { display: none !important; }
+      .preview-shell { position: static; }
+      .preview { padding: 0; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+      .preview > * { zoom: 1; }
+      pre, .code, .table-wrap, table, blockquote, .jsonview, .katex-display { break-inside: avoid; }
+      .md-h, .title { break-after: avoid; }
+      .paragraph, li { orphans: 3; widows: 3; }
+      a.md-link::after { content: " (" attr(href) ")"; font-size: .85em; color: #555; word-break: break-all; }
+    }
   </style>
 </head>
 
 <body>
+  <div id="readingProgress" class="reading-progress" hidden></div>
   <main class="app mode-sidebar">
     <header id="appHeader">
       <div class="right-rail">
@@ -2081,7 +2258,7 @@
         <div><h2 id="libraryTitle">کتابخانه</h2><p id="librarySubtitle">فقط متن‌هایی که ذخیره کنید اینجا می‌آیند.</p></div>
         <button type="button" class="library-new-folder" onclick="createFolder()" title="پوشهٔ جدید">＋ پوشه</button>
       </header>
-      <input id="librarySearch" class="library-search" type="search" placeholder="جستجوی عنوان…" aria-label="جستجو در کتابخانه" />
+      <input id="librarySearch" class="library-search" type="search" placeholder="جستجو در عنوان و متن‌ها…" aria-label="جستجو در کتابخانه" />
       <div id="libraryMessage" class="library-message" role="status"></div>
       <div id="libraryTree" class="library-tree"></div>
     </div>
@@ -2109,6 +2286,13 @@
             </svg>
             <span>بارگذاری فایل</span><kbd class="kbd">U</kbd>
           </button>
+          <button class="cleanup" type="button" onclick="cleanupPersian()" title="ویرایش فارسی: نیم‌فاصله، ی و ک، علائم نگارشی (V)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m15 4 5 5L9 20H4v-5L15 4Z"></path>
+              <path d="M19 2v3M17.5 3.5h3M5 3v2M4 4h2"></path>
+            </svg>
+            <span>ویرایش فارسی</span><kbd class="kbd">V</kbd>
+          </button>
         </div>
 
         <div class="tool-group">
@@ -2134,6 +2318,14 @@
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
             <span>دانلود فایل</span><kbd class="kbd">D</kbd>
+          </button>
+          <button class="print" type="button" onclick="printOutput()" title="چاپ یا ذخیره به‌صورت PDF (Ctrl/⌘+P)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9V3h12v6"></path>
+              <rect x="3" y="9" width="18" height="8" rx="2"></rect>
+              <path d="M6 14h12v7H6z"></path>
+            </svg>
+            <span>چاپ / PDF</span>
           </button>
           <button class="share" id="shareBtn" onclick="shareCurrent()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2217,6 +2409,17 @@
         </svg>
         <span class="lock-label">قفل</span><kbd class="kbd">L</kbd>
       </button>
+
+      <div id="readingBar" class="reading-bar" hidden>
+        <span id="readingStats" class="reading-stats"></span>
+        <button type="button" id="tocButton" class="reading-btn" onclick="toggleToc()" aria-haspopup="true" aria-expanded="false" aria-controls="tocPanel" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+          <span>فهرست</span>
+        </button>
+        <button type="button" id="textSmaller" class="reading-btn" onclick="changeTextSize(-1)" title="کوچک کردن متن" aria-label="کوچک کردن متن">آ−</button>
+        <button type="button" id="textLarger" class="reading-btn" onclick="changeTextSize(1)" title="بزرگ کردن متن" aria-label="بزرگ کردن متن">آ+</button>
+        <nav id="tocPanel" class="toc-panel" aria-label="فهرست مطالب" hidden></nav>
+      </div>
 
       <section id="preview" class="preview">
         <div class="empty">هنوز متنی وارد نشده است.</div>
@@ -2361,6 +2564,12 @@
       </div>
     </form>
   </dialog>
+  <dialog id="historyDialog" class="library-dialog share-dialog" aria-labelledby="historyTitle">
+    <h2 id="historyTitle">تاریخچه</h2>
+    <p class="share-intro">با هر ذخیرهٔ متن یا عنوان، نسخهٔ قبلی نگه داشته می‌شود (تا ۵۰ نسخه). «مشاهده» آن را در زبانهٔ تازه باز می‌کند و «بازگرداندن» آن را دوباره نسخهٔ اصلی می‌کند.</p>
+    <div id="historyList" class="share-list"></div>
+    <div class="library-dialog-actions"><button type="button" onclick="closeHistory()">بستن</button></div>
+  </dialog>
   <dialog id="folderShareDialog" class="library-dialog share-dialog" aria-labelledby="folderShareTitle">
     <h2 id="folderShareTitle">اشتراک پوشه</h2>
     <p class="share-intro">هرکس لینک را باز کند و بپذیرد، به پوشه اضافه می‌شود و پوشه در بخش «اشتراکی با من» کتابخانه‌اش می‌ماند. اعتبار لینک فقط برای ورود افراد تازه است؛ دسترسی اعضا تا وقتی آن‌ها را حذف یا لینکشان را لغو کنید باقی می‌ماند.</p>
@@ -2448,6 +2657,7 @@
       <div class="kbd-row"><span>متن تازه در زبانهٔ جدید</span><span class="keys"><kbd class="kbd">N</kbd></span></div>
       <div class="kbd-row"><span>ذخیره در کتابخانه</span><span class="keys"><kbd class="kbd">⌘S</kbd></span></div>
       <div class="kbd-row"><span>Paste از کلیپ‌بورد</span><span class="keys"><kbd class="kbd">P</kbd></span></div>
+      <div class="kbd-row"><span>ویرایش فارسی (نیم‌فاصله، ی و ک، علائم)</span><span class="keys"><kbd class="kbd">V</kbd></span></div>
       <div class="kbd-row"><span>بارگذاری فایل</span><span class="keys"><kbd class="kbd">U</kbd></span></div>
       <div class="kbd-row"><span>کپی ورودی</span><span class="keys"><kbd class="kbd">I</kbd></span></div>
       <div class="kbd-row"><span>کپی خروجی</span><span class="keys"><kbd class="kbd">C</kbd></span></div>
@@ -2759,23 +2969,23 @@
         .replace(/^\n+|\n+$/g, "");
     }
 
-    function isTitle(line) {
+    // A block's first line is a title when it reads like one: it ends with a
+    // colon or question mark, is a short label opening with a cue word
+    // ("نکته", "قدم ۲", "نتیجه"), a version tag ("v2.1"), or a numbered heading
+    // whose next line is not another list item (otherwise it is a list).
+    const TITLE_CUES = /^(چی|الان|نکته|قدم|مرحله|نتیجه|خلاصه|جمع‌بندی)(?=[\s:،]|$)/;
+    function isTitle(line, next = "") {
       const clean = line.trim();
 
       if (!clean) return false;
       if (clean.length > 90) return false;
+      if (clean.endsWith(":") || clean.endsWith("؟")) return true;
 
-      return (
-        clean.endsWith(":") ||
-        clean.endsWith("؟") ||
-        clean.startsWith("چی ") ||
-        clean.startsWith("الان ") ||
-        clean.startsWith("نکته") ||
-        clean.startsWith("قدم") ||
-        clean.startsWith("نتیجه") ||
-        clean.startsWith("v") ||
-        /^[۰-۹0-9]+\./.test(clean)
-      );
+      const short = clean.split(/\s+/).length <= 6 && !/[.!؛]$/.test(clean);
+      if (short && TITLE_CUES.test(clean)) return true;
+      if (/^v\d+(\.\d+)*\b/i.test(clean) && short) return true;
+      if (/^[۰-۹0-9]+\.\s*\S/.test(clean) && short && !isListLine(next)) return true;
+      return false;
     }
 
     function decorate(text) {
@@ -2787,25 +2997,40 @@
         .replaceAll("❌", '<span class="bad">❌</span>');
     }
 
-    // decorate + lightweight inline markdown (**bold**, `code`). Asterisks and
-    // backticks survive escapeHtml, so this stays safe.
+    // decorate + lightweight inline markdown: **bold**, *italic* / _italic_,
+    // ~~strike~~, `code`, [links](url) and ![images](url). Code spans, math and
+    // links are set aside first so the emphasis rules never touch them, and
+    // every URL is attribute-escaped (escapeHtml leaves quotes alone).
+    const SAFE_URL = /^(https?:\/\/|mailto:)/i;
     function inlineMd(text) {
-      return decorate(text)
-        // Markdown links [label](url) — skip javascript: URLs for safety.
-        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) =>
-          /^\s*javascript:/i.test(url)
-            ? m
-            : `<a class="md-link" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`)
-        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      const kept = [];
+      const keep = html => `\uE010${kept.push(html) - 1}\uE011`;
+      let html = decorate(text)
         // Real inline code here is always Latin/identifier text. A "span" made
         // of mis-paired backticks often swallows Persian prose (or wraps a lone
         // "/"): if the content has Persian letters or no alphanumerics at all,
         // it isn't code — drop the backticks and keep the text literal.
         .replace(/`([^`]+)`/g, (m, code) =>
           !/[؀-ۿ]/.test(code) && /[A-Za-z0-9]/.test(code)
-            ? `<code class="inline-code">${code}</code>`
-            : code
-        );
+            ? keep(`<code class="inline-code">${code}</code>`)
+            : code)
+        // Math is rendered later by KaTeX from the raw text.
+        .replace(/\$\$[^$]+\$\$|\$[^$\n]+\$|\\\(.+?\\\)/g, keep)
+        .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, url) =>
+          /^https?:\/\//i.test(url)
+            ? keep(`<img class="md-img" src="${escapeAttr(url)}" alt="${escapeAttr(alt)}" loading="lazy" referrerpolicy="no-referrer" />`)
+            : m)
+        // Only web and mail links become anchors; any other scheme
+        // (javascript:, data:, vbscript:, …) stays plain text.
+        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) =>
+          SAFE_URL.test(url)
+            ? keep(`<a class="md-link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`)
+            : m)
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/~~(?=\S)([^~\n]+?)~~/g, "<del>$1</del>")
+        .replace(/(^|[^*\w])\*(?=[^\s*])([^*\n]*?[^\s*])\*(?!\*)/g, "$1<em>$2</em>")
+        .replace(/(^|[\s(«])_(?=\S)([^_\n]*?\S)_(?=$|[\s.,،؛!?؟:)»])/g, "$1<em>$2</em>");
+      return html.replace(/\uE010(\d+)\uE011/g, (m, i) => kept[Number(i)]);
     }
 
     function splitRow(line) {
@@ -2956,7 +3181,13 @@
             items.push(lines[i].trim().replace(/^[-•*]\s+/, ""));
             i++;
           }
-          html += `<ul class="list">${items.map(it => `<li${dirAttr(it)}>${inlineMd(it)}</li>`).join("")}</ul>`;
+          html += `<ul class="list">${items.map(it => {
+            // "- [ ] task" / "- [x] done" become a checklist item.
+            const task = it.match(/^\[([ xX])\]\s+(.*)$/);
+            if (!task) return `<li${dirAttr(it)}>${inlineMd(it)}</li>`;
+            const done = task[1] !== " ";
+            return `<li class="task${done ? " done" : ""}"${dirAttr(task[2])}><span class="task-box" role="img" aria-label="${done ? "انجام‌شده" : "انجام‌نشده"}">${done ? "✓" : ""}</span>${inlineMd(task[2])}</li>`;
+          }).join("")}</ul>`;
         } else {
           const line = lines[i].trim();
           const heading = line.match(/^(#{1,6})\s+(.*\S)\s*#*$/);
@@ -3060,12 +3291,14 @@
 
       if (!raw) {
         preview.innerHTML = '<div class="empty">هنوز متنی وارد نشده است.</div>';
+        if (window.updateReader) updateReader();
         return;
       }
 
       // Raw mode: show the text verbatim, no markdown/code/math parsing.
       if (rawMode) {
         preview.innerHTML = `<pre class="raw-view">${escapeHtml(raw)}</pre>`;
+        if (window.updateReader) updateReader();
         return;
       }
 
@@ -3074,6 +3307,15 @@
       preview.innerHTML = blocks.map(block => {
         const lang = fenceLang(block);
         const content = stripFence(block);
+
+        // ```mermaid fences become diagrams (drawn lazily by renderMermaid).
+        if (lang === "mermaid" && content.trim()) {
+          return `
+            <div class="block">
+              <div class="mermaid-block" data-src="${escapeAttr(content)}"><pre class="code plain"><code>${escapeHtml(content)}</code></pre></div>
+            </div>
+          `;
+        }
 
         // JSON gets a collapsible, colored tree viewer instead of plain code.
         const jsonData = tryParseJson(content, lang);
@@ -3119,7 +3361,7 @@
           return renderTable(lines);
         }
 
-        if (isTitle(first) && lines.length > 1) {
+        if (lines.length > 1 && isTitle(first, lines[1])) {
           return `
             <div class="block">
               <div class="title"${dirAttr(first)}>${inlineMd(first.replace(/:$/, ""))}</div>
@@ -3137,6 +3379,48 @@
 
       highlightCode();
       renderMath();
+      scheduleMermaid();
+      if (window.updateReader) updateReader();
+    }
+
+    // Mermaid diagrams: the library loads only when a diagram appears. Until
+    // it is drawn (or if the source is invalid) the block shows its source.
+    const MERMAID_SRC = "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js";
+    let mermaidReady = null;
+    let mermaidTimer = 0;
+    let mermaidRun = 0;
+    function scheduleMermaid() {
+      clearTimeout(mermaidTimer);
+      if (!preview.querySelector(".mermaid-block")) return;
+      mermaidTimer = setTimeout(renderMermaid, 250);
+    }
+    async function renderMermaid() {
+      const blocks = [...preview.querySelectorAll(".mermaid-block")];
+      if (!blocks.length) return;
+      const run = ++mermaidRun;
+      try {
+        mermaidReady = mermaidReady || loadScript(MERMAID_SRC);
+        await mermaidReady;
+      } catch (err) {
+        mermaidReady = null;
+        return; // offline: the source stays visible
+      }
+      const dark = !LIGHT_THEMES.has(document.documentElement.getAttribute("data-theme"));
+      mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "neutral", fontFamily: "inherit" });
+      for (const [index, block] of blocks.entries()) {
+        if (run !== mermaidRun || !block.isConnected) return;
+        try {
+          const { svg } = await mermaid.render(`mermaid-${run}-${index}`, block.dataset.src);
+          if (run !== mermaidRun) return;
+          block.innerHTML = svg;
+          block.classList.add("drawn");
+          block.classList.remove("failed");
+        } catch (err) {
+          block.classList.add("failed");
+          block.title = "نمودار Mermaid قابل رسم نبود؛ متن آن نمایش داده شده است.";
+          document.getElementById(`dmermaid-${run}-${index}`)?.remove();
+        }
+      }
     }
 
     function renderMath() {
@@ -3212,6 +3496,60 @@
       reader.readAsText(file);
     }
 
+    // Persian cleanup (virastar.js). The fix goes through the editor's own
+    // undo stack, so Ctrl/⌘+Z brings the previous text back.
+    const CLEANUP_LABELS = { arabic: "حرف و عدد عربی", tatweel: "کشیدگی حروف", zwnj: "نیم‌فاصله", punctuation: "علامت نگارشی", spacing: "فاصله" };
+    async function cleanupPersian() {
+      const text = input.value;
+      if (!text.trim()) { libraryToast("ابتدا متنی وارد کنید.", true); return; }
+      const result = persianCleanup(text);
+      if (!result.total) { libraryToast("متن مرتب است؛ چیزی برای اصلاح پیدا نشد."); return; }
+      const summary = Object.entries(result.changes)
+        .filter(([, count]) => count)
+        .map(([kind, count]) => `${count.toLocaleString("fa-IR")} ${CLEANUP_LABELS[kind]}`)
+        .join("، ");
+      const ok = await libraryAsk({
+        title: "ویرایش فارسی",
+        description: `${summary} اصلاح می‌شود. کد، فرمول و لینک‌ها دست نمی‌خورند. بعداً با Ctrl/⌘+Z برمی‌گردد.`,
+        confirm: "اعمال",
+      });
+      if (!ok) return;
+      // A hidden (collapsed) textarea cannot take an undoable edit; show it
+      // for the edit and restore the view afterwards.
+      const shell = document.getElementById("inputShell");
+      const wasCollapsed = shell.classList.contains("collapsed");
+      const wasEditing = editingInput;
+      shell.classList.remove("collapsed");
+      input.focus();
+      input.select();
+      if (!document.execCommand("insertText", false, result.text)) {
+        input.value = result.text;
+        input.dispatchEvent(new Event("input"));
+      }
+      input.setSelectionRange(0, 0);
+      if (wasCollapsed) { collapseInput(); input.blur(); }
+      else editingInput = wasEditing;
+      libraryToast("متن ویرایش شد. برای برگرداندن، Ctrl/⌘+Z را در ویرایشگر بزنید.");
+    }
+
+    // Printing (and "Save as PDF") uses the print stylesheet; the document
+    // title becomes the tab's title so the PDF gets a sensible file name.
+    function printOutput() {
+      if (!input.value.trim()) { libraryToast("ابتدا متنی وارد کنید.", true); return; }
+      window.print();
+    }
+    let titleBeforePrint = "";
+    window.addEventListener("beforeprint", () => {
+      titleBeforePrint = document.title;
+      const tab = typeof activeTab === "function" && activeTab();
+      if (tab && isTextTab(tab) && tab.content.trim()) document.title = tabTitle(tab);
+      preview.querySelectorAll("details").forEach(d => { d.dataset.wasOpen = d.open; d.open = true; });
+    });
+    window.addEventListener("afterprint", () => {
+      if (titleBeforePrint) document.title = titleBeforePrint;
+      preview.querySelectorAll("details").forEach(d => { d.open = d.dataset.wasOpen === "true"; });
+    });
+
     function handleFileUpload(event) {
       loadFile(event.target.files && event.target.files[0]);
       // Reset so selecting the same file again still fires onchange.
@@ -3282,9 +3620,12 @@
         if (n.classList.contains("code-copy") || n.classList.contains("lang")) return;
         switch (n.tagName) {
           case "STRONG": out += `**${inlineMdOf(n)}**`; break;
+          case "EM": out += `*${inlineMdOf(n)}*`; break;
+          case "DEL": out += `~~${inlineMdOf(n)}~~`; break;
+          case "IMG": out += `![${n.getAttribute("alt") || ""}](${n.getAttribute("src") || ""})`; break;
           case "CODE": out += "`" + inlineMdOf(n) + "`"; break;
           case "A": out += `[${inlineMdOf(n)}](${n.getAttribute("href") || ""})`; break;
-          default: out += inlineMdOf(n);
+          default: if (!n.classList.contains("task-box")) out += inlineMdOf(n);
         }
       });
       return out;
@@ -3307,7 +3648,8 @@
       const c = el.classList;
       const heading = el.className.match(/md-h([1-6])/);
       if (heading) return "#".repeat(+heading[1]) + " " + inlineMdOf(el).trim();
-      if (el.tagName === "UL") return Array.from(el.children).map(li => "- " + inlineMdOf(li).trim()).join("\n");
+      if (el.tagName === "UL") return Array.from(el.children).map(li =>
+        "- " + (li.classList.contains("task") ? (li.classList.contains("done") ? "[x] " : "[ ] ") : "") + inlineMdOf(li).trim()).join("\n");
       if (el.tagName === "BLOCKQUOTE") return "> " + inlineMdOf(el).trim();
       if (el.tagName === "HR" || c.contains("md-hr")) return "---";
       if (c.contains("table-wrap")) return tableToMd(el);
@@ -3317,6 +3659,7 @@
         return "```" + lang + "\n" + (code ? code.innerText.replace(/\n+$/, "") : "") + "\n```";
       }
       if (c.contains("jsonview")) return "```json\n" + (el.getAttribute("data-json") || "") + "\n```";
+      if (c.contains("mermaid-block")) return "```mermaid\n" + (el.dataset.src || "") + "\n```";
       if (c.contains("title")) return "### " + inlineMdOf(el).trim();
       if (c.contains("empty")) return "";
       return inlineMdOf(el).trim(); // .paragraph and anything text-like
@@ -3446,6 +3789,12 @@
       // The button names the theme it switches to.
       const label = document.querySelector(".theme-label");
       if (label) label.textContent = THEME_NAMES[nextTheme(theme)];
+
+      // Diagrams are drawn with theme colours; redraw them for the new theme.
+      if (typeof scheduleMermaid === "function" && window.mermaid) {
+        preview.querySelectorAll(".mermaid-block.drawn").forEach(b => b.classList.remove("drawn"));
+        scheduleMermaid();
+      }
 
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#0f1117";
@@ -3824,6 +4173,7 @@
       const app = document.querySelector(".app");
       const isDate = name === "date";
       app.classList.toggle("tab-date", isDate);
+      if (window.updateReader) updateReader();
       document.getElementById("tabFormat").classList.toggle("active", !isDate);
       document.getElementById("tabDate").classList.toggle("active", isDate);
       document.title = isDate ? "تبدیل تاریخ — Pretty Text Viewer" : "Pretty Text Viewer";
@@ -3945,6 +4295,7 @@
           case "KeyN": run(newTab, ".doc-tab-new"); break;
           case "KeyP": run(pasteInput, ".toolbar .paste"); break;
           case "KeyU": run(() => document.getElementById("fileInput").click(), ".toolbar .upload"); break;
+          case "KeyV": run(cleanupPersian, ".toolbar .cleanup"); break;
           case "KeyI": run(copyInput, ".toolbar .copy-input"); break;
           case "KeyC": run(copyOutput, ".toolbar .copy"); break;
           case "KeyD": run(downloadOutput, ".toolbar .download"); break;
@@ -3971,6 +4322,8 @@
       });
     }
   </script>
+  <script src="/virastar.js"></script>
+  <script src="/reader.js"></script>
   <script src="/library.js"></script>
   <script src="/workspace.js"></script>
 </body>
