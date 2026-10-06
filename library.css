@@ -167,6 +167,8 @@
 .library-dialog label { display: grid; gap: 5px; margin-bottom: 16px; color: var(--muted); font-size: 12px; }
 .library-dialog [hidden] { display: none !important; }
 .library-dialog input, .library-dialog select { width: 100%; }
+.library-dialog .library-dialog-skip { display: flex; align-items: center; gap: 8px; margin: -4px 0 16px; color: var(--muted); font-size: 12px; cursor: pointer; }
+.library-dialog .library-dialog-skip input { width: auto; margin: 0; accent-color: var(--accent); }
 .library-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .library-dialog .library-dialog-submit.destructive { background: var(--danger); border-color: var(--danger); }
 @media (min-width: 1101px) {

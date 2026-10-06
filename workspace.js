@@ -17,6 +17,7 @@ function deriveTitle(content) {
   const line = content.split(/\r?\n/).map(part => part.replace(/^[#>*\-\s]+/, "").trim()).find(Boolean);
   return line ? line.slice(0, 80) : "";
 }
+const shortTitle = title => title.length > 40 ? `${title.slice(0, 40).trim()}…` : title;
 function tabTitle(tab) { if (tab.kind === "date") return "تبدیل تاریخ"; return tab.doc?.title || deriveTitle(tab.content) || "متن تازه"; }
 
 /** The saved state a tab is linked to; `content` is the last saved body. */
@@ -131,9 +132,9 @@ async function closeTab(id) {
   if (!tab) return;
   if (isDirty(tab)) {
     const ok = await libraryAsk({
-      title: `بستن «${tabTitle(tab)}»`,
+      title: `بستن «${shortTitle(tabTitle(tab))}»`,
       description: tab.doc ? "تغییرات ذخیره‌نشدهٔ این متن از بین می‌رود. نسخهٔ ذخیره‌شده در کتابخانه می‌ماند." : "این متن ذخیره نشده است و با بستن زبانه از بین می‌رود.",
-      confirm: "بستن بدون ذخیره", destructive: true,
+      confirm: "بستن بدون ذخیره", destructive: true, skipKey: "close_unsaved",
     });
     if (!ok) return;
   }
@@ -151,8 +152,8 @@ async function closeAllTabs() {
   if (unsaved.length) {
     const ok = await libraryAsk({
       title: "بستن همهٔ زبانه‌ها",
-      description: `${unsaved.length.toLocaleString("fa-IR")} زبانه تغییر ذخیره‌نشده دارد (${unsaved.slice(0, 3).map(tabTitle).map(t => `«${t}»`).join("، ")}${unsaved.length > 3 ? "، …" : ""}) و با بستن از بین می‌رود. متن‌های ذخیره‌شده در کتابخانه می‌مانند.`,
-      confirm: "بستن همه", destructive: true,
+      description: `${unsaved.length.toLocaleString("fa-IR")} زبانه تغییر ذخیره‌نشده دارد (${unsaved.slice(0, 3).map(t => `«${shortTitle(tabTitle(t))}»`).join("، ")}${unsaved.length > 3 ? "، …" : ""}) و با بستن از بین می‌رود. متن‌های ذخیره‌شده در کتابخانه می‌مانند.`,
+      confirm: "بستن همه", destructive: true, skipKey: "close_unsaved",
     });
     if (!ok) return;
   }
