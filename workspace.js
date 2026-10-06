@@ -145,6 +145,25 @@ async function closeTab(id) {
   renderLibrary();
 }
 
+/** Closes every tab, asking once if any of them has unsaved text. */
+async function closeAllTabs() {
+  const unsaved = workspace.tabs.filter(isDirty);
+  if (unsaved.length) {
+    const ok = await libraryAsk({
+      title: "بستن همهٔ زبانه‌ها",
+      description: `${unsaved.length.toLocaleString("fa-IR")} زبانه تغییر ذخیره‌نشده دارد (${unsaved.slice(0, 3).map(tabTitle).map(t => `«${t}»`).join("، ")}${unsaved.length > 3 ? "، …" : ""}) و با بستن از بین می‌رود. متن‌های ذخیره‌شده در کتابخانه می‌مانند.`,
+      confirm: "بستن همه", destructive: true,
+    });
+    if (!ok) return;
+  }
+  const fresh = { id: newTabId(), content: "", doc: null };
+  workspace.tabs = [fresh];
+  selectTab(fresh.id);
+  persistWorkspace(true);
+  renderLibrary();
+  expandInput();
+}
+
 /** Editor input: the textarea always edits the active tab. */
 function workspaceInput() {
   const tab = activeTab();
@@ -202,6 +221,8 @@ function renderTabs() {
     list.append(item);
     updateTabChrome(tab, item);
   }
+  const closeAll = document.getElementById("closeAllTabsBtn");
+  if (closeAll) closeAll.hidden = workspace.tabs.length < 2;
   list.querySelector(".doc-tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
