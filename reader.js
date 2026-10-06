@@ -44,7 +44,8 @@
     bar.hidden = empty;
     if (empty) { updateProgress(); return; }
 
-    const words = (preview.textContent.match(/\S+/g) || []).length;
+    // innerText skips <style>/<script> text, e.g. inside drawn diagrams.
+    const words = (preview.innerText.match(/\S+/g) || []).length;
     stats.textContent = `${readingTime(words)} · ${words.toLocaleString("fa-IR")} کلمه`;
 
     const headings = [...preview.querySelectorAll(HEADINGS)].filter(h => h.textContent.trim());

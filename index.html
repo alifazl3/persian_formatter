@@ -727,6 +727,19 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
+    .mermaid-block.drawn {
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel-soft);
+      direction: ltr;
+    }
+
+    .mermaid-block.drawn svg { max-width: 100%; height: auto; }
+
     /* Reading aids: time, table of contents and text size, top-right of the
        output (the lock sits top-left); a thin progress bar on the window. */
     .preview-shell { position: relative; }
@@ -3234,6 +3247,15 @@
         const lang = fenceLang(block);
         const content = stripFence(block);
 
+        // ```mermaid fences become diagrams (drawn lazily by renderMermaid).
+        if (lang === "mermaid" && content.trim()) {
+          return `
+            <div class="block">
+              <div class="mermaid-block" data-src="${escapeAttr(content)}"><pre class="code plain"><code>${escapeHtml(content)}</code></pre></div>
+            </div>
+          `;
+        }
+
         // JSON gets a collapsible, colored tree viewer instead of plain code.
         const jsonData = tryParseJson(content, lang);
         if (jsonData !== undefined) {
@@ -3296,7 +3318,48 @@
 
       highlightCode();
       renderMath();
+      scheduleMermaid();
       if (window.updateReader) updateReader();
+    }
+
+    // Mermaid diagrams: the library loads only when a diagram appears. Until
+    // it is drawn (or if the source is invalid) the block shows its source.
+    const MERMAID_SRC = "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js";
+    let mermaidReady = null;
+    let mermaidTimer = 0;
+    let mermaidRun = 0;
+    function scheduleMermaid() {
+      clearTimeout(mermaidTimer);
+      if (!preview.querySelector(".mermaid-block")) return;
+      mermaidTimer = setTimeout(renderMermaid, 250);
+    }
+    async function renderMermaid() {
+      const blocks = [...preview.querySelectorAll(".mermaid-block")];
+      if (!blocks.length) return;
+      const run = ++mermaidRun;
+      try {
+        mermaidReady = mermaidReady || loadScript(MERMAID_SRC);
+        await mermaidReady;
+      } catch (err) {
+        mermaidReady = null;
+        return; // offline: the source stays visible
+      }
+      const dark = !LIGHT_THEMES.has(document.documentElement.getAttribute("data-theme"));
+      mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "neutral", fontFamily: "inherit" });
+      for (const [index, block] of blocks.entries()) {
+        if (run !== mermaidRun || !block.isConnected) return;
+        try {
+          const { svg } = await mermaid.render(`mermaid-${run}-${index}`, block.dataset.src);
+          if (run !== mermaidRun) return;
+          block.innerHTML = svg;
+          block.classList.add("drawn");
+          block.classList.remove("failed");
+        } catch (err) {
+          block.classList.add("failed");
+          block.title = "نمودار Mermaid قابل رسم نبود؛ متن آن نمایش داده شده است.";
+          document.getElementById(`dmermaid-${run}-${index}`)?.remove();
+        }
+      }
     }
 
     function renderMath() {
@@ -3531,6 +3594,7 @@
         return "```" + lang + "\n" + (code ? code.innerText.replace(/\n+$/, "") : "") + "\n```";
       }
       if (c.contains("jsonview")) return "```json\n" + (el.getAttribute("data-json") || "") + "\n```";
+      if (c.contains("mermaid-block")) return "```mermaid\n" + (el.dataset.src || "") + "\n```";
       if (c.contains("title")) return "### " + inlineMdOf(el).trim();
       if (c.contains("empty")) return "";
       return inlineMdOf(el).trim(); // .paragraph and anything text-like
@@ -3660,6 +3724,12 @@
       // The button names the theme it switches to.
       const label = document.querySelector(".theme-label");
       if (label) label.textContent = THEME_NAMES[nextTheme(theme)];
+
+      // Diagrams are drawn with theme colours; redraw them for the new theme.
+      if (typeof scheduleMermaid === "function" && window.mermaid) {
+        preview.querySelectorAll(".mermaid-block.drawn").forEach(b => b.classList.remove("drawn"));
+        scheduleMermaid();
+      }
 
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#0f1117";
