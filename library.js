@@ -54,8 +54,15 @@ function libraryToast(message, error = false) {
   libraryToastTimer = setTimeout(() => { toast.hidden = true; }, 4000);
 }
 
-/** Modal prompt: a confirmation, a text field (label) or a choice (options). */
-function libraryAsk({ title, description = "", label = "", value = "", options = null, confirm = "تأیید", destructive = false, maxLength = 200 }) {
+/**
+ * Modal prompt: a confirmation, a text field (label) or a choice (options).
+ * With `skipKey`, a "don't ask again" box is shown; once ticked and confirmed,
+ * later calls with the same key resolve to true without opening the dialog.
+ */
+function libraryAsk({ title, description = "", label = "", value = "", options = null, confirm = "تأیید", destructive = false, maxLength = 200, skipKey = "" }) {
+  if (skipKey && librarySkipped(skipKey)) return Promise.resolve(true);
+  libraryEl("libraryDialogSkipLabel").hidden = !skipKey;
+  libraryEl("libraryDialogSkip").checked = false;
   const dialog = libraryEl("libraryDialog");
   const form = libraryEl("libraryDialogForm");
   const previous = libraryEl("libraryDialogInput");
@@ -83,12 +90,22 @@ function libraryAsk({ title, description = "", label = "", value = "", options =
       if (dialog.open) dialog.close();
       resolve(result);
     };
-    const onSubmit = event => { event.preventDefault(); finish(label ? field.value.trim() : true); };
+    const onSubmit = event => {
+      event.preventDefault();
+      if (skipKey && libraryEl("libraryDialogSkip").checked) {
+        try { localStorage.setItem(`pf_skip_${skipKey}`, "1"); } catch (_) { /* Optional convenience. */ }
+      }
+      finish(label ? field.value.trim() : true);
+    };
     const onCancel = event => { event.preventDefault(); finish(null); };
     form.addEventListener("submit", onSubmit);
     libraryEl("libraryDialogCancel").addEventListener("click", onCancel);
     dialog.addEventListener("cancel", onCancel);
   });
+}
+
+function librarySkipped(key) {
+  try { return localStorage.getItem(`pf_skip_${key}`) === "1"; } catch (_) { return false; }
 }
 
 function libraryButton(label, action, className = "") {
