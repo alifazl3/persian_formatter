@@ -2759,23 +2759,23 @@
         .replace(/^\n+|\n+$/g, "");
     }
 
-    function isTitle(line) {
+    // A block's first line is a title when it reads like one: it ends with a
+    // colon or question mark, is a short label opening with a cue word
+    // ("نکته", "قدم ۲", "نتیجه"), a version tag ("v2.1"), or a numbered heading
+    // whose next line is not another list item (otherwise it is a list).
+    const TITLE_CUES = /^(چی|الان|نکته|قدم|مرحله|نتیجه|خلاصه|جمع‌بندی)(?=[\s:،]|$)/;
+    function isTitle(line, next = "") {
       const clean = line.trim();
 
       if (!clean) return false;
       if (clean.length > 90) return false;
+      if (clean.endsWith(":") || clean.endsWith("؟")) return true;
 
-      return (
-        clean.endsWith(":") ||
-        clean.endsWith("؟") ||
-        clean.startsWith("چی ") ||
-        clean.startsWith("الان ") ||
-        clean.startsWith("نکته") ||
-        clean.startsWith("قدم") ||
-        clean.startsWith("نتیجه") ||
-        clean.startsWith("v") ||
-        /^[۰-۹0-9]+\./.test(clean)
-      );
+      const short = clean.split(/\s+/).length <= 6 && !/[.!؛]$/.test(clean);
+      if (short && TITLE_CUES.test(clean)) return true;
+      if (/^v\d+(\.\d+)*\b/i.test(clean) && short) return true;
+      if (/^[۰-۹0-9]+\.\s*\S/.test(clean) && short && !isListLine(next)) return true;
+      return false;
     }
 
     function decorate(text) {
@@ -3119,7 +3119,7 @@
           return renderTable(lines);
         }
 
-        if (isTitle(first) && lines.length > 1) {
+        if (lines.length > 1 && isTitle(first, lines[1])) {
           return `
             <div class="block">
               <div class="title"${dirAttr(first)}>${inlineMd(first.replace(/:$/, ""))}</div>
