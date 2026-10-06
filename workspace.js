@@ -4,6 +4,7 @@
 const TABS_KEY = "pf_tabs_v1";
 const LAST_FOLDER_KEY = "pf_last_folder";
 const MAX_TABS = 30;
+const ACTIVE_TAB_KEY = "pf_active_tab";
 const workspace = { tabs: [], activeId: null, persistent: true };
 
 const newTabId = () => (crypto.randomUUID ? crypto.randomUUID() : `t${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`);
@@ -129,7 +130,19 @@ function openDateTab() {
   if (tab) selectTab(tab.id);
 }
 
-/** Opening the app starts on a blank tab: an existing empty draft, or a new one at the end. */
+/**
+ * The tab to show when the page loads. A refresh returns to the tab this
+ * browser tab was on; a newly opened browser tab starts on a blank tab.
+ */
+function startingTab() {
+  let previous = null;
+  try { previous = sessionStorage.getItem(ACTIVE_TAB_KEY); } catch (_) { /* Optional. */ }
+  const tab = previous && workspace.tabs.find(item => item.id === previous);
+  if (tab && isTextTab(tab)) return tab;
+  return startOnBlankTab();
+}
+
+/** An existing empty draft, or a new blank tab at the end. */
 function startOnBlankTab() {
   const blank = workspace.tabs.find(tab => isTextTab(tab) && !tab.doc && !tab.content.trim());
   if (blank) return blank;
@@ -159,6 +172,8 @@ function selectTab(id) {
   const tab = workspace.tabs.find(item => item.id === id);
   if (!tab) return;
   workspace.activeId = id;
+  // Remembered per browser tab, so a refresh comes back to the same tab.
+  try { sessionStorage.setItem(ACTIVE_TAB_KEY, id); } catch (_) { /* Optional. */ }
   showTab(tab);
   renderTabs();
   persistWorkspace();
@@ -555,7 +570,7 @@ input.addEventListener("input", workspaceInput);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && activeTab()) syncTab(activeTab()); });
 if (location.pathname === "/date") openDateTab();
 else {
-  // Every page load opens on a blank tab; earlier tabs stay in the tab bar.
-  selectTab(startOnBlankTab().id);
+  // A new browser tab opens on a blank tab; a refresh stays where it was.
+  selectTab(startingTab().id);
   if (isTextTab(activeTab()) && !activeTab().content.trim()) input.focus();
 }
