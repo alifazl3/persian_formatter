@@ -721,6 +721,97 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
+    /* Reading aids: time, table of contents and text size, top-right of the
+       output (the lock sits top-left); a thin progress bar on the window. */
+    .preview-shell { position: relative; }
+    .preview > * { zoom: var(--preview-scale, 1); }
+    .preview [id^="section-"] { scroll-margin-top: 24px; }
+
+    .reading-bar {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: calc(100% - 150px);
+    }
+
+    .reading-bar[hidden], .reading-bar [hidden] { display: none !important; }
+
+    .reading-stats {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .reading-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: none;
+    }
+
+    .reading-btn:hover:not(:disabled) { filter: none; color: var(--text); border-color: var(--accent); }
+    .reading-btn:disabled { opacity: .4; cursor: default; }
+    .reading-btn svg { width: 14px; height: 14px; }
+
+    .toc-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      display: grid;
+      width: min(340px, 80vw);
+      max-height: min(60vh, 460px);
+      overflow: auto;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, .28);
+    }
+
+    .toc-item {
+      display: block;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.6;
+      text-align: right;
+      box-shadow: none;
+    }
+
+    .toc-item:hover, .toc-item:focus-visible { filter: none; background: var(--glow); color: var(--accent); }
+    .toc-level-1 { font-weight: 800; }
+    .toc-level-3 { padding-inline-start: 26px; font-weight: 500; color: var(--muted); }
+
+    .reading-progress {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 1000;
+      height: 3px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: right;
+      pointer-events: none;
+    }
+
+    .reading-progress[hidden] { display: none; }
+
     /* Lock toggle for the output — locked by default; unlock to edit. */
     .lock-btn {
       position: absolute;
@@ -2057,6 +2148,7 @@
 </head>
 
 <body>
+  <div id="readingProgress" class="reading-progress" hidden></div>
   <main class="app mode-sidebar">
     <header id="appHeader">
       <div class="right-rail">
@@ -2230,6 +2322,17 @@
         </svg>
         <span class="lock-label">قفل</span><kbd class="kbd">L</kbd>
       </button>
+
+      <div id="readingBar" class="reading-bar" hidden>
+        <span id="readingStats" class="reading-stats"></span>
+        <button type="button" id="tocButton" class="reading-btn" onclick="toggleToc()" aria-haspopup="true" aria-expanded="false" aria-controls="tocPanel" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+          <span>فهرست</span>
+        </button>
+        <button type="button" id="textSmaller" class="reading-btn" onclick="changeTextSize(-1)" title="کوچک کردن متن" aria-label="کوچک کردن متن">آ−</button>
+        <button type="button" id="textLarger" class="reading-btn" onclick="changeTextSize(1)" title="بزرگ کردن متن" aria-label="بزرگ کردن متن">آ+</button>
+        <nav id="tocPanel" class="toc-panel" aria-label="فهرست مطالب" hidden></nav>
+      </div>
 
       <section id="preview" class="preview">
         <div class="empty">هنوز متنی وارد نشده است.</div>
@@ -3075,12 +3178,14 @@
 
       if (!raw) {
         preview.innerHTML = '<div class="empty">هنوز متنی وارد نشده است.</div>';
+        if (window.updateReader) updateReader();
         return;
       }
 
       // Raw mode: show the text verbatim, no markdown/code/math parsing.
       if (rawMode) {
         preview.innerHTML = `<pre class="raw-view">${escapeHtml(raw)}</pre>`;
+        if (window.updateReader) updateReader();
         return;
       }
 
@@ -3152,6 +3257,7 @@
 
       highlightCode();
       renderMath();
+      if (window.updateReader) updateReader();
     }
 
     function renderMath() {
@@ -3875,6 +3981,7 @@
       const app = document.querySelector(".app");
       const isDate = name === "date";
       app.classList.toggle("tab-date", isDate);
+      if (window.updateReader) updateReader();
       document.getElementById("tabFormat").classList.toggle("active", !isDate);
       document.getElementById("tabDate").classList.toggle("active", isDate);
       document.title = isDate ? "تبدیل تاریخ — Pretty Text Viewer" : "Pretty Text Viewer";
@@ -4024,6 +4131,7 @@
     }
   </script>
   <script src="/virastar.js"></script>
+  <script src="/reader.js"></script>
   <script src="/library.js"></script>
   <script src="/workspace.js"></script>
 </body>

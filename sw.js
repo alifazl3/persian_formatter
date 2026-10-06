@@ -12,6 +12,7 @@ const SHELL = [
   "/library.js",
   "/workspace.js",
   "/virastar.js",
+  "/reader.js",
   "/library.css",
 ];
 
