@@ -115,6 +115,11 @@
 .doc-tab-close:hover { filter: none; background: var(--glow); color: var(--danger); }
 .doc-tab-new { flex: 0 0 auto; width: 32px; height: 32px; margin-bottom: 4px; padding: 0; border: 1px dashed var(--border); border-radius: 9px; background: transparent; color: var(--muted); font-size: 16px; box-shadow: none; justify-content: center; }
 .doc-tab-new:hover { filter: none; border-color: var(--accent); color: var(--accent); }
+.doc-tab-close-all { flex: 0 0 auto; display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 4px; padding: 0; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--muted); box-shadow: none; }
+.doc-tab-close-all[hidden] { display: none; }
+.doc-tab-close-all svg { width: 17px; height: 17px; }
+.doc-tab-close-all:hover { filter: none; border-color: var(--border); color: var(--danger); }
+.doc-tab-close-all:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* Folder sharing dialog */
 .share-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; }

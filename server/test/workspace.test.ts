@@ -272,3 +272,26 @@ test("the date tab survives a reload", () => {
   const reloaded = setup(JSON.parse(first.storage.get("pf_tabs_v1")!));
   assert.equal(reloaded.run(`workspace.tabs.filter(t => t.kind === "date").length`), 1);
 });
+
+test("close all asks once for unsaved tabs and leaves one empty tab", async () => {
+  const { run, type, answers, asks } = setup();
+  type("draft one");
+  run(`placeText("saved"); activeTab().doc = { id: "d", folderId: null, title: "T", version: 1, content: "saved", role: "owner" };`);
+  run("openDateTab()");
+  answers.push(null);
+  await run("closeAllTabs()");
+  assert.equal(run("workspace.tabs.length"), 3, "cancel keeps every tab");
+  assert.match(asks[0].description, /^۱ زبانه/);
+  answers.push(true);
+  await run("closeAllTabs()");
+  assert.equal(run("workspace.tabs.length"), 1);
+  assert.equal(run("activeTab().content"), "");
+});
+
+test("close all without unsaved text does not ask", async () => {
+  const { run, asks } = setup();
+  run("openDateTab()");
+  await run("closeAllTabs()");
+  assert.equal(asks.length, 0);
+  assert.equal(run("workspace.tabs.length"), 1);
+});
