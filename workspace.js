@@ -27,10 +27,9 @@ function docState(doc) {
 
 // --- persistence (drafts survive reloads, in this browser only) ---
 
-function loadWorkspace() {
-  let stored = null;
-  try { stored = JSON.parse(localStorage.getItem(TABS_KEY) || "null"); } catch (_) { workspace.persistent = false; }
-  for (const raw of Array.isArray(stored?.tabs) ? stored.tabs : []) {
+function parseTabs(list) {
+  const tabs = [];
+  for (const raw of Array.isArray(list) ? list : []) {
     if (typeof raw?.id !== "string" || typeof raw.content !== "string") continue;
     const tab = { id: raw.id, content: raw.content, doc: null };
     if (raw.kind === "date") tab.kind = "date";
@@ -38,8 +37,15 @@ function loadWorkspace() {
       // Clean tabs store their body once; the saved baseline equals the content.
       tab.doc = { ...raw.doc, content: typeof raw.doc.content === "string" ? raw.doc.content : raw.content };
     }
-    workspace.tabs.push(tab);
+    tabs.push(tab);
   }
+  return tabs;
+}
+
+function loadWorkspace() {
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(TABS_KEY) || "null"); } catch (_) { workspace.persistent = false; }
+  workspace.tabs = parseTabs(stored?.tabs);
   if (!workspace.tabs.length) workspace.tabs.push({ id: newTabId(), content: "", doc: null });
   workspace.activeId = workspace.tabs.some(tab => tab.id === stored?.activeId) ? stored.activeId : workspace.tabs[0].id;
 }
@@ -65,6 +71,28 @@ function persistWorkspace(now = false) {
   if (now) write(); else persistTimer = setTimeout(write, 400);
 }
 window.addEventListener("pagehide", () => persistWorkspace(true));
+
+/**
+ * Several browser tabs share one saved workspace. When another one saves,
+ * adopt its tabs but keep the tab being edited here, so neither page
+ * overwrites the other's drafts with a stale copy.
+ */
+function workspaceStorageChanged(event) {
+  if (event.key !== TABS_KEY || !event.newValue) return;
+  let stored;
+  try { stored = JSON.parse(event.newValue); } catch (_) { return; }
+  const tabs = parseTabs(stored?.tabs);
+  const current = activeTab();
+  if (current) {
+    const at = tabs.findIndex(tab => tab.id === current.id);
+    if (at >= 0) tabs[at] = current; else tabs.push(current);
+  }
+  if (!tabs.length) return;
+  workspace.tabs = tabs;
+  renderTabs();
+  renderLibrary();
+}
+window.addEventListener("storage", workspaceStorageChanged);
 
 // --- tab lifecycle ---
 
@@ -99,6 +127,16 @@ function openDateTab() {
   const existing = workspace.tabs.find(tab => tab.kind === "date");
   const tab = existing || createTab({ kind: "date" });
   if (tab) selectTab(tab.id);
+}
+
+/** Opening the app starts on a blank tab: an existing empty draft, or a new one at the end. */
+function startOnBlankTab() {
+  const blank = workspace.tabs.find(tab => isTextTab(tab) && !tab.doc && !tab.content.trim());
+  if (blank) return blank;
+  if (workspace.tabs.length >= MAX_TABS) return workspace.tabs.find(isTextTab) || workspace.tabs[0];
+  const tab = { id: newTabId(), content: "", doc: null };
+  workspace.tabs.push(tab);
+  return tab;
 }
 
 /** A text tab for new content: the active one if it is an empty draft, else a new tab. */
@@ -517,8 +555,7 @@ input.addEventListener("input", workspaceInput);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && activeTab()) syncTab(activeTab()); });
 if (location.pathname === "/date") openDateTab();
 else {
-  // A date tab restored as active would rewrite "/" to "/date"; start on a text tab.
-  if (!isTextTab(activeTab())) workspace.activeId = (workspace.tabs.find(isTextTab) || workspace.tabs[0]).id;
-  selectTab(workspace.activeId);
+  // Every page load opens on a blank tab; earlier tabs stay in the tab bar.
+  selectTab(startOnBlankTab().id);
   if (isTextTab(activeTab()) && !activeTab().content.trim()) input.focus();
 }

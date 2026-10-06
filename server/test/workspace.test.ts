@@ -295,3 +295,28 @@ test("close all without unsaved text does not ask", async () => {
   assert.equal(asks.length, 0);
   assert.equal(run("workspace.tabs.length"), 1);
 });
+
+test("opening the app starts on a blank tab, reusing an empty one", () => {
+  const { run, type, storage } = setup();
+  type("earlier draft");
+  run("persistWorkspace(true)");
+  const stored = JSON.parse(storage.get("pf_tabs_v1")!);
+  const reopened = setup(stored);
+  const blank = reopened.run("startOnBlankTab()");
+  assert.equal(blank.content, "");
+  assert.equal(reopened.run("workspace.tabs.length"), 2, "earlier tabs stay");
+  reopened.run(`selectTab(${JSON.stringify(blank.id)}); persistWorkspace(true)`);
+  const again = setup(JSON.parse(reopened.storage.get("pf_tabs_v1")!));
+  again.run("startOnBlankTab()");
+  assert.equal(again.run("workspace.tabs.length"), 2, "an existing blank tab is reused");
+});
+
+test("another browser tab's save is adopted without losing the tab being edited", () => {
+  const { run, type } = setup();
+  type("mine");
+  const mineId = run("activeTab().id");
+  const other = { activeId: "x", tabs: [{ id: "x", content: "from the other window" }, { id: mineId, content: "stale copy" }] };
+  run(`workspaceStorageChanged({ key: "pf_tabs_v1", newValue: ${JSON.stringify(JSON.stringify(other))} })`);
+  assert.deepEqual(JSON.parse(run("JSON.stringify(workspace.tabs.map(t => t.content))")), ["from the other window", "mine"]);
+  assert.equal(run("activeTab().id"), mineId);
+});
