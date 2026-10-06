@@ -23,6 +23,9 @@
 
   <!-- Math rendering ($$…$$ / $…$ / \(…\)) via KaTeX + auto-render (pinned). -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+
+  <!-- Vazirmatn for the reading themes; the font file only downloads when used. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-Variable-font-face.css" />
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
@@ -43,6 +46,7 @@
       --strong: #ffffff;
       --row-alt: rgba(255, 255, 255, 0.02);
       --glow: rgba(124, 156, 255, 0.12);
+      --on-accent: #fff;
     }
 
     :root[data-theme="light"] {
@@ -61,6 +65,65 @@
       --strong: #0b1020;
       --row-alt: rgba(0, 0, 0, 0.03);
       --glow: rgba(79, 110, 247, 0.10);
+    }
+
+    /* Reading themes for long sessions: warm paper and a warm night variant.
+       Neither uses pure white or pure black (text/panel contrast ≈ 11:1), and
+       warm backgrounds read better than cool ones. */
+    :root[data-theme="reading"] {
+      --bg: #ece3d0;
+      --panel: #f7f0e1;
+      --panel-soft: #efe5d1;
+      --text: #3a3026;
+      --muted: #6f5f4d;
+      --border: #ddcfb4;
+      --accent: #9a5b2b;
+      --on-accent: #fff;
+      --success: #4f7a3a;
+      --warning: #b0701f;
+      --danger: #b4452f;
+      --code: #efe6d3;
+      --code-text: #3a3026;
+      --strong: #2a2017;
+      --row-alt: rgba(90, 60, 20, 0.04);
+      --glow: rgba(154, 91, 43, 0.10);
+    }
+
+    :root[data-theme="reading-dark"] {
+      --bg: #1d1915;
+      --panel: #26211b;
+      --panel-soft: #2f2922;
+      --text: #e4d6bf;
+      --muted: #a8977e;
+      --border: #3d352b;
+      --accent: #d39a5c;
+      --on-accent: #1d1915;
+      --success: #8fb573;
+      --warning: #d9a441;
+      --danger: #d9785f;
+      --code: #211c17;
+      --code-text: #e4d6bf;
+      --strong: #f0e4cf;
+      --row-alt: rgba(255, 230, 190, 0.03);
+      --glow: rgba(211, 154, 92, 0.10);
+    }
+
+    /* Reading typography for the output: Vazirmatn, larger type, airy lines
+       (Persian needs extra leading) and a ~68-character measure. */
+    :root[data-theme^="reading"] .preview {
+      font-family: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+      font-size: 18px;
+      line-height: 2.05;
+    }
+
+    :root[data-theme="reading-dark"] .preview {
+      font-size: 18.5px;
+      font-weight: 380;
+    }
+
+    :root[data-theme^="reading"] .preview > * {
+      max-width: 68ch;
+      margin-inline: auto;
     }
 
     * {
@@ -379,11 +442,13 @@
       display: inline;
     }
 
-    :root[data-theme="light"] .theme-toggle .ic-sun {
+    :root[data-theme="reading"] .theme-toggle .ic-sun,
+    :root[data-theme="reading-dark"] .theme-toggle .ic-sun {
       display: none;
     }
 
-    :root[data-theme="light"] .theme-toggle .ic-moon {
+    :root[data-theme="reading"] .theme-toggle .ic-moon,
+    :root[data-theme="reading-dark"] .theme-toggle .ic-moon {
       display: inline;
     }
 
@@ -581,7 +646,7 @@
 
     .share-copy {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       padding: 8px 14px;
       font-size: 13px;
     }
@@ -1166,7 +1231,7 @@
 
     .tab.active {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
     }
 
     /* In the right sidebar, stack the tabs vertically. */
@@ -1438,7 +1503,7 @@
 
     .date-dir-btn.active {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
     }
 
     .date-field {
@@ -1992,7 +2057,7 @@
       <div class="head-text">
         <div class="head-title-row">
           <h1>Pretty Text Viewer</h1>
-          <button class="layout-toggle theme-toggle" type="button" onclick="toggleTheme()" title="تغییر تم (روشن / تیره)">
+          <button class="layout-toggle theme-toggle" type="button" onclick="toggleTheme()" title="تغییر تم: تیره، روشن، مطالعه، مطالعهٔ شب (T)">
             <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
@@ -2376,7 +2441,7 @@
       <div class="kbd-group-title">عمومی</div>
       <div class="kbd-row"><span>زبانهٔ پرشین فرمتر (متن تازه)</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
       <div class="kbd-row"><span>زبانهٔ تبدیل تاریخ</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
-      <div class="kbd-row"><span>تغییر تم (روشن / تیره)</span><span class="keys"><kbd class="kbd">T</kbd></span></div>
+      <div class="kbd-row"><span>تغییر تم (تیره، روشن، مطالعه، مطالعهٔ شب)</span><span class="keys"><kbd class="kbd">T</kbd></span></div>
       <div class="kbd-row"><span>این راهنما</span><span class="keys"><kbd class="kbd">?</kbd></span></div>
       <div class="kbd-row"><span>خروج از فیلد متنی / جمع کردن ورودی / بستن</span><span class="keys"><kbd class="kbd">Esc</kbd></span></div>
       <div class="kbd-group-title">پرشین فرمتر</div>
@@ -3359,40 +3424,47 @@
 
     const appEl = document.querySelector(".app");
 
-    // Light / dark theme, persisted in localStorage. The highlight.js stylesheet
-    // is swapped so code tokens stay legible in both themes.
+    // Themes, cycled by the toggle and persisted in localStorage. The
+    // highlight.js stylesheet follows the theme's light or dark base.
     const THEME_KEY = "pf:theme";
+    const THEMES = ["dark", "light", "reading", "reading-dark"];
+    const THEME_NAMES = { dark: "تیره", light: "روشن", reading: "مطالعه", "reading-dark": "مطالعهٔ شب" };
+    const LIGHT_THEMES = new Set(["light", "reading"]);
     const HLJS_THEMES = {
       dark: "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css",
       light: "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-light.min.css"
     };
+    const nextTheme = theme => THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
 
     function setTheme(theme) {
-      const light = theme === "light";
-      document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+      if (!THEMES.includes(theme)) theme = "dark";
+      document.documentElement.setAttribute("data-theme", theme);
 
       const hljsLink = document.getElementById("hljsTheme");
-      if (hljsLink) hljsLink.href = light ? HLJS_THEMES.light : HLJS_THEMES.dark;
+      if (hljsLink) hljsLink.href = LIGHT_THEMES.has(theme) ? HLJS_THEMES.light : HLJS_THEMES.dark;
 
+      // The button names the theme it switches to.
       const label = document.querySelector(".theme-label");
-      if (label) label.textContent = light ? "تیره" : "روشن";
+      if (label) label.textContent = THEME_NAMES[nextTheme(theme)];
+
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#0f1117";
 
       try {
-        localStorage.setItem(THEME_KEY, light ? "light" : "dark");
+        localStorage.setItem(THEME_KEY, theme);
       } catch (err) {
         /* localStorage unavailable — ignore */
       }
     }
 
     function toggleTheme() {
-      const isLight = document.documentElement.getAttribute("data-theme") === "light";
-      setTheme(isLight ? "dark" : "light");
+      setTheme(nextTheme(document.documentElement.getAttribute("data-theme") || "dark"));
     }
 
     (function initTheme() {
       let theme = "dark";
       try {
-        if (localStorage.getItem(THEME_KEY) === "light") theme = "light";
+        theme = localStorage.getItem(THEME_KEY) || "dark";
       } catch (err) {
         /* ignore */
       }

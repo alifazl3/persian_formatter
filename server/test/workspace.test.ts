@@ -10,7 +10,7 @@ const source = readFileSync(resolve(__dirname, "../../workspace.js"), "utf8").sp
 
 type Call = { path: string; method: string; body?: any };
 
-function setup(stored?: object) {
+function setup(stored?: object, session = new Map<string, string>()) {
   const calls: Call[] = [];
   const toasts: [string, boolean?][] = [];
   const asks: any[] = [];
@@ -23,6 +23,7 @@ function setup(stored?: object) {
     setTimeout: () => 0, clearTimeout: () => {},
     crypto: { randomUUID: () => `id-${Math.random().toString(36).slice(2)}` },
     localStorage: { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => storage.set(k, v) },
+    sessionStorage: { getItem: (k: string) => session.get(k) ?? null, setItem: (k: string, v: string) => session.set(k, v) },
     window: { addEventListener() {} },
     input: { value: "", focus() {} },
     library: { folders: [{ id: "f-own", name: "Own", role: "owner" }, { id: "f-read", name: "Shared", role: "read" }], documents: [], loaded: true },
@@ -61,7 +62,7 @@ function setup(stored?: object) {
   `, context);
   const run = (code: string) => runInContext(code, context);
   const type = (text: string) => { run(`input.value = ${JSON.stringify(text)}; workspaceInput();`); };
-  return { run, type, calls, toasts, asks, answers, storage, server };
+  return { run, type, calls, toasts, asks, answers, storage, server, session };
 }
 
 test("a fresh workspace has one empty draft that is not dirty", () => {
@@ -294,4 +295,43 @@ test("close all without unsaved text does not ask", async () => {
   await run("closeAllTabs()");
   assert.equal(asks.length, 0);
   assert.equal(run("workspace.tabs.length"), 1);
+});
+
+test("opening the app starts on a blank tab, reusing an empty one", () => {
+  const { run, type, storage } = setup();
+  type("earlier draft");
+  run("persistWorkspace(true)");
+  const stored = JSON.parse(storage.get("pf_tabs_v1")!);
+  const reopened = setup(stored);
+  const blank = reopened.run("startOnBlankTab()");
+  assert.equal(blank.content, "");
+  assert.equal(reopened.run("workspace.tabs.length"), 2, "earlier tabs stay");
+  reopened.run(`selectTab(${JSON.stringify(blank.id)}); persistWorkspace(true)`);
+  const again = setup(JSON.parse(reopened.storage.get("pf_tabs_v1")!));
+  again.run("startOnBlankTab()");
+  assert.equal(again.run("workspace.tabs.length"), 2, "an existing blank tab is reused");
+});
+
+test("another browser tab's save is adopted without losing the tab being edited", () => {
+  const { run, type } = setup();
+  type("mine");
+  const mineId = run("activeTab().id");
+  const other = { activeId: "x", tabs: [{ id: "x", content: "from the other window" }, { id: mineId, content: "stale copy" }] };
+  run(`workspaceStorageChanged({ key: "pf_tabs_v1", newValue: ${JSON.stringify(JSON.stringify(other))} })`);
+  assert.deepEqual(JSON.parse(run("JSON.stringify(workspace.tabs.map(t => t.content))")), ["from the other window", "mine"]);
+  assert.equal(run("activeTab().id"), mineId);
+});
+
+test("a refresh returns to the same tab; a new browser tab starts blank", () => {
+  const first = setup();
+  first.type("draft");
+  first.run(`placeText("second")`);
+  first.run("persistWorkspace(true)");
+  const stored = JSON.parse(first.storage.get("pf_tabs_v1")!);
+  const refreshed = setup(stored, first.session);
+  assert.equal(refreshed.run("startingTab().content"), "second");
+  assert.equal(refreshed.run("workspace.tabs.length"), 2, "a refresh adds no tab");
+  const newWindow = setup(stored);
+  assert.equal(newWindow.run("startingTab().content"), "");
+  assert.equal(newWindow.run("workspace.tabs.length"), 3);
 });

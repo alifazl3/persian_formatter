@@ -4,6 +4,7 @@
 const TABS_KEY = "pf_tabs_v1";
 const LAST_FOLDER_KEY = "pf_last_folder";
 const MAX_TABS = 30;
+const ACTIVE_TAB_KEY = "pf_active_tab";
 const workspace = { tabs: [], activeId: null, persistent: true };
 
 const newTabId = () => (crypto.randomUUID ? crypto.randomUUID() : `t${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`);
@@ -27,10 +28,9 @@ function docState(doc) {
 
 // --- persistence (drafts survive reloads, in this browser only) ---
 
-function loadWorkspace() {
-  let stored = null;
-  try { stored = JSON.parse(localStorage.getItem(TABS_KEY) || "null"); } catch (_) { workspace.persistent = false; }
-  for (const raw of Array.isArray(stored?.tabs) ? stored.tabs : []) {
+function parseTabs(list) {
+  const tabs = [];
+  for (const raw of Array.isArray(list) ? list : []) {
     if (typeof raw?.id !== "string" || typeof raw.content !== "string") continue;
     const tab = { id: raw.id, content: raw.content, doc: null };
     if (raw.kind === "date") tab.kind = "date";
@@ -38,8 +38,15 @@ function loadWorkspace() {
       // Clean tabs store their body once; the saved baseline equals the content.
       tab.doc = { ...raw.doc, content: typeof raw.doc.content === "string" ? raw.doc.content : raw.content };
     }
-    workspace.tabs.push(tab);
+    tabs.push(tab);
   }
+  return tabs;
+}
+
+function loadWorkspace() {
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(TABS_KEY) || "null"); } catch (_) { workspace.persistent = false; }
+  workspace.tabs = parseTabs(stored?.tabs);
   if (!workspace.tabs.length) workspace.tabs.push({ id: newTabId(), content: "", doc: null });
   workspace.activeId = workspace.tabs.some(tab => tab.id === stored?.activeId) ? stored.activeId : workspace.tabs[0].id;
 }
@@ -65,6 +72,28 @@ function persistWorkspace(now = false) {
   if (now) write(); else persistTimer = setTimeout(write, 400);
 }
 window.addEventListener("pagehide", () => persistWorkspace(true));
+
+/**
+ * Several browser tabs share one saved workspace. When another one saves,
+ * adopt its tabs but keep the tab being edited here, so neither page
+ * overwrites the other's drafts with a stale copy.
+ */
+function workspaceStorageChanged(event) {
+  if (event.key !== TABS_KEY || !event.newValue) return;
+  let stored;
+  try { stored = JSON.parse(event.newValue); } catch (_) { return; }
+  const tabs = parseTabs(stored?.tabs);
+  const current = activeTab();
+  if (current) {
+    const at = tabs.findIndex(tab => tab.id === current.id);
+    if (at >= 0) tabs[at] = current; else tabs.push(current);
+  }
+  if (!tabs.length) return;
+  workspace.tabs = tabs;
+  renderTabs();
+  renderLibrary();
+}
+window.addEventListener("storage", workspaceStorageChanged);
 
 // --- tab lifecycle ---
 
@@ -101,6 +130,28 @@ function openDateTab() {
   if (tab) selectTab(tab.id);
 }
 
+/**
+ * The tab to show when the page loads. A refresh returns to the tab this
+ * browser tab was on; a newly opened browser tab starts on a blank tab.
+ */
+function startingTab() {
+  let previous = null;
+  try { previous = sessionStorage.getItem(ACTIVE_TAB_KEY); } catch (_) { /* Optional. */ }
+  const tab = previous && workspace.tabs.find(item => item.id === previous);
+  if (tab && isTextTab(tab)) return tab;
+  return startOnBlankTab();
+}
+
+/** An existing empty draft, or a new blank tab at the end. */
+function startOnBlankTab() {
+  const blank = workspace.tabs.find(tab => isTextTab(tab) && !tab.doc && !tab.content.trim());
+  if (blank) return blank;
+  if (workspace.tabs.length >= MAX_TABS) return workspace.tabs.find(isTextTab) || workspace.tabs[0];
+  const tab = { id: newTabId(), content: "", doc: null };
+  workspace.tabs.push(tab);
+  return tab;
+}
+
 /** A text tab for new content: the active one if it is an empty draft, else a new tab. */
 function textTabForNewContent() {
   const tab = activeTab();
@@ -121,6 +172,8 @@ function selectTab(id) {
   const tab = workspace.tabs.find(item => item.id === id);
   if (!tab) return;
   workspace.activeId = id;
+  // Remembered per browser tab, so a refresh comes back to the same tab.
+  try { sessionStorage.setItem(ACTIVE_TAB_KEY, id); } catch (_) { /* Optional. */ }
   showTab(tab);
   renderTabs();
   persistWorkspace();
@@ -517,8 +570,7 @@ input.addEventListener("input", workspaceInput);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && activeTab()) syncTab(activeTab()); });
 if (location.pathname === "/date") openDateTab();
 else {
-  // A date tab restored as active would rewrite "/" to "/date"; start on a text tab.
-  if (!isTextTab(activeTab())) workspace.activeId = (workspace.tabs.find(isTextTab) || workspace.tabs[0]).id;
-  selectTab(workspace.activeId);
+  // A new browser tab opens on a blank tab; a refresh stays where it was.
+  selectTab(startingTab().id);
   if (isTextTab(activeTab()) && !activeTab().content.trim()) input.focus();
 }
