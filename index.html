@@ -2791,11 +2791,12 @@
     // backticks survive escapeHtml, so this stays safe.
     function inlineMd(text) {
       return decorate(text)
-        // Markdown links [label](url) — skip javascript: URLs for safety.
+        // Markdown links [label](url). Only web and mail links become anchors;
+        // any other scheme (javascript:, data:, vbscript:, …) stays plain text.
         .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) =>
-          /^\s*javascript:/i.test(url)
-            ? m
-            : `<a class="md-link" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`)
+          /^(https?:\/\/|mailto:)/i.test(url)
+            ? `<a class="md-link" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
+            : m)
         .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
         // Real inline code here is always Latin/identifier text. A "span" made
         // of mis-paired backticks often swallows Persian prose (or wraps a lone
