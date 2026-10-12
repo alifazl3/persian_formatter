@@ -283,8 +283,8 @@
       /* Sidebar tools: compact icon-only buttons grouped into sections, each with
          a quiet "dusty" accent and a label that appears as a tooltip on hover. */
       .app.mode-sidebar .tool-group {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(3, 42px);
         gap: 8px;
       }
 
@@ -295,7 +295,7 @@
 
       .app.mode-sidebar .tool-group-label {
         display: block;
-        flex-basis: 100%;
+        grid-column: 1 / -1;
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.06em;
@@ -386,6 +386,62 @@
       .app.mode-sidebar .toolbar button:hover span {
         opacity: 1;
         transform: translateX(-50%) translateY(0);
+      }
+
+      /* Save leads the toolbar as a full-width labelled button; it fades back
+         once the tab has nothing left to save. */
+      .app.mode-sidebar .toolbar button.save {
+        width: 100%;
+        height: 44px;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text);
+        background: color-mix(in srgb, var(--btn) 22%, transparent);
+        border-color: var(--btn);
+      }
+
+      .app.mode-sidebar .toolbar button.save.is-saved {
+        color: var(--muted);
+        background: transparent;
+        border-color: var(--border);
+      }
+
+      .app.mode-sidebar .toolbar button.save.is-saved svg {
+        color: var(--muted);
+      }
+
+      /* Share is the main way out of the app, so it takes a 2×2 block. */
+      .app.mode-sidebar .toolbar button.share {
+        grid-column: span 2;
+        grid-row: span 2;
+        width: auto;
+        height: auto;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .app.mode-sidebar .toolbar button.share svg {
+        width: 26px;
+        height: 26px;
+      }
+
+      /* These two show their label inline instead of as a hover tooltip. */
+      .app.mode-sidebar .toolbar button.save span,
+      .app.mode-sidebar .toolbar button.share span {
+        position: static;
+        opacity: 1;
+        transform: none;
+        background: none;
+        border: 0;
+        padding: 0;
+        box-shadow: none;
+        color: inherit;
+        font-size: 12px;
+      }
+
+      .app.mode-sidebar .toolbar button.save .kbd {
+        position: static;
+        margin-inline-start: auto;
       }
     }
 
@@ -2269,6 +2325,11 @@
       <div class="toolbar">
         <input type="file" id="fileInput" hidden onchange="handleFileUpload(event)" />
 
+        <button class="save" id="saveBtn" type="button" onclick="saveActiveTab()" title="ذخیره در کتابخانه (Ctrl+S)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path><path d="M17 21v-8H7v8M7 3v5h8"></path></svg>
+          <span>ذخیره</span><kbd class="kbd">Ctrl+S</kbd>
+        </button>
+
         <div class="tool-group">
           <span class="tool-group-label">ورودی</span>
           <button class="paste" onclick="pasteInput()">
@@ -2286,6 +2347,18 @@
             </svg>
             <span>بارگذاری فایل</span><kbd class="kbd">U</kbd>
           </button>
+          <button class="clear" onclick="clearAll()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span>پاک کردن</span><kbd class="kbd">⇧K</kbd>
+          </button>
+        </div>
+
+        <div class="tool-group">
+          <span class="tool-group-label">ویرایش</span>
           <button class="cleanup" type="button" onclick="cleanupPersian()" title="ویرایش فارسی: نیم‌فاصله، ی و ک، علائم نگارشی (V)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m15 4 5 5L9 20H4v-5L15 4Z"></path>
@@ -2293,16 +2366,26 @@
             </svg>
             <span>ویرایش فارسی</span><kbd class="kbd">V</kbd>
           </button>
+          <button class="raw-toggle" id="rawToggle" type="button" onclick="toggleRaw()" title="نمایش خام / پارس‌شده">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <span class="raw-label">خام</span><kbd class="kbd">R</kbd>
+          </button>
         </div>
 
-        <div class="tool-group">
-          <span class="tool-group-label">کپی و اشتراک</span>
-          <button class="copy-input" onclick="copyInput()">
+        <div class="tool-group tool-group-output">
+          <span class="tool-group-label">خروجی</span>
+          <button class="share" id="shareBtn" onclick="shareCurrent()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
-            <span>کپی ورودی</span><kbd class="kbd">I</kbd>
+            <span>اشتراک‌گذاری</span><kbd class="kbd">S</kbd>
           </button>
           <button class="copy" onclick="copyOutput()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2319,6 +2402,14 @@
             </svg>
             <span>دانلود فایل</span><kbd class="kbd">D</kbd>
           </button>
+          <button class="copy-input" onclick="copyInput()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 7 4 12 9 17"></polyline>
+              <polyline points="15 7 20 12 15 17"></polyline>
+              <line x1="13" y1="5" x2="11" y2="19"></line>
+            </svg>
+            <span>کپی متن خام</span><kbd class="kbd">I</kbd>
+          </button>
           <button class="print" type="button" onclick="printOutput()" title="چاپ یا ذخیره به‌صورت PDF (Ctrl/⌘+P)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M6 9V3h12v6"></path>
@@ -2326,39 +2417,6 @@
               <path d="M6 14h12v7H6z"></path>
             </svg>
             <span>چاپ / PDF</span>
-          </button>
-          <button class="share" id="shareBtn" onclick="shareCurrent()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
-            <span>اشتراک‌گذاری</span><kbd class="kbd">S</kbd>
-          </button>
-          <button class="save" id="saveBtn" type="button" onclick="saveActiveTab()" title="ذخیره در کتابخانه (Ctrl+S)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path><path d="M17 21v-8H7v8M7 3v5h8"></path></svg>
-            <span>ذخیره</span>
-          </button>
-        </div>
-
-        <div class="tool-group">
-          <span class="tool-group-label">نمایش</span>
-          <button class="raw-toggle" id="rawToggle" type="button" onclick="toggleRaw()" title="نمایش خام / پارس‌شده">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="16 18 22 12 16 6"></polyline>
-              <polyline points="8 6 2 12 8 18"></polyline>
-            </svg>
-            <span class="raw-label">خام</span><kbd class="kbd">R</kbd>
-          </button>
-          <button class="clear" onclick="clearAll()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 6h18"></path>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-            <span>پاک کردن</span><kbd class="kbd">⇧K</kbd>
           </button>
         </div>
       </div>
