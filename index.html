@@ -1004,13 +1004,25 @@
 
     .preview del { color: var(--muted); }
 
+    /* Plain bulleted lines with an accent dot, not one card per item. */
     .list li {
-      background: var(--panel-soft);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      margin-bottom: 8px;
+      position: relative;
+      padding-inline-start: 22px;
+      margin-bottom: 6px;
     }
+
+    .list li:not(.task)::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: 6px;
+      top: 0.8em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .list li.task { padding-inline-start: 0; }
 
     /* Markdown tables */
     .table-wrap {
@@ -3361,6 +3373,9 @@
       }
 
       const blocks = splitBlocks(raw);
+      // Text that already marks its headings with "#" says where its titles
+      // are, so a line ending in ":" there is just a lead-in sentence.
+      const guessTitles = !/^#{1,6}\s+\S/m.test(raw);
 
       preview.innerHTML = blocks.map(block => {
         const lang = fenceLang(block);
@@ -3419,7 +3434,7 @@
           return renderTable(lines);
         }
 
-        if (lines.length > 1 && isTitle(first, lines[1])) {
+        if (guessTitles && lines.length > 1 && isTitle(first, lines[1])) {
           return `
             <div class="block">
               <div class="title"${dirAttr(first)}>${inlineMd(first.replace(/:$/, ""))}</div>
