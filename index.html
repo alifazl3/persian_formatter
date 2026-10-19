@@ -2323,6 +2323,67 @@
       .app.mode-sidebar .theme-toggle .theme-label { display: none; }
       .app.mode-sidebar .tabs { flex-direction: row; margin-top: 12px; }
     }
+    /* Narrow screens: the tools become a compact grid of quiet tiles (icon over
+       a short label) in the same dusty accents as the desktop sidebar, with
+       save as one full-width row on top. */
+    @media (max-width: 1100px) {
+      .app.mode-sidebar .toolbar {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .app.mode-sidebar .toolbar .tool-group { display: contents; }
+
+      .app.mode-sidebar .toolbar button {
+        --btn: var(--muted);
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        min-height: 58px;
+        padding: 8px 4px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.3;
+        text-align: center;
+        color: var(--text);
+        background: color-mix(in srgb, var(--btn) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--btn) 26%, var(--border));
+        box-shadow: none;
+      }
+
+      .app.mode-sidebar .toolbar button svg { width: 19px; height: 19px; color: var(--btn); }
+      .app.mode-sidebar .toolbar button .kbd { display: none; }
+
+      .app.mode-sidebar .toolbar button.save {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        min-height: 46px;
+        font-size: 14px;
+        font-weight: 700;
+        --btn: #6fa07a;
+        background: color-mix(in srgb, var(--btn) 22%, transparent);
+        border-color: var(--btn);
+      }
+
+      .app.mode-sidebar .toolbar button.save.is-saved {
+        background: transparent;
+        border-color: var(--border);
+        color: var(--muted);
+      }
+
+      .app.mode-sidebar .toolbar button.paste { --btn: #7c7fb8; }
+      .app.mode-sidebar .toolbar button.upload { --btn: #5fa3a0; }
+      .app.mode-sidebar .toolbar button.clear { --btn: #bd7676; }
+      .app.mode-sidebar .toolbar button.cleanup { --btn: #b08a5f; }
+      .app.mode-sidebar .toolbar button.raw-toggle { --btn: #8a8fa0; }
+      .app.mode-sidebar .toolbar button.share { --btn: #c0925f; }
+      .app.mode-sidebar .toolbar button.copy { --btn: #6fa07a; }
+      .app.mode-sidebar .toolbar button.download { --btn: #8a7fc0; }
+      .app.mode-sidebar .toolbar button.copy-input { --btn: #5f8fb0; }
+      .app.mode-sidebar .toolbar button.print { --btn: #7a8b99; }
+    }
   </style>
 </head>
 
@@ -2428,7 +2489,7 @@
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
-            <span>اشتراک‌گذاری</span><kbd class="kbd">S</kbd>
+            <span>اشتراک</span><kbd class="kbd">S</kbd>
           </button>
           <button class="copy" onclick="copyOutput()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
