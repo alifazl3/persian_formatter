@@ -742,6 +742,7 @@ async function createFolderLink(event) {
     });
     const url = `${location.origin}/f/${result.token}`;
     libraryEl("folderShareUrl").value = url;
+    libraryEl("folderShareOpen").href = url;
     libraryEl("folderShareResult").hidden = false;
     libraryEl("folderShareUrl").select();
     try { await navigator.clipboard.writeText(url); libraryNotice("لینک ساخته و کپی شد. این آدرس فقط همین حالا نمایش داده می‌شود.", false, "folderShareMessage"); }

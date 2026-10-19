@@ -702,8 +702,13 @@
     .share-link {
       flex: 1;
       min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-decoration: underline;
+      text-underline-offset: 3px;
       background: var(--code);
-      color: var(--text);
+      color: var(--accent);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 8px 10px;
@@ -2822,6 +2827,7 @@
     </form>
     <div id="folderShareResult" class="share-result" hidden>
       <input id="folderShareUrl" type="text" readonly dir="ltr" aria-label="لینک اشتراک" />
+      <a id="folderShareOpen" class="share-open" href="#" target="_blank" rel="noopener">باز کردن</a>
       <button type="button" onclick="copyFolderLink()">کپی</button>
     </div>
     <p id="folderShareMessage" class="library-message" role="status"></p>
@@ -2905,7 +2911,7 @@
 
   <div id="shareToast" class="share-toast" hidden>
     <span class="share-toast-label">لینک اشتراک</span>
-    <input id="shareLink" class="share-link" type="text" readonly dir="ltr" />
+    <a id="shareLink" class="share-link" href="#" target="_blank" rel="noopener" dir="ltr" title="باز کردن لینک در زبانهٔ تازه"></a>
     <button class="share-copy" type="button" onclick="copyShareLink()">کپی</button>
     <button class="share-close" type="button" onclick="hideShareToast()" title="بستن" aria-label="بستن">×</button>
   </div>
@@ -4065,16 +4071,15 @@
 
     function showShareToast(text, isError) {
       const toast = document.getElementById("shareToast");
-      const linkInput = document.getElementById("shareLink");
-      linkInput.value = text;
-      linkInput.style.display = isError ? "none" : "";
+      const link = document.getElementById("shareLink");
+      // The link is a real anchor: click it to open the page, or copy it.
+      link.href = isError ? "#" : text;
+      link.textContent = isError ? "" : text;
+      link.style.display = isError ? "none" : "";
       document.querySelector(".share-copy").style.display = isError ? "none" : "";
-      document.querySelector(".share-toast-label").textContent = isError ? "" : "لینک اشتراک";
+      document.querySelector(".share-toast-label").textContent = isError ? text : "لینک اشتراک";
       toast.hidden = false;
-      if (!isError) {
-        linkInput.focus();
-        linkInput.select();
-      }
+      if (!isError) link.focus();
     }
 
     function hideShareToast() {
@@ -4082,13 +4087,19 @@
     }
 
     async function copyShareLink() {
-      const linkInput = document.getElementById("shareLink");
-      linkInput.select();
+      const url = document.getElementById("shareLink").href;
       try {
-        await navigator.clipboard.writeText(linkInput.value);
+        await navigator.clipboard.writeText(url);
       } catch (err) {
+        const field = Object.assign(document.createElement("textarea"), { value: url });
+        document.body.append(field);
+        field.select();
         document.execCommand("copy");
+        field.remove();
       }
+      const button = document.querySelector(".share-copy");
+      button.textContent = "کپی شد";
+      setTimeout(() => { button.textContent = "کپی"; }, 1500);
     }
 
     // On load: a /s/:id link loads the shared document (input full → collapsed).

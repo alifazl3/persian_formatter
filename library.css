@@ -149,6 +149,8 @@
 .share-dialog .share-form select { flex: 1 1 110px; width: auto; }
 .share-dialog .share-form button { flex: 0 0 auto; }
 .share-result { display: flex; gap: 8px; margin-top: 10px; }
+.share-result .share-open { display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--accent); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.share-result .share-open:hover { border-color: var(--accent); }
 .share-dialog .share-result input { flex: 1; width: 0; }
 .share-list { display: grid; gap: 6px; }
 .share-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-soft); }
