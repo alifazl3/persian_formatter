@@ -2384,10 +2384,55 @@
       .app.mode-sidebar .toolbar button.copy-input { --btn: #5f8fb0; }
       .app.mode-sidebar .toolbar button.print { --btn: #7a8b99; }
     }
+    .library-toggle, .drawer-backdrop { display: none; }
+
+    @media (max-width: 1100px) {
+      .library-toggle { display: inline-flex; }
+      .app.mode-sidebar .head-title-row { flex-wrap: nowrap; align-items: center; }
+      .app.mode-sidebar .head-title-row h1 { flex: 1; min-width: 0; font-size: 24px; white-space: nowrap; }
+
+      .app.mode-sidebar .library-island,
+      .app.mode-sidebar .profile-island {
+        position: fixed;
+        right: 0;
+        z-index: 70;
+        width: min(360px, 88vw);
+        box-sizing: border-box;
+        border-radius: 0;
+        border-width: 0 1px 0 0;
+        transform: translateX(105%);
+        transition: transform 0.22s ease;
+        visibility: hidden;
+      }
+
+      .app.mode-sidebar .library-island { top: 0; bottom: 64px; overflow: auto; }
+      .app.mode-sidebar .profile-island { bottom: 0; height: 64px; border-top-width: 1px; }
+
+      body.library-open .app.mode-sidebar .library-island,
+      body.library-open .app.mode-sidebar .profile-island {
+        transform: none;
+        visibility: visible;
+        box-shadow: -18px 0 40px rgba(0, 0, 0, 0.35);
+      }
+
+      body.library-open .drawer-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 65;
+        background: rgba(0, 0, 0, 0.5);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .app.mode-sidebar .theme-toggle .theme-label,
+      .app.mode-sidebar .theme-toggle .kbd { display: none; }
+    }
   </style>
 </head>
 
 <body>
+  <div class="drawer-backdrop" onclick="toggleLibraryDrawer(false)" aria-hidden="true"></div>
   <div id="readingProgress" class="reading-progress" hidden></div>
   <main class="app mode-sidebar">
     <header id="appHeader">
@@ -2395,6 +2440,10 @@
       <div class="head-text">
         <div class="head-title-row">
           <h1>پرشین فرمتر</h1>
+          <button class="layout-toggle library-toggle" id="libraryToggle" type="button" onclick="toggleLibraryDrawer()" aria-expanded="false" aria-controls="libraryBackdrop" title="کتابخانه">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5z"></path><path d="M4 19.5A2 2 0 0 1 6 18h12"></path></svg>
+            <span>کتابخانه</span>
+          </button>
           <button class="layout-toggle theme-toggle" type="button" onclick="toggleTheme()" title="تغییر تم: تیره، روشن، مطالعه، مطالعهٔ شب (T)">
             <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -4354,11 +4403,25 @@
       setTimeout(() => btn.classList.remove("kbd-flash"), 350);
     }
 
+    // Narrow screens keep the library (and account) in a side drawer opened
+    // from the header; picking a text closes it again.
+    function toggleLibraryDrawer(open) {
+      open = open ?? !document.body.classList.contains("library-open");
+      document.body.classList.toggle("library-open", open);
+      document.getElementById("libraryToggle").setAttribute("aria-expanded", String(open));
+      if (open) document.getElementById("librarySearch").focus({ preventScroll: true });
+    }
+
+    document.getElementById("libraryBackdrop").addEventListener("click", event => {
+      if (event.target.closest(".library-doc-title") && document.body.classList.contains("library-open")) toggleLibraryDrawer(false);
+    });
+
     window.addEventListener("keydown", (e) => {
       if (e.repeat) return;
       const onDate = appEl.classList.contains("tab-date");
 
       if (e.key === "Escape") {
+        if (document.body.classList.contains("library-open")) { toggleLibraryDrawer(false); return; }
         const help = document.getElementById("kbdHelp");
         if (help.classList.contains("open")) { toggleKbdHelp(false); return; }
         const toast = document.getElementById("shareToast");
