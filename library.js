@@ -117,6 +117,7 @@ function libraryButton(label, action, className = "") {
   return button;
 }
 const libraryIcons = {
+  more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
   delete: '<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 4v7m4-7v7"/>',
   rename: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4L16.5 3.5Z"/>',
   share: '<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5M8 13l8 5"/>',
@@ -131,6 +132,60 @@ function libraryIconButton(icon, label, action) {
   button.setAttribute("aria-label", label);
   button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${libraryIcons[icon]}</svg>`;
   return button;
+}
+// Row actions live behind one "⋯" button so they never cover the title; the
+// menu lists each action with its icon and a plain label.
+let libraryMenuEl = null;
+let libraryMenuAnchor = null;
+function closeLibraryMenu() {
+  if (!libraryMenuEl || libraryMenuEl.hidden) return;
+  libraryMenuEl.hidden = true;
+  libraryMenuAnchor?.setAttribute("aria-expanded", "false");
+  libraryMenuAnchor = null;
+}
+function openLibraryMenu(anchor, items) {
+  if (libraryMenuAnchor === anchor) { closeLibraryMenu(); return; }
+  closeLibraryMenu();
+  if (!libraryMenuEl) {
+    libraryMenuEl = document.createElement("div");
+    libraryMenuEl.className = "library-menu";
+    libraryMenuEl.setAttribute("role", "menu");
+    libraryMenuEl.hidden = true;
+    document.body.append(libraryMenuEl);
+    document.addEventListener("pointerdown", event => {
+      if (!libraryMenuEl.contains(event.target) && !libraryMenuAnchor?.contains(event.target)) closeLibraryMenu();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && !libraryMenuEl.hidden) { event.stopPropagation(); closeLibraryMenu(); libraryMenuAnchor?.focus(); }
+    }, true);
+    window.addEventListener("resize", closeLibraryMenu);
+    window.addEventListener("scroll", closeLibraryMenu, true);
+  }
+  libraryMenuEl.replaceChildren(...items.map(item => {
+    const button = libraryButton("", () => { closeLibraryMenu(); item.action(); }, `library-menu-item${item.danger ? " danger" : ""}`);
+    button.setAttribute("role", "menuitem");
+    button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${libraryIcons[item.icon]}</svg>`;
+    libraryText(button, "span", item.label);
+    return button;
+  }));
+  libraryMenuEl.hidden = false;
+  libraryMenuAnchor = anchor;
+  anchor.setAttribute("aria-expanded", "true");
+  const box = anchor.getBoundingClientRect();
+  const menu = libraryMenuEl.getBoundingClientRect();
+  const top = box.bottom + 4 + menu.height > innerHeight ? box.top - 4 - menu.height : box.bottom + 4;
+  libraryMenuEl.style.top = `${Math.max(8, top)}px`;
+  libraryMenuEl.style.left = `${Math.min(Math.max(8, box.left), innerWidth - menu.width - 8)}px`;
+  libraryMenuEl.querySelector("button")?.focus();
+}
+function libraryActions(title, items) {
+  const actions = document.createElement("div"); actions.className = "library-row-actions";
+  if (!items.length) return actions;
+  const more = libraryIconButton("more", `کارهای «${title}»`, () => openLibraryMenu(more, items));
+  more.setAttribute("aria-haspopup", "menu");
+  more.setAttribute("aria-expanded", "false");
+  actions.append(more);
+  return actions;
 }
 function libraryText(parent, tag, value, className = "") {
   const node = document.createElement(tag);
@@ -396,13 +451,12 @@ function renderFolder(folder, docs, expandForSearch) {
   else if (folder.memberCount) libraryText(badges, "span", `${folder.memberCount.toLocaleString("fa-IR")} نفر`, "library-badge shared").title = "این پوشه با دیگران به اشتراک گذاشته شده است";
   toggle.querySelector(".library-folder-count").textContent = folder.documentCount.toLocaleString("fa-IR");
 
-  const actions = document.createElement("div"); actions.className = "library-row-actions";
-  if (folder.role === "owner") actions.append(libraryIconButton("share", `اشتراک پوشهٔ ${folder.name}`, () => openFolderShare(folder)));
-  if (canManageRole(folder.role)) {
-    actions.append(libraryIconButton("rename", `تغییر نام پوشهٔ ${folder.name}`, () => renameFolder(folder)));
-    actions.append(libraryIconButton("delete", `حذف پوشهٔ ${folder.name}`, () => deleteFolder(folder)));
-  }
-  if (folder.role !== "owner") actions.append(libraryIconButton("leave", `خروج از پوشهٔ ${folder.name}`, () => leaveFolder(folder)));
+  const actions = libraryActions(folder.name, [
+    folder.role === "owner" && { icon: "share", label: "اشتراک پوشه", action: () => openFolderShare(folder) },
+    canManageRole(folder.role) && { icon: "rename", label: "تغییر نام", action: () => renameFolder(folder) },
+    canManageRole(folder.role) && { icon: "delete", label: "حذف پوشه", action: () => deleteFolder(folder), danger: true },
+    folder.role !== "owner" && { icon: "leave", label: "خروج از پوشه", action: () => leaveFolder(folder), danger: true },
+  ].filter(Boolean));
   heading.append(toggle, actions);
   row.append(heading, contents);
   if (canEditRole(folder.role)) makeDropTarget(row, folder.id);
@@ -422,15 +476,14 @@ function renderDocuments(root, docs) {
     libraryText(main, "small", libraryDate(doc.updatedAt), "library-doc-date");
     main.title = `${doc.title} — آخرین تغییر: ${libraryDate(doc.updatedAt)}`;
     main.setAttribute("aria-label", `باز کردن ${doc.title}`);
-    const actions = document.createElement("div"); actions.className = "library-row-actions";
-    actions.append(libraryIconButton("share", `لینک عمومی از ${doc.title}`, () => shareDocumentSnapshot(doc)));
-    if (role === "owner") actions.append(libraryIconButton("move", `انتقال ${doc.title}`, () => moveDocument(doc)));
-    actions.append(libraryIconButton("history", `تاریخچهٔ ${doc.title}`, () => openHistory(doc)));
-    actions.append(libraryIconButton("copy", role === "owner" ? `ساخت کپی از ${doc.title}` : `کپی ${doc.title} در کتابخانهٔ من`, () => copyDocument(doc)));
-    if (canEditRole(role)) {
-      actions.append(libraryIconButton("rename", `تغییر نام ${doc.title}`, () => renameDocument(doc)));
-      actions.append(libraryIconButton("delete", `حذف ${doc.title}`, () => deleteDocument(doc)));
-    }
+    const actions = libraryActions(doc.title, [
+      { icon: "share", label: "لینک عمومی", action: () => shareDocumentSnapshot(doc) },
+      role === "owner" && { icon: "move", label: "انتقال به پوشه", action: () => moveDocument(doc) },
+      { icon: "history", label: "تاریخچهٔ نسخه‌ها", action: () => openHistory(doc) },
+      { icon: "copy", label: role === "owner" ? "ساخت کپی" : "کپی در کتابخانهٔ من", action: () => copyDocument(doc) },
+      canEditRole(role) && { icon: "rename", label: "تغییر نام", action: () => renameDocument(doc) },
+      canEditRole(role) && { icon: "delete", label: "حذف", action: () => deleteDocument(doc), danger: true },
+    ].filter(Boolean));
     row.draggable = true;
     row.addEventListener("dragstart", event => {
       draggedDocument = doc;
