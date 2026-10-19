@@ -256,11 +256,11 @@ function renderTabs() {
   for (const tab of workspace.tabs) {
     const item = document.createElement("div");
     item.className = "doc-tab";
+    item.setAttribute("role", "listitem");
     item.dataset.tabId = tab.id;
     const main = document.createElement("button");
     main.type = "button";
     main.className = "doc-tab-main";
-    main.setAttribute("role", "tab");
     main.innerHTML = '<span class="doc-tab-dot" aria-hidden="true"></span><span class="doc-tab-title"></span>';
     main.addEventListener("click", () => { if (workspace.activeId !== tab.id) selectTab(tab.id); });
     main.addEventListener("dblclick", () => renameTab(tab));
@@ -293,7 +293,9 @@ function updateTabChrome(tab, item = document.querySelector(`.doc-tab[data-tab-i
   item.classList.toggle("dirty", dirty);
   item.classList.toggle("readonly", text && !canEditTab(tab));
   const main = item.querySelector(".doc-tab-main");
-  main.setAttribute("aria-selected", String(active));
+  // Each tab carries its own close button, which the tablist pattern does
+  // not allow, so the bar is a plain list of buttons marking the open one.
+  if (active) main.setAttribute("aria-current", "page"); else main.removeAttribute("aria-current");
   main.tabIndex = active ? 0 : -1;
   main.title = `${title} — ${state}${tab.doc ? " (دوبار کلیک برای تغییر نام)" : ""}`;
   item.querySelector(".doc-tab-title").textContent = title;

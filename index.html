@@ -396,7 +396,8 @@
         z-index: 20;
       }
 
-      .app.mode-sidebar .toolbar button:hover span {
+      .app.mode-sidebar .toolbar button:hover span,
+      .app.mode-sidebar .toolbar button:focus-visible span {
         opacity: 1;
         transform: translateX(-50%) translateY(0);
       }
@@ -1419,7 +1420,8 @@
     .empty-action svg { color: var(--muted); }
     .empty-action.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
     .empty-action.primary svg { color: currentColor; }
-    .empty-action .kbd { opacity: 0.75; }
+    .empty-action .kbd { opacity: 1; }
+    .collapse-input-btn .kbd { opacity: 1; color: var(--text); border-color: var(--border); background: var(--panel); }
     @media (hover: none) { .empty-action .kbd { display: none; } }
 
     .footer {
@@ -1523,7 +1525,7 @@
 
     .tz-dim {
       font-weight: 500;
-      opacity: 0.75;
+      color: var(--muted);
     }
 
     .date-select {
@@ -1624,8 +1626,7 @@
     .conv-side-label {
       font-size: 12px;
       font-weight: 800;
-      letter-spacing: 0.06em;
-      color: var(--accent);
+      color: color-mix(in srgb, var(--accent) 70%, var(--text));
       background: color-mix(in srgb, var(--accent) 14%, transparent);
       border-radius: 999px;
       padding: 3px 14px;
@@ -2289,6 +2290,13 @@
        single panel separated by hairlines instead of floating as islands. */
     #input { font-family: "Vazirmatn", ui-sans-serif, system-ui, sans-serif; }
 
+    /* One visible keyboard focus ring everywhere, in the theme's accent. */
+    button:focus-visible, a:focus-visible, select:focus-visible,
+    summary:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     /* The date converter's launcher: a full-width labelled button under the
        app name, lit while the date tab is open. */
     .date-launch {
@@ -2607,7 +2615,7 @@
     </header>
 
     <nav class="doc-tabs" id="docTabs" aria-label="متن‌های باز">
-      <div class="doc-tab-list" id="docTabList" role="tablist"></div>
+      <div class="doc-tab-list" id="docTabList" role="list"></div>
       <button class="doc-tab-new" type="button" onclick="newTab()" title="متن تازه (N یا 1)" aria-label="متن تازه">＋</button>
       <button class="doc-tab-close-all" id="closeAllTabsBtn" type="button" onclick="closeAllTabs()" title="بستن همهٔ زبانه‌ها" aria-label="بستن همهٔ زبانه‌ها" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h11a1 1 0 0 1 1 1v11"/><rect x="4" y="8" width="12" height="12" rx="2"/><path d="m8 12 4 4m0-4-4 4"/></svg>
