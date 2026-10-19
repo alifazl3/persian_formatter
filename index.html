@@ -1589,7 +1589,8 @@
       padding: 10px 12px;
       font-size: 16px;
       font-weight: 600;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-family: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
       outline: none;
     }
 
@@ -1757,8 +1758,8 @@
       padding: 14px 16px;
       font-size: 22px;
       font-weight: 600;
-      letter-spacing: 0.02em;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-family: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
       outline: none;
     }
 
@@ -1780,28 +1781,31 @@
     .date-result-value {
       font-size: 26px;
       font-weight: 700;
-      letter-spacing: 0.02em;
       color: var(--code-text);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      direction: ltr;
-      text-align: left;
-      word-break: break-all;
+      /* Results can be Persian ("۲۵ شهریور ۱۴۰۳"): a Persian face with no
+         letter-spacing keeps the letters joined; the dir attribute set from
+         the result's script decides the side it starts on. */
+      font-family: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
+      text-align: start;
+      overflow-wrap: anywhere;
       min-height: 32px;
-      padding-right: 40px;
     }
 
     .date-result-value:empty::before {
       content: "نتیجه اینجا نمایش داده می‌شود";
+      display: block;
+      direction: rtl;
+      text-align: right;
       color: var(--muted);
       font-size: 15px;
       font-weight: 500;
-      font-family: inherit;
     }
 
     .date-copy {
       position: absolute;
       top: 10px;
-      right: 10px;
+      left: 10px;
       display: none;
       align-items: center;
       justify-content: center;
@@ -1950,8 +1954,9 @@
       border: 1px solid var(--border);
       background: var(--panel-soft);
       color: var(--muted);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 11.5px;
+      font-family: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
       padding: 3px 10px;
       border-radius: 999px;
       cursor: pointer;
