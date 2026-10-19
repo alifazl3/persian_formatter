@@ -2584,7 +2584,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="18 15 12 9 6 15"></polyline>
         </svg>
-        <span>جمع کردن</span><kbd class="kbd">Esc</kbd>
+        <span>جمع کردن ورودی</span><kbd class="kbd">Esc</kbd>
       </button>
       <textarea id="input" autocomplete="off" placeholder="متن به‌هم‌ریخته را اینجا بچسبان یا بنویس…"></textarea>
       <button class="edit-input-btn" type="button" onclick="expandInput()">
@@ -2597,16 +2597,15 @@
     </div>
 
     <section class="preview-shell" id="previewShell">
-      <button id="lockBtn" class="lock-btn" type="button" onclick="toggleLock()" title="برای ویرایش خروجی، قفل را باز کنید">
+      <button id="lockBtn" class="lock-btn" type="button" onclick="toggleLock()" title="ویرایش مستقیم متن خروجی (L)" aria-pressed="false">
         <svg class="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="4" y="11" width="16" height="10" rx="2"></rect>
-          <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
         </svg>
         <svg class="ic-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="4" y="11" width="16" height="10" rx="2"></rect>
-          <path d="M8 11V7a4 4 0 0 1 7.5-1.9"></path>
+          <path d="M20 6 9 17l-5-5"></path>
         </svg>
-        <span class="lock-label">قفل</span><kbd class="kbd">L</kbd>
+        <span class="lock-label">ویرایش خروجی</span><kbd class="kbd">L</kbd>
       </button>
 
       <div id="readingBar" class="reading-bar" hidden>
@@ -2865,7 +2864,7 @@
       <div class="kbd-row"><span>اشتراک‌گذاری</span><span class="keys"><kbd class="kbd">S</kbd></span></div>
       <div class="kbd-row"><span>نمایش خام / پارس‌شده</span><span class="keys"><kbd class="kbd">R</kbd></span></div>
       <div class="kbd-row"><span>ویرایش ورودی</span><span class="keys"><kbd class="kbd">E</kbd></span></div>
-      <div class="kbd-row"><span>قفل / باز کردن خروجی (Ctrl/⌘+L حتی وسط ویرایش)</span><span class="keys"><kbd class="kbd">L</kbd><kbd class="kbd">⌘L</kbd></span></div>
+      <div class="kbd-row"><span>ویرایش مستقیم خروجی / پایان ویرایش (Ctrl/⌘+L حتی وسط ویرایش)</span><span class="keys"><kbd class="kbd">L</kbd><kbd class="kbd">⌘L</kbd></span></div>
       <div class="kbd-row"><span>پاک کردن همه</span><span class="keys"><kbd class="kbd">Shift</kbd><kbd class="kbd">K</kbd></span></div>
       <div class="kbd-group-title">تاریخ</div>
       <div class="kbd-row"><span>اکنون</span><span class="keys"><kbd class="kbd">N</kbd></span></div>
@@ -3933,7 +3932,10 @@
       document.getElementById("previewShell").classList.toggle("editing", outputEditable);
 
       const label = document.querySelector(".lock-label");
-      if (label) label.textContent = outputEditable ? "باز" : "قفل";
+      if (label) label.textContent = outputEditable ? "پایان ویرایش" : "ویرایش خروجی";
+      const lockBtn = document.getElementById("lockBtn");
+      lockBtn.setAttribute("aria-pressed", String(outputEditable));
+      lockBtn.title = outputEditable ? "پایان ویرایش مستقیم خروجی (L)" : "ویرایش مستقیم متن خروجی (L)";
 
       if (outputEditable) preview.focus();
     }
