@@ -1392,6 +1392,24 @@
       padding: 60px 20px;
     }
 
+    .empty-start { display: grid; justify-items: center; gap: 10px; padding: 56px 20px 64px; }
+    .empty-title { color: var(--text); font-size: 20px; font-weight: 800; }
+    .empty-hint { margin: 0; max-width: 440px; line-height: 1.9; font-size: 14px; }
+    .empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
+    .empty-action {
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--text);
+      font-size: 14px;
+      box-shadow: none;
+    }
+    .empty-action svg { color: var(--muted); }
+    .empty-action.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .empty-action.primary svg { color: currentColor; }
+    .empty-action .kbd { opacity: 0.75; }
+    @media (hover: none) { .empty-action .kbd { display: none; } }
+
     .footer {
       display: flex;
       justify-content: center;
@@ -2633,7 +2651,7 @@
       </div>
 
       <section id="preview" class="preview">
-        <div class="empty">هنوز متنی وارد نشده است.</div>
+        <div class="empty empty-start"><div class="empty-title">متن را بیاور تا مرتبش کنیم</div><p class="empty-hint">متن خام را بچسبان، فایلی باز کن یا همین‌جا بنویس؛ نسخهٔ تمیز و خوانا اینجا نمایش داده می‌شود.</p><div class="empty-actions"><button type="button" class="empty-action primary" onclick="pasteInput()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></svg><span>چسباندن</span><kbd class="kbd">P</kbd></button><button type="button" class="empty-action" onclick="document.getElementById('fileInput').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg><span>باز کردن فایل</span><kbd class="kbd">U</kbd></button><button type="button" class="empty-action" onclick="startWriting()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg><span>نوشتن</span></button></div></div>
       </section>
     </section>
 
@@ -3466,11 +3484,20 @@
       render();
     }
 
+    // The empty preview doubles as the start screen: its buttons are the ways
+    // to bring text in. It is copied from the initial markup so both match.
+    const EMPTY_PREVIEW = document.querySelector("#preview .empty-start").outerHTML;
+
+    function startWriting() {
+      if (typeof expandInput === "function") expandInput();
+      input.focus();
+    }
+
     function render() {
       const raw = stripOrphanHarakat(input.value).trim();
 
       if (!raw) {
-        preview.innerHTML = '<div class="empty">هنوز متنی وارد نشده است.</div>';
+        preview.innerHTML = EMPTY_PREVIEW;
         if (window.updateReader) updateReader();
         return;
       }
