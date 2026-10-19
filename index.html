@@ -2447,6 +2447,13 @@
       }
     }
 
+    /* On small screens an empty editor stays short so the start screen in
+       the preview is visible without scrolling. */
+    @media (max-width: 1100px) {
+      .app.is-empty #input { min-height: 110px; height: 110px; }
+      .app.is-empty .empty-start { padding: 32px 16px 40px; }
+    }
+
     @media (max-width: 520px) {
       .app.mode-sidebar .theme-toggle .theme-label,
       .app.mode-sidebar .theme-toggle .kbd { display: none; }
@@ -2457,7 +2464,7 @@
 <body>
   <div class="drawer-backdrop" onclick="toggleLibraryDrawer(false)" aria-hidden="true"></div>
   <div id="readingProgress" class="reading-progress" hidden></div>
-  <main class="app mode-sidebar">
+  <main class="app mode-sidebar is-empty">
     <header id="appHeader">
       <div class="right-rail">
       <div class="head-text">
@@ -3501,6 +3508,7 @@
 
     function render() {
       const raw = stripOrphanHarakat(input.value).trim();
+      document.querySelector(".app").classList.toggle("is-empty", !raw);
 
       if (!raw) {
         preview.innerHTML = EMPTY_PREVIEW;
