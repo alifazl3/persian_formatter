@@ -123,7 +123,7 @@ function openFormatterTab() {
   newTab();
 }
 
-/** The tab bar's calendar button (Digit 2): the date converter tab, opened once and focused afterwards. */
+/** The "تبدیل تاریخ" button (Digit 2): the date converter tab, opened once and focused afterwards. */
 function openDateTab() {
   const existing = workspace.tabs.find(tab => tab.kind === "date");
   const tab = existing || createTab({ kind: "date" });

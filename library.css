@@ -133,9 +133,6 @@
 .doc-tab-close:hover { filter: none; background: var(--glow); color: var(--danger); }
 .doc-tab-new { flex: 0 0 auto; width: 32px; height: 32px; margin-bottom: 4px; padding: 0; border: 1px dashed var(--border); border-radius: 9px; background: transparent; color: var(--muted); font-size: 16px; box-shadow: none; justify-content: center; }
 .doc-tab-new:hover { filter: none; border-color: var(--accent); color: var(--accent); }
-.doc-tab-date { border-style: solid; }
-.doc-tab-date svg { width: 16px; height: 16px; }
-.doc-tab-date.active { border-color: var(--accent); color: var(--accent); }
 .doc-tab-close-all { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 32px; margin-bottom: 4px; margin-inline-start: auto; padding: 0 10px; border: 1px solid transparent; font: inherit; font-size: 12px; font-weight: 600; border-radius: 9px; background: transparent; color: var(--muted); box-shadow: none; }
 .doc-tab-close-all[hidden] { display: none; }
 .doc-tab-close-all svg { width: 15px; height: 15px; }
