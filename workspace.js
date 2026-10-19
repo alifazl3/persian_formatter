@@ -116,14 +116,14 @@ function newTab() {
   expandInput();
 }
 
-/** Sidebar "پرشین فرمتر": a fresh text tab (or the current one, if it is still empty). */
+/** Digit 1: a fresh text tab (or the current one, if it is still empty). */
 function openFormatterTab() {
   const tab = activeTab();
   if (isTextTab(tab) && !tab.doc && !tab.content.trim()) { selectTab(tab.id); input.focus(); return; }
   newTab();
 }
 
-/** Sidebar "تاریخ": the date converter tab, opened once and focused afterwards. */
+/** The tab bar's calendar button (Digit 2): the date converter tab, opened once and focused afterwards. */
 function openDateTab() {
   const existing = workspace.tabs.find(tab => tab.kind === "date");
   const tab = existing || createTab({ kind: "date" });

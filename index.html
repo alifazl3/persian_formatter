@@ -1442,47 +1442,6 @@
       border-color: var(--accent);
     }
 
-    /* Tabs (in the header text / right sidebar): Formatter ⇄ Date */
-    .tabs {
-      display: flex;
-      gap: 6px;
-      margin-top: 14px;
-      background: var(--panel-soft);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 4px;
-    }
-
-    .tab {
-      flex: 1;
-      background: transparent;
-      color: var(--muted);
-      border: 0;
-      border-radius: 9px;
-      padding: 8px 10px;
-      font-size: 13px;
-      font-weight: 700;
-      justify-content: center;
-      box-shadow: none;
-    }
-
-    .tab:hover {
-      filter: none;
-      color: var(--text);
-    }
-
-    .tab.active {
-      background: var(--accent);
-      color: var(--on-accent);
-    }
-
-    /* In the right sidebar, stack the tabs vertically. */
-    @media (min-width: 1101px) {
-      .app.mode-sidebar .tabs {
-        flex-direction: column;
-      }
-    }
-
     /* Date-converter view (a tab inside the main app, in the center column) */
     .date-view {
       display: none;
@@ -2344,7 +2303,6 @@
       .app.mode-sidebar .head-title-row { flex-wrap: nowrap; }
       .app.mode-sidebar .head-title-row h1 { flex: 1; min-width: 0; font-size: 18px; font-weight: 800; white-space: nowrap; letter-spacing: 0; }
       .app.mode-sidebar .theme-toggle .theme-label { display: none; }
-      .app.mode-sidebar .tabs { flex-direction: row; margin-top: 12px; }
     }
     /* Narrow screens: the tools become a compact grid of quiet tiles (icon over
        a short label) in the same dusty accents as the desktop sidebar, with
@@ -2357,6 +2315,7 @@
       }
 
       .app.mode-sidebar .toolbar .tool-group { display: contents; }
+      .app.mode-sidebar.tab-date .toolbar { display: none; }
 
       .app.mode-sidebar .toolbar button {
         --btn: var(--muted);
@@ -2485,10 +2444,6 @@
             <span class="theme-label">روشن</span><kbd class="kbd">T</kbd>
           </button>
         </div>
-        <div class="tabs" role="tablist">
-          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="openFormatterTab()" title="متن تازه در زبانهٔ جدید">متن تازه <kbd class="kbd">1</kbd></button>
-          <button class="tab" id="tabDate" type="button" role="tab" onclick="openDateTab()" title="تبدیل تاریخ در زبانهٔ جدید">تاریخ <kbd class="kbd">2</kbd></button>
-        </div>
       </div>
 
   <section id="libraryBackdrop" class="library-island" aria-labelledby="libraryTitle">
@@ -2615,7 +2570,10 @@
 
     <nav class="doc-tabs" id="docTabs" aria-label="متن‌های باز">
       <div class="doc-tab-list" id="docTabList" role="tablist"></div>
-      <button class="doc-tab-new" type="button" onclick="newTab()" title="متن تازه (N)" aria-label="متن تازه">＋</button>
+      <button class="doc-tab-new" type="button" onclick="newTab()" title="متن تازه (N یا 1)" aria-label="متن تازه">＋</button>
+      <button class="doc-tab-new doc-tab-date" id="dateTabBtn" type="button" onclick="openDateTab()" title="تبدیل تاریخ (2)" aria-label="تبدیل تاریخ">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+      </button>
       <button class="doc-tab-close-all" id="closeAllTabsBtn" type="button" onclick="closeAllTabs()" title="بستن همهٔ زبانه‌ها" aria-label="بستن همهٔ زبانه‌ها" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h11a1 1 0 0 1 1 1v11"/><rect x="4" y="8" width="12" height="12" rx="2"/><path d="m8 12 4 4m0-4-4 4"/></svg>
       </button>
@@ -2890,8 +2848,8 @@
         <button type="button" class="kbd-help-close" onclick="toggleKbdHelp(false)" aria-label="بستن">×</button>
       </div>
       <div class="kbd-group-title">عمومی</div>
-      <div class="kbd-row"><span>زبانهٔ پرشین فرمتر (متن تازه)</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
-      <div class="kbd-row"><span>زبانهٔ تبدیل تاریخ</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
+      <div class="kbd-row"><span>متن تازه (یا دکمهٔ ＋ نوار زبانه‌ها)</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
+      <div class="kbd-row"><span>تبدیل تاریخ (دکمهٔ تقویم نوار زبانه‌ها)</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
       <div class="kbd-row"><span>تغییر تم (تیره، روشن، مطالعه، مطالعهٔ شب)</span><span class="keys"><kbd class="kbd">T</kbd></span></div>
       <div class="kbd-row"><span>این راهنما</span><span class="keys"><kbd class="kbd">?</kbd></span></div>
       <div class="kbd-row"><span>خروج از فیلد متنی / جمع کردن ورودی / بستن</span><span class="keys"><kbd class="kbd">Esc</kbd></span></div>
@@ -4403,8 +4361,7 @@
       const isDate = name === "date";
       app.classList.toggle("tab-date", isDate);
       if (window.updateReader) updateReader();
-      document.getElementById("tabFormat").classList.toggle("active", !isDate);
-      document.getElementById("tabDate").classList.toggle("active", isDate);
+      document.getElementById("dateTabBtn")?.classList.toggle("active", isDate);
       document.title = isDate ? "تبدیل تاریخ — پرشین فرمتر" : "پرشین فرمتر";
 
       // Keep the URL in sync for /  ⇄ /date (don't rewrite a /s/:id share link).
@@ -4530,8 +4487,8 @@
       }
 
       switch (e.code) {
-        case "Digit1": run(openFormatterTab, "#tabFormat"); break;
-        case "Digit2": run(openDateTab, "#tabDate"); break;
+        case "Digit1": run(openFormatterTab, ".doc-tab-new"); break;
+        case "Digit2": run(openDateTab, "#dateTabBtn"); break;
         case "KeyT": run(toggleTheme, ".theme-toggle"); break;
       }
 
