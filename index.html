@@ -2280,6 +2280,27 @@
        single panel separated by hairlines instead of floating as islands. */
     #input { font-family: "Vazirmatn", ui-sans-serif, system-ui, sans-serif; }
 
+    /* The date converter's launcher: a full-width labelled button under the
+       app name, lit while the date tab is open. */
+    .date-launch {
+      width: 100%;
+      margin-top: 12px;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-soft);
+      color: var(--text);
+      font-size: 14px;
+      box-shadow: none;
+    }
+    .date-launch svg { width: 18px; height: 18px; color: var(--accent); }
+    .date-launch:hover { filter: none; border-color: var(--accent); }
+    .date-launch.active { border-color: var(--accent); background: var(--glow); }
+    .date-launch .kbd { margin-inline-start: 4px; }
+    @media (hover: none) { .date-launch .kbd { display: none; } }
+
     @media (min-width: 1101px) {
       .app.mode-sidebar .right-rail,
       .app.mode-sidebar .left-rail {
@@ -2417,6 +2438,7 @@
     }
 
     @media (max-width: 520px) {
+      .lock-btn .lock-label { display: none; }
       .app.mode-sidebar .theme-toggle .theme-label,
       .app.mode-sidebar .theme-toggle .kbd { display: none; }
     }
@@ -2447,6 +2469,10 @@
             <span class="theme-label">روشن</span><kbd class="kbd">T</kbd>
           </button>
         </div>
+        <button class="date-launch" id="dateTabBtn" type="button" onclick="openDateTab()" title="تبدیل تاریخ شمسی، میلادی و قمری (2)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"></path></svg>
+          <span>تبدیل تاریخ</span><kbd class="kbd">2</kbd>
+        </button>
       </div>
 
   <section id="libraryBackdrop" class="library-island" aria-labelledby="libraryTitle">
@@ -2574,9 +2600,6 @@
     <nav class="doc-tabs" id="docTabs" aria-label="متن‌های باز">
       <div class="doc-tab-list" id="docTabList" role="tablist"></div>
       <button class="doc-tab-new" type="button" onclick="newTab()" title="متن تازه (N یا 1)" aria-label="متن تازه">＋</button>
-      <button class="doc-tab-new doc-tab-date" id="dateTabBtn" type="button" onclick="openDateTab()" title="تبدیل تاریخ (2)" aria-label="تبدیل تاریخ">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
-      </button>
       <button class="doc-tab-close-all" id="closeAllTabsBtn" type="button" onclick="closeAllTabs()" title="بستن همهٔ زبانه‌ها" aria-label="بستن همهٔ زبانه‌ها" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h11a1 1 0 0 1 1 1v11"/><rect x="4" y="8" width="12" height="12" rx="2"/><path d="m8 12 4 4m0-4-4 4"/></svg>
         <span>بستن همه</span>
@@ -2852,7 +2875,7 @@
       </div>
       <div class="kbd-group-title">عمومی</div>
       <div class="kbd-row"><span>متن تازه (یا دکمهٔ ＋ نوار زبانه‌ها)</span><span class="keys"><kbd class="kbd">1</kbd></span></div>
-      <div class="kbd-row"><span>تبدیل تاریخ (دکمهٔ تقویم نوار زبانه‌ها)</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
+      <div class="kbd-row"><span>تبدیل تاریخ</span><span class="keys"><kbd class="kbd">2</kbd></span></div>
       <div class="kbd-row"><span>تغییر تم (تیره، روشن، مطالعه، مطالعهٔ شب)</span><span class="keys"><kbd class="kbd">T</kbd></span></div>
       <div class="kbd-row"><span>این راهنما</span><span class="keys"><kbd class="kbd">?</kbd></span></div>
       <div class="kbd-row"><span>خروج از فیلد متنی / جمع کردن ورودی / بستن</span><span class="keys"><kbd class="kbd">Esc</kbd></span></div>
