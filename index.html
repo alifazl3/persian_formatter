@@ -31,22 +31,22 @@
 
   <style>
     :root {
-      --bg: #0f1117;
-      --panel: #171a23;
-      --panel-soft: #1f2330;
-      --text: #e6e8ee;
-      --muted: #9ca3af;
-      --border: #2d3342;
-      --accent: #7c9cff;
+      --bg: #0b0d11;
+      --panel: #12151b;
+      --panel-soft: #1b1f27;
+      --text: #eceef2;
+      --muted: #9aa1ae;
+      --border: #232832;
+      --accent: #c8f169;
       --success: #22c55e;
-      --warning: #f59e0b;
+      --warning: #f2b35b;
       --danger: #ef4444;
-      --code: #10131a;
+      --code: #0e1015;
       --code-text: #d7e0ff;
       --strong: #ffffff;
       --row-alt: rgba(255, 255, 255, 0.02);
-      --glow: rgba(124, 156, 255, 0.12);
-      --on-accent: #fff;
+      --glow: rgba(200, 241, 105, 0.08);
+      --on-accent: #0b0d11;
     }
 
     :root[data-theme="light"] {
@@ -137,7 +137,7 @@
         radial-gradient(circle at top left, var(--glow), transparent 32%),
         var(--bg);
       color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Vazirmatn", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.8;
       padding: 32px;
     }
@@ -1004,13 +1004,25 @@
 
     .preview del { color: var(--muted); }
 
+    /* Plain bulleted lines with an accent dot, not one card per item. */
     .list li {
-      background: var(--panel-soft);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      margin-bottom: 8px;
+      position: relative;
+      padding-inline-start: 22px;
+      margin-bottom: 6px;
     }
+
+    .list li:not(.task)::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: 6px;
+      top: 0.8em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .list li.task { padding-inline-start: 0; }
 
     /* Markdown tables */
     .table-wrap {
@@ -2279,6 +2291,38 @@
       .paragraph, li { orphans: 3; widows: 3; }
       a.md-link::after { content: " (" attr(href) ")"; font-size: .85em; color: #555; word-break: break-all; }
     }
+    /* One surface per rail: the header, library, tools and account sit in a
+       single panel separated by hairlines instead of floating as islands. */
+    #input { font-family: "Vazirmatn", ui-sans-serif, system-ui, sans-serif; }
+
+    @media (min-width: 1101px) {
+      .app.mode-sidebar .right-rail,
+      .app.mode-sidebar .left-rail {
+        gap: 0;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+      }
+
+      .app.mode-sidebar .right-rail > *,
+      .app.mode-sidebar .left-rail > * {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .app.mode-sidebar .right-rail > * + *,
+      .app.mode-sidebar .left-rail > * + * {
+        border-top: 1px solid var(--border);
+      }
+
+      .app.mode-sidebar .head-text { padding: 16px 18px; }
+      .app.mode-sidebar .head-title-row { flex-wrap: nowrap; }
+      .app.mode-sidebar .head-title-row h1 { flex: 1; min-width: 0; font-size: 18px; font-weight: 800; white-space: nowrap; letter-spacing: 0; }
+      .app.mode-sidebar .theme-toggle .theme-label { display: none; }
+      .app.mode-sidebar .tabs { flex-direction: row; margin-top: 12px; }
+    }
   </style>
 </head>
 
@@ -2289,7 +2333,7 @@
       <div class="right-rail">
       <div class="head-text">
         <div class="head-title-row">
-          <h1>Pretty Text Viewer</h1>
+          <h1>پرشین فرمتر</h1>
           <button class="layout-toggle theme-toggle" type="button" onclick="toggleTheme()" title="تغییر تم: تیره، روشن، مطالعه، مطالعهٔ شب (T)">
             <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -2301,9 +2345,8 @@
             <span class="theme-label">روشن</span><kbd class="kbd">T</kbd>
           </button>
         </div>
-        <div class="hint">متن خام را Paste کن؛ پایین تمیز، بخش‌بندی‌شده و خوانا نمایش داده می‌شود.</div>
         <div class="tabs" role="tablist">
-          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="openFormatterTab()" title="متن تازه در زبانهٔ جدید">پرشین فرمتر <kbd class="kbd">1</kbd></button>
+          <button class="tab active" id="tabFormat" type="button" role="tab" onclick="openFormatterTab()" title="متن تازه در زبانهٔ جدید">متن تازه <kbd class="kbd">1</kbd></button>
           <button class="tab" id="tabDate" type="button" role="tab" onclick="openDateTab()" title="تبدیل تاریخ در زبانهٔ جدید">تاریخ <kbd class="kbd">2</kbd></button>
         </div>
       </div>
@@ -2311,7 +2354,7 @@
   <section id="libraryBackdrop" class="library-island" aria-labelledby="libraryTitle">
     <div class="library-panel">
       <header class="library-header">
-        <div><h2 id="libraryTitle">کتابخانه</h2><p id="librarySubtitle">فقط متن‌هایی که ذخیره کنید اینجا می‌آیند.</p></div>
+        <div><h2 id="libraryTitle">کتابخانه</h2><p id="librarySubtitle" hidden></p></div>
         <button type="button" class="library-new-folder" onclick="createFolder()" title="پوشهٔ جدید">＋ پوشه</button>
       </header>
       <input id="librarySearch" class="library-search" type="search" placeholder="جستجو در عنوان و متن‌ها…" aria-label="جستجو در کتابخانه" />
@@ -3330,6 +3373,9 @@
       }
 
       const blocks = splitBlocks(raw);
+      // Text that already marks its headings with "#" says where its titles
+      // are, so a line ending in ":" there is just a lead-in sentence.
+      const guessTitles = !/^#{1,6}\s+\S/m.test(raw);
 
       preview.innerHTML = blocks.map(block => {
         const lang = fenceLang(block);
@@ -3388,7 +3434,7 @@
           return renderTable(lines);
         }
 
-        if (lines.length > 1 && isTitle(first, lines[1])) {
+        if (guessTitles && lines.length > 1 && isTitle(first, lines[1])) {
           return `
             <div class="block">
               <div class="title"${dirAttr(first)}>${inlineMd(first.replace(/:$/, ""))}</div>
