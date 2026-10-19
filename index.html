@@ -4421,6 +4421,8 @@
       const onDate = appEl.classList.contains("tab-date");
 
       if (e.key === "Escape") {
+        // Escape inside a dialog closes only that dialog, not the drawer under it.
+        if (document.querySelector("dialog[open]")) return;
         if (document.body.classList.contains("library-open")) { toggleLibraryDrawer(false); return; }
         const help = document.getElementById("kbdHelp");
         if (help.classList.contains("open")) { toggleKbdHelp(false); return; }
