@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pretty Text Viewer</title>
+  <title>پرشین فرمتر</title>
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.webmanifest" />
@@ -15,7 +15,7 @@
   <meta name="referrer" content="no-referrer" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Pretty Text" />
+  <meta name="apple-mobile-web-app-title" content="پرشین فرمتر" />
 
   <!-- Syntax highlighting for code blocks (pinned, with graceful degradation). -->
   <link id="hljsTheme" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css" />
@@ -2520,7 +2520,7 @@
               <rect x="8" y="2" width="8" height="4" rx="1"></rect>
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
             </svg>
-            <span>Paste</span><kbd class="kbd">P</kbd>
+            <span>چسباندن</span><kbd class="kbd">P</kbd>
           </button>
           <button class="upload" type="button" onclick="document.getElementById('fileInput').click()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2628,7 +2628,7 @@
         </svg>
         <span>جمع کردن</span><kbd class="kbd">Esc</kbd>
       </button>
-      <textarea id="input" autocomplete="off" placeholder="متن به‌هم‌ریخته را اینجا Paste کن..."></textarea>
+      <textarea id="input" autocomplete="off" placeholder="متن به‌هم‌ریخته را اینجا بچسبان یا بنویس…"></textarea>
       <button class="edit-input-btn" type="button" onclick="expandInput()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -2898,7 +2898,7 @@
       <div class="kbd-group-title">پرشین فرمتر</div>
       <div class="kbd-row"><span>متن تازه در زبانهٔ جدید</span><span class="keys"><kbd class="kbd">N</kbd></span></div>
       <div class="kbd-row"><span>ذخیره در کتابخانه</span><span class="keys"><kbd class="kbd">⌘S</kbd></span></div>
-      <div class="kbd-row"><span>Paste از کلیپ‌بورد</span><span class="keys"><kbd class="kbd">P</kbd></span></div>
+      <div class="kbd-row"><span>چسباندن از کلیپ‌بورد</span><span class="keys"><kbd class="kbd">P</kbd></span></div>
       <div class="kbd-row"><span>ویرایش فارسی (نیم‌فاصله، ی و ک، علائم)</span><span class="keys"><kbd class="kbd">V</kbd></span></div>
       <div class="kbd-row"><span>بارگذاری فایل</span><span class="keys"><kbd class="kbd">U</kbd></span></div>
       <div class="kbd-row"><span>کپی ورودی</span><span class="keys"><kbd class="kbd">I</kbd></span></div>
@@ -4405,7 +4405,7 @@
       if (window.updateReader) updateReader();
       document.getElementById("tabFormat").classList.toggle("active", !isDate);
       document.getElementById("tabDate").classList.toggle("active", isDate);
-      document.title = isDate ? "تبدیل تاریخ — Pretty Text Viewer" : "Pretty Text Viewer";
+      document.title = isDate ? "تبدیل تاریخ — پرشین فرمتر" : "پرشین فرمتر";
 
       // Keep the URL in sync for /  ⇄ /date (don't rewrite a /s/:id share link).
       // Tabs switch views, so the URL is replaced rather than stacked in history.
