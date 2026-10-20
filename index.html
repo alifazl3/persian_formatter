@@ -815,15 +815,36 @@
     .preview > * { zoom: var(--preview-scale, 1); }
     .preview [id^="section-"] { scroll-margin-top: 24px; }
 
+    /* Pinned strip over the preview: it sticks to the top of the window while
+       the preview scrolls, and overlaps the preview's top padding at rest. */
+    .preview-head {
+      position: sticky;
+      top: 10px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 0;
+      padding: 0 14px;
+      overflow: visible;
+      transform: translateY(14px);
+      pointer-events: none;
+    }
+
+    .preview-head > * { pointer-events: auto; }
+
     .reading-bar {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      z-index: 3;
+      position: relative;
       display: flex;
       align-items: center;
       gap: 6px;
-      max-width: calc(100% - 150px);
+      min-width: 0;
+      padding: 4px 4px 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--panel) 88%, transparent);
+      backdrop-filter: blur(6px);
+      align-self: flex-start;
     }
 
     .reading-bar[hidden], .reading-bar [hidden] { display: none !important; }
@@ -902,10 +923,8 @@
 
     /* Lock toggle for the output — locked by default; unlock to edit. */
     .lock-btn {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      z-index: 2;
+      margin-inline-start: auto;
+      align-self: flex-start;
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -2275,7 +2294,7 @@
 
       body { padding: 0; background: #fff !important; color: #111; }
       .app, .app.mode-sidebar { display: block; max-width: none; }
-      .right-rail, .left-rail, .doc-tabs, .input-shell, .lock-btn, .reading-bar,
+      .right-rail, .left-rail, .doc-tabs, .input-shell, .preview-head, .lock-btn, .reading-bar,
       .reading-progress, .footer, .code-copy, .json-bar, .date-view,
       .library-toast, .share-toast, .report-widget, .kbd-help-backdrop, .drop-overlay { display: none !important; }
       .preview-shell { position: static; }
@@ -2641,26 +2660,28 @@
     </div>
 
     <section class="preview-shell" id="previewShell">
-      <button id="lockBtn" class="lock-btn" type="button" onclick="toggleLock()" title="ویرایش مستقیم متن خروجی (L)" aria-pressed="false">
-        <svg class="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 20h9"></path>
-          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-        </svg>
-        <svg class="ic-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20 6 9 17l-5-5"></path>
-        </svg>
-        <span class="lock-label">ویرایش خروجی</span><kbd class="kbd">L</kbd>
-      </button>
-
-      <div id="readingBar" class="reading-bar" hidden>
-        <span id="readingStats" class="reading-stats"></span>
-        <button type="button" id="tocButton" class="reading-btn" onclick="toggleToc()" aria-haspopup="true" aria-expanded="false" aria-controls="tocPanel" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
-          <span>فهرست</span>
+      <!-- Reading tools stay pinned to the top while the text scrolls. -->
+      <div class="preview-head">
+        <div id="readingBar" class="reading-bar" hidden>
+          <span id="readingStats" class="reading-stats"></span>
+          <button type="button" id="tocButton" class="reading-btn" onclick="toggleToc()" aria-haspopup="true" aria-expanded="false" aria-controls="tocPanel" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+            <span>فهرست</span>
+          </button>
+          <button type="button" id="textSmaller" class="reading-btn" onclick="changeTextSize(-1)" title="کوچک کردن متن" aria-label="کوچک کردن متن">آ−</button>
+          <button type="button" id="textLarger" class="reading-btn" onclick="changeTextSize(1)" title="بزرگ کردن متن" aria-label="بزرگ کردن متن">آ+</button>
+          <nav id="tocPanel" class="toc-panel" aria-label="فهرست مطالب" hidden></nav>
+        </div>
+        <button id="lockBtn" class="lock-btn" type="button" onclick="toggleLock()" title="ویرایش مستقیم متن خروجی (L)" aria-pressed="false">
+          <svg class="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+          </svg>
+          <svg class="ic-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"></path>
+          </svg>
+          <span class="lock-label">ویرایش خروجی</span><kbd class="kbd">L</kbd>
         </button>
-        <button type="button" id="textSmaller" class="reading-btn" onclick="changeTextSize(-1)" title="کوچک کردن متن" aria-label="کوچک کردن متن">آ−</button>
-        <button type="button" id="textLarger" class="reading-btn" onclick="changeTextSize(1)" title="بزرگ کردن متن" aria-label="بزرگ کردن متن">آ+</button>
-        <nav id="tocPanel" class="toc-panel" aria-label="فهرست مطالب" hidden></nav>
       </div>
 
       <section id="preview" class="preview">
