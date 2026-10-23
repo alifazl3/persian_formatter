@@ -9,7 +9,7 @@ RUN GOOS=js GOARCH=wasm go build -o /out/date.wasm ./wasm \
      || cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" /out/)
 
 # --- build: compile TypeScript ---
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app/server
 COPY server/package.json ./
 RUN npm install
@@ -18,13 +18,13 @@ COPY server/src ./src
 RUN npm run build
 
 # --- production dependencies only ---
-FROM node:20-alpine AS prod-deps
+FROM node:22-alpine AS prod-deps
 WORKDIR /app/server
 COPY server/package.json ./
 RUN npm install --omit=dev
 
 # --- runtime ---
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app/server
 ENV NODE_ENV=production
 ENV PORT=80
