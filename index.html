@@ -1424,6 +1424,18 @@
       padding: 60px 20px;
     }
 
+    .share-loading { display: grid; justify-items: center; gap: 14px; }
+    .spinner {
+      width: 26px;
+      height: 26px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
     .empty-start { display: grid; justify-items: center; gap: 10px; padding: 56px 20px 64px; }
     .empty-title { color: var(--text); font-size: 20px; font-weight: 800; }
     .empty-hint { margin: 0; max-width: 440px; line-height: 1.9; font-size: 14px; }
@@ -4135,29 +4147,26 @@
       setTimeout(() => { button.textContent = "کپی"; }, 1500);
     }
 
-    // On load: a /s/:id link loads the shared document (input full → collapsed).
-    // Otherwise the editor starts empty with the cursor in the input — nothing
-    // is restored or pasted automatically.
-    (function initContent() {
-      if (location.pathname === "/date") return; // handled by initDateApp
+    // On load: a /s/:id link starts fetching the shared document right away;
+    // workspace.js shows a loading state and opens it once the tabs are ready
+    // (see openSharedDocument). Otherwise the editor starts empty.
+    const sharedId = (location.pathname.match(/^\/s\/([A-Za-z0-9_-]+)$/) || [])[1] || null;
+    const sharedDocumentLoad = sharedId
+      ? fetch(`/api/shares/${sharedId}`).then(res => {
+          if (res.ok) return res.json();
+          throw new Error(res.status === 404 ? "not-found" : "failed");
+        })
+      : null;
 
-      const match = location.pathname.match(/^\/s\/([A-Za-z0-9_-]+)$/);
+    function showSharedLoading() {
+      preview.innerHTML = '<div class="empty share-loading" role="status"><span class="spinner" aria-hidden="true"></span>در حال باز کردن متن…</div>';
+    }
 
-      if (match) {
-        fetch(`/api/shares/${match[1]}`)
-          .then(res => (res.ok ? res.json() : Promise.reject(new Error("not found"))))
-          .then(data => {
-            // A shared page opens as a new, unsaved tab.
-            placeText(data.content);
-            collapseInput();
-            initReportWidget(match[1]);
-          })
-          .catch(() => {
-            preview.innerHTML = '<div class="empty">این لینک اشتراک پیدا نشد یا منقضی شده است.</div>';
-          });
-        return;
-      }
-    })();
+    function showSharedError(notFound) {
+      preview.innerHTML = notFound
+        ? '<div class="empty">این لینک اشتراک پیدا نشد یا منقضی شده است.</div>'
+        : '<div class="empty share-loading" role="alert">متن بارگذاری نشد. اتصال اینترنت را بررسی کنید.<button type="button" class="empty-action" onclick="location.reload()">تلاش دوباره</button></div>';
+    }
 
     // ---- Problem reports on shared pages ----
     // Viewers of a /s/:id page get a small floating button to report that the
