@@ -236,6 +236,21 @@ function placeText(text) {
   return true;
 }
 
+/** A /s/:id link: a loading notice until the shared text arrives, then it opens as a new, unsaved tab. */
+async function openSharedDocument() {
+  renderTabs();
+  collapseInput();
+  showSharedLoading();
+  try {
+    const data = await sharedDocumentLoad;
+    placeText(data.content);
+    initReportWidget(sharedId);
+  } catch (error) {
+    selectTab(startOnBlankTab().id);
+    showSharedError(error.message === "not-found");
+  }
+}
+
 /** "Clear": empties a draft; a saved text is left intact and a fresh tab opens instead. */
 function clearActiveTab() {
   const tab = activeTab();
@@ -571,6 +586,7 @@ loadWorkspace();
 input.addEventListener("input", workspaceInput);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && activeTab()) syncTab(activeTab()); });
 if (location.pathname === "/date") openDateTab();
+else if (sharedDocumentLoad) openSharedDocument();
 else {
   // A new browser tab opens on a blank tab; a refresh stays where it was.
   selectTab(startingTab().id);
