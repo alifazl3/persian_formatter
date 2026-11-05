@@ -13,7 +13,8 @@ export function createApp(
   shareHandler: ShareHandler,
   reportHandler: ReportHandler,
   authRouter: AuthRouter,
-  libraryRouter: Router
+  libraryRouter: Router,
+  adminRouter: Router
 ): Application {
   const app = express();
   app.use(express.json({ limit: "1mb" }));
@@ -21,6 +22,7 @@ export function createApp(
   app.use("/api", createApiRouter(shareHandler, reportHandler));
   app.use("/api", authRouter);
   app.use("/api", libraryRouter);
+  app.use("/api/admin", adminRouter);
 
   // Static frontend. The share view (/s/:id) serves the same SPA with the
   // text's link-preview tags; the client reads the id from the path and

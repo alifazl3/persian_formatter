@@ -906,6 +906,7 @@ async function refreshIdentity() {
   libraryEl("accountState").textContent = identity.email ? `واردشده با ${identity.email}` : "بدون ورود هم می‌توانید متن‌ها را ذخیره کنید؛ آن‌ها در همین مرورگر می‌مانند. برای دسترسی از دستگاه‌های دیگر، با ایمیل و passkey ادامه دهید.";
   libraryEl("logoutBtn").hidden = !identity.email;
   libraryEl("accountEmail").value = identity.email || "";
+  window.setAdminAccess?.(!!identity.admin);
 }
 async function openAccount() {
   libraryEl("accountMessage").textContent = "";

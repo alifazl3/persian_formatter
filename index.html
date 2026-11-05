@@ -12,6 +12,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="stylesheet" href="/library.css" />
+  <link rel="stylesheet" href="/admin.css" />
   <meta name="referrer" content="no-referrer" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -2664,6 +2665,14 @@
             <span>چاپ / PDF</span>
           </button>
         </div>
+
+        <div class="admin-entry" id="adminEntry" hidden>
+          <span class="tool-group-label">مدیریت</span>
+          <button class="admin-btn" id="adminTabBtn" type="button" onclick="openAdminTab()" title="داشبورد مدیریت">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+            <span class="admin-btn-label">داشبورد مدیریت</span><span class="admin-badge" id="adminBadge" hidden></span>
+          </button>
+        </div>
       </div>
   <section id="accountBackdrop" class="profile-island" aria-label="پروفایل">
     <button id="accountSummaryButton" class="account-summary" type="button" onclick="openAccount()" aria-haspopup="dialog" aria-controls="accountDialog">
@@ -2730,6 +2739,8 @@
         <div class="empty empty-start"><div class="empty-title">متن را بیاور تا مرتبش کنیم</div><p class="empty-hint">متن خام را بچسبان، فایلی باز کن یا همین‌جا بنویس؛ نسخهٔ تمیز و خوانا اینجا نمایش داده می‌شود.</p><div class="empty-actions"><button type="button" class="empty-action primary" onclick="pasteInput()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></svg><span>چسباندن</span><kbd class="kbd">P</kbd></button><button type="button" class="empty-action" onclick="document.getElementById('fileInput').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg><span>باز کردن فایل</span><kbd class="kbd">U</kbd></button><button type="button" class="empty-action" onclick="startWriting()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg><span>نوشتن</span></button></div></div>
       </section>
     </section>
+
+    <section class="admin-view" id="adminView" aria-labelledby="adminTitle"></section>
 
     <section class="date-view" id="dateView">
       <div class="date-card">
@@ -4489,10 +4500,13 @@
     function switchTab(name, focusField = true) {
       const app = document.querySelector(".app");
       const isDate = name === "date";
+      const isAdmin = name === "admin";
       app.classList.toggle("tab-date", isDate);
+      app.classList.toggle("tab-admin", isAdmin);
       if (window.updateReader) updateReader();
       document.getElementById("dateTabBtn")?.classList.toggle("active", isDate);
-      document.title = isDate ? "تبدیل تاریخ — پرشین فرمتر" : "پرشین فرمتر";
+      document.title = isDate ? "تبدیل تاریخ — پرشین فرمتر" : isAdmin ? "داشبورد مدیریت — پرشین فرمتر" : "پرشین فرمتر";
+      if (isAdmin) showAdmin();
 
       // Keep the URL in sync for /  ⇄ /date (don't rewrite a /s/:id share link).
       // Tabs switch views, so the URL is replaced rather than stacked in history.
@@ -4507,7 +4521,7 @@
           initDateApp(); // lazily loads the WASM engine the first time
         }
         if (focusField) document.getElementById("dtDate").focus();
-      } else if (focusField) {
+      } else if (focusField && !isAdmin) {
         input.focus();
       }
     }
@@ -4552,6 +4566,7 @@
     window.addEventListener("keydown", (e) => {
       if (e.repeat) return;
       const onDate = appEl.classList.contains("tab-date");
+      const onTool = onDate || appEl.classList.contains("tab-admin");
 
       if (e.key === "Escape") {
         // Escape inside a dialog closes only that dialog, not the drawer under it.
@@ -4569,7 +4584,7 @@
           if (el === input && input.value.trim()) collapseInput();
           return;
         }
-        if (!onDate && input.value.trim() &&
+        if (!onTool && input.value.trim() &&
             !document.getElementById("inputShell").classList.contains("collapsed")) {
           collapseInput();
         }
@@ -4577,7 +4592,7 @@
       }
 
       // Cmd/Ctrl+S saves the current tab, even while typing.
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === "KeyS" && !onDate) {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === "KeyS" && !onTool) {
         e.preventDefault();
         flashBtn("#saveBtn");
         saveActiveTab();
@@ -4587,7 +4602,7 @@
       // Cmd/Ctrl+L toggles the output lock even while typing inside the
       // editable output, where plain L would just insert a letter. (Cmd+L is
       // reserved by some browsers for the address bar; Ctrl+L always works.)
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === "KeyL" && !onDate) {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === "KeyL" && !onTool) {
         e.preventDefault();
         flashBtn("#lockBtn");
         if (outputEditable && document.activeElement === preview) preview.blur();
@@ -4612,7 +4627,7 @@
 
       // Shift is only part of the clear shortcut.
       if (e.shiftKey) {
-        if (e.code === "KeyK" && !onDate) run(clearAll, ".toolbar .clear");
+        if (e.code === "KeyK" && !onTool) run(clearAll, ".toolbar .clear");
         return;
       }
 
@@ -4622,7 +4637,7 @@
         case "KeyT": run(toggleTheme, ".theme-toggle"); break;
       }
 
-      if (!onDate) {
+      if (!onTool) {
         switch (e.code) {
           case "KeyN": run(newTab, ".doc-tab-new"); break;
           case "KeyP": run(pasteInput, ".toolbar .paste"); break;
@@ -4636,7 +4651,7 @@
           case "KeyE": run(expandInput, ".edit-input-btn"); break;
           case "KeyL": run(toggleLock, "#lockBtn"); break;
         }
-      } else {
+      } else if (onDate) {
         switch (e.code) {
           case "KeyN": run(() => document.getElementById("dtNow").click(), "#dtNow"); break;
           case "KeyX": run(() => document.getElementById("dtSwap").click(), "#dtSwap"); break;
@@ -4658,5 +4673,6 @@
   <script src="/reader.js"></script>
   <script src="/library.js"></script>
   <script src="/workspace.js"></script>
+  <script src="/admin.js"></script>
 </body>
 </html>

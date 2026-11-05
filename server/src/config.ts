@@ -10,6 +10,8 @@ export interface Config {
   readonly maxContentLength: number;
   /** Token guarding GET /api/reports; empty disables the endpoint. */
   readonly adminToken: string;
+  /** Accounts (by email, lower case) that see and can use the admin dashboard. */
+  readonly adminEmails: readonly string[];
 }
 
 function requireEnv(name: string, fallback?: string): string {
@@ -41,4 +43,7 @@ export const config: Config = {
   publicDir: process.env.PUBLIC_DIR ?? path.resolve(__dirname, "..", ".."),
   maxContentLength: numberEnv("MAX_CONTENT_LENGTH", 200_000),
   adminToken: process.env.ADMIN_TOKEN ?? "",
+  // Comma-separated; ADMIN_EMAILS="" turns the dashboard off.
+  adminEmails: (process.env.ADMIN_EMAILS ?? "fazlolahiali@gmail.com")
+    .split(",").map(email => email.trim().toLowerCase()).filter(Boolean),
 };

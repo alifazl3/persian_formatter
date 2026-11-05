@@ -132,7 +132,7 @@ function verifyLogin(body: Json, challenge: string, origin: string, rp: string, 
   return data.count;
 }
 
-export function createAuthRouter(pool: Pool): Router {
+export function createAuthRouter(pool: Pool, adminEmails: readonly string[] = []): Router {
   const router = Router();
   router.use((_req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
   async function principal(req: Request, res: Response, create = true): Promise<Principal | null> {
@@ -162,7 +162,10 @@ export function createAuthRouter(pool: Pool): Router {
     return result.rows[0];
   }
   const wrap = (handler: (req: Request, res: Response) => Promise<void>) => (req: Request, res: Response, next: NextFunction) => { handler(req, res).catch(next); };
-  router.get("/identity", wrap(async (req, res) => { const who = await principal(req, res); res.json({ email: who!.email }); }));
+  router.get("/identity", wrap(async (req, res) => {
+    const who = (await principal(req, res))!;
+    res.json({ email: who.email, admin: !!who.email && adminEmails.includes(who.email) });
+  }));
   router.post("/auth/register/options", wrap(async (req, res) => {
     const email = emailValue(req.body?.email);
     const current = (await principal(req, res))!;
