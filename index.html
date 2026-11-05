@@ -740,12 +740,26 @@
 
     .share-copy.share-manage:hover { border-color: var(--accent); }
 
+    .share-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .share-live[hidden] { display: none; }
+    .share-live input { accent-color: var(--accent); margin: 0; }
+
     /* Narrow screens: the link gets its own row so it stays readable. */
     @media (max-width: 520px) {
       .share-toast { flex-wrap: wrap; width: 92vw; }
       .share-toast .share-link { flex-basis: 100%; order: 1; }
       .share-toast .share-toast-label { flex: 1; }
       .share-toast .share-copy { order: 2; flex: 1; }
+      .share-toast .share-live { order: 3; flex-basis: 100%; }
     }
 
     .share-close {
@@ -2863,7 +2877,7 @@
   </dialog>
   <dialog id="myLinksDialog" class="library-dialog share-dialog" aria-labelledby="myLinksTitle">
     <h2 id="myLinksTitle">لینک‌های اشتراک من</h2>
-    <p class="share-intro">لینک‌هایی که با دکمهٔ «اشتراک» ساخته‌اید. هر لینک یک نسخهٔ ثابت از متن است. می‌توانید برایش زمان انقضا بگذارید یا حذفش کنید تا دیگر باز نشود. بازدیدهای خودتان شمرده نمی‌شود.</p>
+    <p class="share-intro">لینک‌هایی که با دکمهٔ «اشتراک» ساخته‌اید. هر لینک نسخهٔ لحظهٔ اشتراک را نشان می‌دهد؛ اگر از متنی ذخیره‌شده ساخته شده باشد، با «همیشه آخرین نسخه» هر ذخیرهٔ بعدی هم در لینک دیده می‌شود. می‌توانید برای لینک زمان انقضا بگذارید یا حذفش کنید تا دیگر باز نشود. بازدیدهای خودتان شمرده نمی‌شود.</p>
     <div id="myLinksList" class="share-list"></div>
     <div class="library-dialog-actions"><button type="button" onclick="closeMyLinks()">بستن</button></div>
   </dialog>
@@ -2977,6 +2991,7 @@
     <a id="shareLink" class="share-link" href="#" target="_blank" rel="noopener" dir="ltr" title="باز کردن لینک در زبانهٔ تازه"></a>
     <button class="share-copy" type="button" onclick="copyShareLink()">کپی</button>
     <button class="share-copy share-manage" type="button" onclick="hideShareToast(); openMyLinks()">لینک‌های من</button>
+    <label class="share-live" id="shareLiveLabel" hidden title="با هر ذخیرهٔ متن، لینک هم به‌روز می‌شود"><input type="checkbox" id="shareLive" onchange="setShareLive(this)" /> همیشه آخرین نسخه</label>
     <button class="share-close" type="button" onclick="hideShareToast()" title="بستن" aria-label="بستن">×</button>
   </div>
 
@@ -4118,13 +4133,18 @@
         const res = await fetch("/api/shares", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content })
+          body: JSON.stringify({ content, documentId: activeTab().doc?.id })
         });
         if (!res.ok) throw new Error("share request failed");
 
         const data = await res.json();
         const url = `${location.origin}/s/${data.id}`;
         showShareToast(url);
+        // A link made from a saved text can follow its later saves.
+        const live = document.getElementById("shareLive");
+        live.checked = false;
+        live.dataset.shareId = data.id;
+        document.getElementById("shareLiveLabel").hidden = !activeTab().doc;
         try {
           await navigator.clipboard.writeText(url);
         } catch (err) {
@@ -4146,8 +4166,19 @@
       link.style.display = isError ? "none" : "";
       document.querySelectorAll(".share-copy").forEach(button => { button.style.display = isError ? "none" : ""; });
       document.querySelector(".share-toast-label").textContent = isError ? text : "لینک اشتراک";
+      document.getElementById("shareLiveLabel").hidden = true;
       toast.hidden = false;
       if (!isError) link.focus();
+    }
+
+    async function setShareLive(box) {
+      try {
+        await libraryApi(`/shares/${box.dataset.shareId}`, "PATCH", { live: box.checked });
+        libraryToast(box.checked ? "لینک از این به بعد آخرین نسخهٔ ذخیره‌شده را نشان می‌دهد." : "لینک همان نسخهٔ لحظهٔ اشتراک را نشان می‌دهد.");
+      } catch (error) {
+        box.checked = !box.checked;
+        libraryToast(error.message, true);
+      }
     }
 
     function hideShareToast() {

@@ -16,6 +16,9 @@ import { PgReportRepository } from "../src/repositories/reportRepository";
 import { ReportService } from "../src/services/reportService";
 import { ReportHandler } from "../src/handlers/reportHandler";
 import { errorHandler } from "../src/middleware/errorHandler";
+import { PgLibraryRepository } from "../src/repositories/libraryRepository";
+import { LibraryService } from "../src/services/libraryService";
+import { createLibraryRouter } from "../src/handlers/libraryHandler";
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_URL must point to a disposable PostgreSQL database");
@@ -35,6 +38,7 @@ test("share links: ownership, views, expiry, delete and link previews", async t 
   const app = express(); app.use(express.json());
   app.use("/api", createApiRouter(shares, new ReportHandler(new ReportService(new PgReportRepository(pool), repository), "")));
   app.use("/api", auth);
+  app.use("/api", createLibraryRouter(new LibraryService(new PgLibraryRepository(pool), 200000), auth));
   app.get("/s/:id", shares.page);
   app.use(errorHandler);
   const server = app.listen(0, "127.0.0.1");
@@ -96,11 +100,38 @@ test("share links: ownership, views, expiry, delete and link previews", async t 
       assert.equal((await viewer(`/api/shares/${id}`)).status, 200);
     });
 
+    await t.test("a live link follows the saved document; otherwise it keeps the snapshot", async () => {
+      const doc = (await owner("/api/documents", "POST", { title: "پیش‌نویس", content: "# نسخهٔ اول\n\nغلط املائی" })).data;
+      const linked = (await owner("/api/shares", "POST", { content: "# نسخهٔ اول\n\nغلط املائی", documentId: doc.id })).data.id;
+      const plain = (await owner("/api/shares", "POST", { content: "متن آزاد" })).data.id;
+      const foreign = (await viewer("/api/shares", "POST", { content: "دزدکی", documentId: doc.id })).data.id;
+      const rows = (await owner("/api/shares")).data.shares;
+      assert.deepEqual(rows.filter((s: any) => [linked, plain].includes(s.id)).map((s: any) => [s.id, s.linked, s.live]), [[plain, false, false], [linked, true, false]]);
+      assert.equal((await viewer("/api/shares")).data.shares.find((s: any) => s.id === foreign).linked, false); // can't read the document
+
+      const updated = await owner(`/api/documents/${doc.id}`, "PATCH", { content: "# نسخهٔ دوم\n\nاصلاح‌شده", version: doc.version });
+      assert.equal(updated.status, 200);
+      assert.match((await viewer(`/api/shares/${linked}`)).data.content, /نسخهٔ اول/); // snapshot until made live
+      assert.equal((await owner(`/api/shares/${plain}`, "PATCH", { live: true })).status, 400);
+      assert.equal((await viewer(`/api/shares/${linked}`, "PATCH", { live: true })).status, 404);
+      const live = await owner(`/api/shares/${linked}`, "PATCH", { live: true });
+      assert.deepEqual([live.status, live.data.live, live.data.title], [200, true, "نسخهٔ دوم"]);
+      assert.match((await viewer(`/api/shares/${linked}`)).data.content, /اصلاح‌شده/);
+      assert.match((await viewer(`/s/${linked}`)).data, /og:title" content="نسخهٔ دوم"/);
+
+      await owner(`/api/documents/${doc.id}?version=${updated.data.version}`, "DELETE"); // to the trash
+      assert.match((await viewer(`/api/shares/${linked}`)).data.content, /نسخهٔ اول/);
+      await owner(`/api/documents/${doc.id}/restore`, "POST");
+      assert.match((await viewer(`/api/shares/${linked}`)).data.content, /اصلاح‌شده/);
+      await owner(`/api/shares/${linked}`, "PATCH", { live: false });
+      assert.match((await viewer(`/api/shares/${linked}`)).data.content, /نسخهٔ اول/);
+    });
+
     await t.test("only the owner can delete, and a deleted link is gone", async () => {
       assert.equal((await viewer(`/api/shares/${id}`, "DELETE")).status, 404);
       assert.equal((await owner(`/api/shares/${id}`, "DELETE")).status, 204);
       assert.equal((await viewer(`/api/shares/${id}`)).status, 404);
-      assert.deepEqual((await owner("/api/shares")).data.shares, []);
+      assert.ok(!(await owner("/api/shares")).data.shares.some((s: any) => s.id === id));
     });
   } finally {
     server.close();

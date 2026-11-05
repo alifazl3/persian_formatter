@@ -25,6 +25,8 @@ function summaryJson(share: ShareSummary) {
     createdAt: share.createdAt.toISOString(),
     viewCount: share.viewCount,
     expiresAt: share.expiresAt?.toISOString() ?? null,
+    linked: share.documentId !== null,
+    live: share.live,
   };
 }
 
@@ -46,6 +48,7 @@ export class ShareHandler {
       const owner = await this.principal(req as Request, res);
       const result = await this.service.createShare({
         content: req.body?.content,
+        documentId: (req.body as { documentId?: unknown })?.documentId,
       }, owner?.id ?? null);
       res.status(201).json({ id: result.id, url: `/s/${result.id}` });
     } catch (err) {
@@ -88,7 +91,7 @@ export class ShareHandler {
     try {
       const owner = await this.principal(req as Request, res, false);
       if (!owner) throw new NotFoundError("Share not found");
-      const share = await this.service.setExpiry(owner.id, req.params.id, req.body?.expiresInDays);
+      const share = await this.service.updateShare(owner.id, req.params.id, req.body ?? {});
       res.json(summaryJson(share));
     } catch (err) {
       next(err);

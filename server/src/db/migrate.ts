@@ -131,5 +131,9 @@ export async function migrate(pool: Pool): Promise<void> {
     ALTER TABLE shares ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES owners(id) ON DELETE SET NULL;
     ALTER TABLE shares ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
     CREATE INDEX IF NOT EXISTS shares_owner_idx ON shares(owner_id, created_at DESC) WHERE owner_id IS NOT NULL;
+    -- A link made from a saved document remembers it; a "live" link shows the
+    -- document's latest saved text instead of the snapshot taken at creation.
+    ALTER TABLE shares ADD COLUMN IF NOT EXISTS document_id UUID REFERENCES saved_items(id) ON DELETE SET NULL;
+    ALTER TABLE shares ADD COLUMN IF NOT EXISTS live BOOLEAN NOT NULL DEFAULT false;
   `);
 }
