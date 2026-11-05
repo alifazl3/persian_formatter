@@ -6,6 +6,13 @@ import { sharePreview } from "./sharePreview";
 
 /** Expiry choices offered in "my links"; null removes the expiry. */
 const EXPIRY_DAYS = [1, 7, 30];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Changes the owner can make to a link from "my links". */
+export interface ShareChanges {
+  readonly expiresInDays?: unknown;
+  readonly live?: unknown;
+}
 
 /** Business logic for shares: validation, id generation, view counting,
  * and the owner's list / expiry / delete. */
@@ -17,8 +24,12 @@ export class ShareService {
 
   async createShare(input: CreateShareInput, ownerId: string | null): Promise<CreateShareResult> {
     const content = this.validateContent(input.content);
+    // Remember the saved document the text came from, so the link can later be
+    // made live — but only one the creator can actually read.
+    const documentId = typeof input.documentId === "string" && UUID.test(input.documentId) && ownerId
+      && await this.repository.canReadDocument(input.documentId, ownerId) ? input.documentId : null;
     const id = generateId();
-    await this.repository.create(id, content, ownerId);
+    await this.repository.create(id, content, ownerId, documentId);
     return { id };
   }
 
@@ -46,12 +57,29 @@ export class ShareService {
     return shares.map(share => this.summary(share));
   }
 
-  async setExpiry(ownerId: string, id: string, expiresInDays: unknown): Promise<ShareSummary> {
-    if (expiresInDays !== null && !EXPIRY_DAYS.includes(expiresInDays as number)) {
-      throw new ValidationError("`expiresInDays` must be null, 1, 7 or 30");
+  async updateShare(ownerId: string, id: string, changes: ShareChanges): Promise<ShareSummary> {
+    const update: { expiresAt?: Date | null; live?: boolean } = {};
+    if (changes.expiresInDays !== undefined) {
+      const days = changes.expiresInDays;
+      if (days !== null && !EXPIRY_DAYS.includes(days as number)) {
+        throw new ValidationError("`expiresInDays` must be null, 1, 7 or 30");
+      }
+      update.expiresAt = days === null ? null : new Date(Date.now() + (days as number) * 86_400_000);
     }
-    const expiresAt = expiresInDays === null ? null : new Date(Date.now() + (expiresInDays as number) * 86_400_000);
-    const share = await this.repository.setExpiry(id, ownerId, expiresAt);
+    if (changes.live !== undefined) {
+      if (typeof changes.live !== "boolean") {
+        throw new ValidationError("`live` must be a boolean");
+      }
+      update.live = changes.live;
+    }
+    const current = await this.repository.findById(id);
+    if (!current || current.ownerId !== ownerId) {
+      throw new NotFoundError("Share not found");
+    }
+    if (update.live && !(current.documentId && await this.repository.canReadDocument(current.documentId, ownerId))) {
+      throw new ValidationError("This link is not linked to a saved text you can read");
+    }
+    const share = await this.repository.update(id, ownerId, update);
     if (!share) {
       throw new NotFoundError("Share not found");
     }
@@ -71,6 +99,8 @@ export class ShareService {
       createdAt: share.createdAt,
       viewCount: share.viewCount,
       expiresAt: share.expiresAt,
+      documentId: share.documentId,
+      live: share.live,
     };
   }
 

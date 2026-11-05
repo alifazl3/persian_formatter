@@ -410,6 +410,14 @@ function renderMyLinks(shares) {
     expiry.setAttribute("aria-label", `انقضای لینک «${share.title}»`);
     for (const [value, label] of EXPIRY_CHOICES) expiry.append(new Option(label, value));
     expiry.addEventListener("change", () => setLinkExpiry(share, expiry.value));
+    if (share.linked) {
+      const live = document.createElement("label"); live.className = "share-live";
+      live.title = "با هر ذخیرهٔ متن، لینک هم به‌روز می‌شود";
+      const box = Object.assign(document.createElement("input"), { type: "checkbox", checked: share.live });
+      box.addEventListener("change", () => setLinkLive(share, box));
+      live.append(box, " همیشه آخرین نسخه");
+      actions.append(live);
+    }
     actions.append(
       libraryButton("کپی", event => copyMyLink(url, event.currentTarget), "share-row-action"),
       expiry,
@@ -424,6 +432,13 @@ async function copyMyLink(url, button) {
   try { await navigator.clipboard.writeText(url); } catch (_) { libraryToast(url); return; }
   button.textContent = "کپی شد";
   setTimeout(() => { button.textContent = "کپی"; }, 1500);
+}
+
+async function setLinkLive(share, box) {
+  try {
+    await libraryApi(`/shares/${share.id}`, "PATCH", { live: box.checked });
+    await openMyLinks();
+  } catch (error) { box.checked = !box.checked; libraryToast(error.message, true); }
 }
 
 async function setLinkExpiry(share, value) {

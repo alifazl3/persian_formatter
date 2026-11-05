@@ -8,11 +8,16 @@ export interface Share {
   readonly ownerId: string | null;
   /** After this moment the link stops opening; null means it never expires. */
   readonly expiresAt: Date | null;
+  /** The saved document the link was made from, if any. */
+  readonly documentId: string | null;
+  /** Shows the document's latest saved text rather than the snapshot. */
+  readonly live: boolean;
 }
 
 /** Input accepted by the service when creating a share. */
 export interface CreateShareInput {
   readonly content: unknown;
+  readonly documentId?: unknown;
 }
 
 /** Result returned to the caller after a share is created. */
@@ -27,4 +32,6 @@ export interface ShareSummary {
   readonly createdAt: Date;
   readonly viewCount: number;
   readonly expiresAt: Date | null;
+  readonly documentId: string | null;
+  readonly live: boolean;
 }
