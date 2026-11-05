@@ -9,7 +9,7 @@ const workspace = { tabs: [], activeId: null, persistent: true };
 
 const newTabId = () => (crypto.randomUUID ? crypto.randomUUID() : `t${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`);
 const activeTab = () => workspace.tabs.find(tab => tab.id === workspace.activeId);
-/* Besides text tabs there are tool tabs (the date converter), at most one each. */
+/* Besides text tabs there are tool tabs (the date converter, the admin dashboard), at most one each. */
 const isTextTab = tab => !tab.kind || tab.kind === "text";
 const isDirty = tab => isTextTab(tab) && (tab.doc ? tab.content !== tab.doc.content : tab.content.trim() !== "");
 const canEditTab = tab => !tab.doc || canEditRole(tab.doc.role);
@@ -19,7 +19,7 @@ function deriveTitle(content) {
   return line ? line.slice(0, 80) : "";
 }
 const shortTitle = title => title.length > 40 ? `${title.slice(0, 40).trim()}…` : title;
-function tabTitle(tab) { if (tab.kind === "date") return "تبدیل تاریخ"; return tab.doc?.title || deriveTitle(tab.content) || "متن تازه"; }
+function tabTitle(tab) { if (tab.kind === "date") return "تبدیل تاریخ"; if (tab.kind === "admin") return "داشبورد مدیریت"; return tab.doc?.title || deriveTitle(tab.content) || "متن تازه"; }
 
 /** The saved state a tab is linked to; `content` is the last saved body. */
 function docState(doc) {
@@ -33,7 +33,7 @@ function parseTabs(list) {
   for (const raw of Array.isArray(list) ? list : []) {
     if (typeof raw?.id !== "string" || typeof raw.content !== "string") continue;
     const tab = { id: raw.id, content: raw.content, doc: null };
-    if (raw.kind === "date") tab.kind = "date";
+    if (raw.kind === "date" || raw.kind === "admin") tab.kind = raw.kind;
     if (raw.doc && typeof raw.doc.id === "string") {
       // Clean tabs store their body once; the saved baseline equals the content.
       tab.doc = { ...raw.doc, content: typeof raw.doc.content === "string" ? raw.doc.content : raw.content };
@@ -128,6 +128,23 @@ function openDateTab() {
   const existing = workspace.tabs.find(tab => tab.kind === "date");
   const tab = existing || createTab({ kind: "date" });
   if (tab) selectTab(tab.id);
+}
+
+/** The "داشبورد مدیریت" button: the admin dashboard tab, opened once and focused afterwards. */
+function openAdminTab() {
+  const existing = workspace.tabs.find(tab => tab.kind === "admin");
+  const tab = existing || createTab({ kind: "admin" });
+  if (tab) selectTab(tab.id);
+}
+
+/** Closes the admin tab once the account turns out not to be an admin (e.g. after signing out). */
+function workspaceDropAdminTab() {
+  const tab = workspace.tabs.find(item => item.kind === "admin");
+  if (!tab) return;
+  workspace.tabs = workspace.tabs.filter(item => item !== tab);
+  if (!workspace.tabs.length) workspace.tabs.push({ id: newTabId(), content: "", doc: null });
+  if (workspace.activeId === tab.id) selectTab(startOnBlankTab().id);
+  else { renderTabs(); persistWorkspace(); }
 }
 
 /**

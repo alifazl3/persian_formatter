@@ -10,7 +10,7 @@ interface CreateShareBody {
 }
 
 /** Resolves the caller's owner id; `create` starts a guest session if needed. */
-export type PrincipalLookup = (req: Request, res: Response, create?: boolean) => Promise<{ id: string } | null>;
+export type PrincipalLookup = (req: Request, res: Response, create?: boolean) => Promise<{ id: string; email?: string | null } | null>;
 
 const SITE_NAME = "پرشین فرمتر";
 

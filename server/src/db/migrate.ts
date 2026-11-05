@@ -135,5 +135,7 @@ export async function migrate(pool: Pool): Promise<void> {
     -- document's latest saved text instead of the snapshot taken at creation.
     ALTER TABLE shares ADD COLUMN IF NOT EXISTS document_id UUID REFERENCES saved_items(id) ON DELETE SET NULL;
     ALTER TABLE shares ADD COLUMN IF NOT EXISTS live BOOLEAN NOT NULL DEFAULT false;
+    -- Admins mark problem reports as handled from the dashboard.
+    ALTER TABLE reports ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
   `);
 }

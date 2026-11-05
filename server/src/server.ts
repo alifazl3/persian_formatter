@@ -13,6 +13,9 @@ import { createAuthRouter, AuthRouter, expectedOrigin } from "./auth";
 import { PgLibraryRepository } from "./repositories/libraryRepository";
 import { LibraryService } from "./services/libraryService";
 import { createLibraryRouter } from "./handlers/libraryHandler";
+import { PgAdminRepository } from "./repositories/adminRepository";
+import { AdminService } from "./services/adminService";
+import { createAdminRouter } from "./handlers/adminHandler";
 
 async function main(): Promise<void> {
   await migrate(pool);
@@ -25,13 +28,14 @@ async function main(): Promise<void> {
   const reportService = new ReportService(reportRepository, repository);
   const reportHandler = new ReportHandler(reportService, config.adminToken);
 
-  const authRouter = createAuthRouter(pool) as AuthRouter;
+  const authRouter = createAuthRouter(pool, config.adminEmails) as AuthRouter;
   const handler = new ShareHandler(service, authRouter.principal, path.join(config.publicDir, "index.html"), expectedOrigin);
   const libraryService = new LibraryService(new PgLibraryRepository(pool), config.maxContentLength);
   const libraryRouter = createLibraryRouter(libraryService, authRouter);
   await libraryService.cleanup();
   setInterval(() => { libraryService.cleanup().catch(error => console.error("Library cleanup failed", error)); }, 60 * 60 * 1000).unref();
-  const app = createApp(handler, reportHandler, authRouter, libraryRouter);
+  const adminRouter = createAdminRouter(new AdminService(new PgAdminRepository(pool), config.adminEmails), authRouter.principal);
+  const app = createApp(handler, reportHandler, authRouter, libraryRouter, adminRouter);
   app.listen(config.port, () => {
     console.log(`Server listening on http://0.0.0.0:${config.port}`);
   });
