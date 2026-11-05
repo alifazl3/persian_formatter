@@ -22,11 +22,13 @@ export function createApp(
   app.use("/api", authRouter);
   app.use("/api", libraryRouter);
 
-  // Static frontend. The share view (/s/:id) serves the same SPA; the client
-  // reads the id from the path and fetches the content from the API.
+  // Static frontend. The share view (/s/:id) serves the same SPA with the
+  // text's link-preview tags; the client reads the id from the path and
+  // fetches the content from the API.
   const indexFile = path.join(config.publicDir, "index.html");
   app.use(express.static(config.publicDir, { index: false }));
-  app.get(["/", "/s/:id", "/f/:token", "/date"], (_req, res) => {
+  app.get("/s/:id", shareHandler.page);
+  app.get(["/", "/f/:token", "/date"], (_req, res) => {
     res.sendFile(indexFile);
   });
 

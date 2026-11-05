@@ -157,6 +157,15 @@
 .share-row-info strong { font-size: 13px; }
 .share-row-info small { color: var(--muted); font-size: 11px; line-height: 1.7; }
 .share-dialog .library-dialog-actions { margin-top: 16px; }
+.library-links-button { display: block; margin-top: 4px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; box-shadow: none; }
+.library-links-button:hover { color: var(--text); }
+.my-link-row { flex-wrap: wrap; }
+.my-link-row .share-row-info { flex: 1 1 200px; }
+.my-link-title { color: var(--text); font-size: 13px; font-weight: 700; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.my-link-title:hover { color: var(--accent); text-decoration: underline; }
+.my-link-meta.expired { color: var(--danger); }
+.my-link-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.my-link-actions select { width: auto; padding: 4px 8px; font-size: 12px; }
 .share-dialog .share-row-action:hover { border-color: var(--danger); color: var(--danger); }
 .profile-island { padding: 7px; }
 .profile-island .account-summary { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 5px 7px; border: 0; border-radius: 12px; background: transparent; color: var(--text); text-align: right; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none; }

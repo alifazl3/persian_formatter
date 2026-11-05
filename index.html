@@ -732,6 +732,22 @@
       font-size: 13px;
     }
 
+    .share-copy.share-manage {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .share-copy.share-manage:hover { border-color: var(--accent); }
+
+    /* Narrow screens: the link gets its own row so it stays readable. */
+    @media (max-width: 520px) {
+      .share-toast { flex-wrap: wrap; width: 92vw; }
+      .share-toast .share-link { flex-basis: 100%; order: 1; }
+      .share-toast .share-toast-label { flex: 1; }
+      .share-toast .share-copy { order: 2; flex: 1; }
+    }
+
     .share-close {
       background: transparent;
       color: var(--muted);
@@ -2845,6 +2861,12 @@
     <div id="historyList" class="share-list"></div>
     <div class="library-dialog-actions"><button type="button" onclick="closeHistory()">بستن</button></div>
   </dialog>
+  <dialog id="myLinksDialog" class="library-dialog share-dialog" aria-labelledby="myLinksTitle">
+    <h2 id="myLinksTitle">لینک‌های اشتراک من</h2>
+    <p class="share-intro">لینک‌هایی که با دکمهٔ «اشتراک» ساخته‌اید. هر لینک یک نسخهٔ ثابت از متن است. می‌توانید برایش زمان انقضا بگذارید یا حذفش کنید تا دیگر باز نشود. بازدیدهای خودتان شمرده نمی‌شود.</p>
+    <div id="myLinksList" class="share-list"></div>
+    <div class="library-dialog-actions"><button type="button" onclick="closeMyLinks()">بستن</button></div>
+  </dialog>
   <dialog id="folderShareDialog" class="library-dialog share-dialog" aria-labelledby="folderShareTitle">
     <h2 id="folderShareTitle">اشتراک پوشه</h2>
     <p class="share-intro">هرکس لینک را باز کند و بپذیرد، به پوشه اضافه می‌شود و پوشه در بخش «اشتراکی با من» کتابخانه‌اش می‌ماند. اعتبار لینک فقط برای ورود افراد تازه است؛ دسترسی اعضا تا وقتی آن‌ها را حذف یا لینکشان را لغو کنید باقی می‌ماند.</p>
@@ -2954,6 +2976,7 @@
     <span class="share-toast-label">لینک اشتراک</span>
     <a id="shareLink" class="share-link" href="#" target="_blank" rel="noopener" dir="ltr" title="باز کردن لینک در زبانهٔ تازه"></a>
     <button class="share-copy" type="button" onclick="copyShareLink()">کپی</button>
+    <button class="share-copy share-manage" type="button" onclick="hideShareToast(); openMyLinks()">لینک‌های من</button>
     <button class="share-close" type="button" onclick="hideShareToast()" title="بستن" aria-label="بستن">×</button>
   </div>
 
@@ -4121,7 +4144,7 @@
       link.href = isError ? "#" : text;
       link.textContent = isError ? "" : text;
       link.style.display = isError ? "none" : "";
-      document.querySelector(".share-copy").style.display = isError ? "none" : "";
+      document.querySelectorAll(".share-copy").forEach(button => { button.style.display = isError ? "none" : ""; });
       document.querySelector(".share-toast-label").textContent = isError ? text : "لینک اشتراک";
       toast.hidden = false;
       if (!isError) link.focus();

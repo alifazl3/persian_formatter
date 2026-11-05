@@ -126,5 +126,10 @@ export async function migrate(pool: Pool): Promise<void> {
       window_start TIMESTAMPTZ NOT NULL,
       count INTEGER NOT NULL
     );
+    -- Text share links belong to whoever made them, who can list, expire and
+    -- delete them. Links made before this have no owner and stay public.
+    ALTER TABLE shares ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES owners(id) ON DELETE SET NULL;
+    ALTER TABLE shares ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+    CREATE INDEX IF NOT EXISTS shares_owner_idx ON shares(owner_id, created_at DESC) WHERE owner_id IS NOT NULL;
   `);
 }

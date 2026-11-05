@@ -1,3 +1,4 @@
+import path from "path";
 import { config } from "./config";
 import { pool } from "./db/pool";
 import { migrate } from "./db/migrate";
@@ -8,7 +9,7 @@ import { ReportService } from "./services/reportService";
 import { ShareHandler } from "./handlers/shareHandler";
 import { ReportHandler } from "./handlers/reportHandler";
 import { createApp } from "./app";
-import { createAuthRouter, AuthRouter } from "./auth";
+import { createAuthRouter, AuthRouter, expectedOrigin } from "./auth";
 import { PgLibraryRepository } from "./repositories/libraryRepository";
 import { LibraryService } from "./services/libraryService";
 import { createLibraryRouter } from "./handlers/libraryHandler";
@@ -19,13 +20,13 @@ async function main(): Promise<void> {
   // Compose the layers: repository → service → handler.
   const repository = new PgShareRepository(pool);
   const service = new ShareService(repository, config.maxContentLength);
-  const handler = new ShareHandler(service);
 
   const reportRepository = new PgReportRepository(pool);
   const reportService = new ReportService(reportRepository, repository);
   const reportHandler = new ReportHandler(reportService, config.adminToken);
 
   const authRouter = createAuthRouter(pool) as AuthRouter;
+  const handler = new ShareHandler(service, authRouter.principal, path.join(config.publicDir, "index.html"), expectedOrigin);
   const libraryService = new LibraryService(new PgLibraryRepository(pool), config.maxContentLength);
   const libraryRouter = createLibraryRouter(libraryService, authRouter);
   await libraryService.cleanup();

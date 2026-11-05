@@ -215,6 +215,7 @@ export function createAuthRouter(pool: Pool): Router {
           WHERE m.member_id=$2 AND f.owner_id<>$1 ON CONFLICT (folder_id,member_id) DO NOTHING`, [credential.owner_id, old.id]);
         await client.query("UPDATE folders SET owner_id=$1 WHERE owner_id=$2", [credential.owner_id, old.id]);
         await client.query("UPDATE saved_items SET owner_id=$1 WHERE owner_id=$2", [credential.owner_id, old.id]);
+        await client.query("UPDATE shares SET owner_id=$1 WHERE owner_id=$2", [credential.owner_id, old.id]);
         await client.query("DELETE FROM folder_members m USING folders f WHERE f.id=m.folder_id AND m.member_id=$1 AND f.owner_id=$1", [credential.owner_id]);
         await client.query("DELETE FROM owners WHERE id=$1", [old.id]);
       }
@@ -234,4 +235,4 @@ export function createAuthRouter(pool: Pool): Router {
   return router;
 }
 export type AuthRouter = Router & { principal: (req: Request, res: Response, create?: boolean) => Promise<Principal | null> };
-export { hash, token, cookie };
+export { hash, token, cookie, expectedOrigin };

@@ -274,7 +274,7 @@ function renderLibrary() {
 
   if (!library.folders.length && !library.documents.length) {
     libraryText(root, "p", library.loaded ? "هنوز چیزی ذخیره نکرده‌اید. متن را بنویسید و «ذخیره» را بزنید تا اینجا بیاید." : "در حال بارگذاری…", "library-empty");
-    if (library.loaded) renderTrash(root);
+    if (library.loaded) renderLibraryFooter(root);
     return;
   }
 
@@ -300,7 +300,12 @@ function renderLibrary() {
     root.append(box);
   }
   if (query && !root.querySelector(".library-doc")) libraryText(root, "p", "متنی با این عنوان پیدا نشد.", "library-empty");
-  if (!query) renderTrash(root);
+  if (!query) renderLibraryFooter(root);
+}
+
+function renderLibraryFooter(root) {
+  renderTrash(root);
+  root.append(libraryButton("لینک‌های اشتراک", openMyLinks, "library-links-button"));
 }
 
 // --- trash ---
@@ -362,6 +367,79 @@ async function purgeDocument(doc) {
   try {
     await libraryApi(`/documents/${doc.id}/permanent`, "DELETE");
     await loadTrash();
+  } catch (error) { libraryToast(error.message, true); }
+}
+
+// --- my share links ---
+
+const EXPIRY_CHOICES = [["", "تغییر انقضا…"], ["never", "بدون انقضا"], ["1", "۱ روز از حالا"], ["7", "۷ روز از حالا"], ["30", "۳۰ روز از حالا"]];
+
+async function openMyLinks() {
+  const dialog = libraryEl("myLinksDialog");
+  if (!dialog.open) dialog.showModal();
+  const list = libraryEl("myLinksList");
+  if (!list.childElementCount) libraryText(list, "p", "در حال بارگذاری…", "library-empty");
+  try {
+    renderMyLinks((await libraryApi("/shares")).shares);
+  } catch (error) { list.replaceChildren(); libraryText(list, "p", error.message, "library-empty"); }
+}
+
+function closeMyLinks() {
+  if (libraryEl("myLinksDialog").open) libraryEl("myLinksDialog").close();
+  libraryEl("myLinksList").replaceChildren();
+}
+
+function renderMyLinks(shares) {
+  const list = libraryEl("myLinksList");
+  list.replaceChildren();
+  if (!shares.length) { libraryText(list, "p", "هنوز لینکی نساخته‌اید. با دکمهٔ «اشتراک» برای متن لینک بسازید.", "library-empty"); return; }
+  for (const share of shares) {
+    const expired = share.expiresAt && new Date(share.expiresAt) <= new Date();
+    const url = location.origin + share.url;
+    const row = document.createElement("div"); row.className = "share-row my-link-row";
+    const info = document.createElement("div"); info.className = "share-row-info";
+    const open = libraryText(info, "a", share.title || "بدون عنوان", "my-link-title");
+    Object.assign(open, { href: url, target: "_blank", rel: "noopener", title: "باز کردن لینک در زبانهٔ تازه" });
+    libraryText(info, "small", [
+      libraryDate(share.createdAt),
+      `${share.viewCount.toLocaleString("fa-IR")} بازدید`,
+      expired ? "منقضی‌شده" : share.expiresAt ? `تا ${libraryDate(share.expiresAt)}` : "بدون انقضا",
+    ].join(" · "), expired ? "my-link-meta expired" : "my-link-meta");
+    const actions = document.createElement("div"); actions.className = "my-link-actions";
+    const expiry = document.createElement("select");
+    expiry.setAttribute("aria-label", `انقضای لینک «${share.title}»`);
+    for (const [value, label] of EXPIRY_CHOICES) expiry.append(new Option(label, value));
+    expiry.addEventListener("change", () => setLinkExpiry(share, expiry.value));
+    actions.append(
+      libraryButton("کپی", event => copyMyLink(url, event.currentTarget), "share-row-action"),
+      expiry,
+      libraryButton("حذف", () => deleteMyLink(share), "share-row-action danger"),
+    );
+    row.append(info, actions);
+    list.append(row);
+  }
+}
+
+async function copyMyLink(url, button) {
+  try { await navigator.clipboard.writeText(url); } catch (_) { libraryToast(url); return; }
+  button.textContent = "کپی شد";
+  setTimeout(() => { button.textContent = "کپی"; }, 1500);
+}
+
+async function setLinkExpiry(share, value) {
+  if (!value) return;
+  try {
+    await libraryApi(`/shares/${share.id}`, "PATCH", { expiresInDays: value === "never" ? null : Number(value) });
+    await openMyLinks();
+  } catch (error) { libraryToast(error.message, true); }
+}
+
+async function deleteMyLink(share) {
+  if (!await libraryAsk({ title: "حذف لینک", description: `لینک «${share.title}» حذف شود؟ کسی که لینک را دارد دیگر نمی‌تواند متن را ببیند. متن خودتان در زبانه‌ها و کتابخانه سر جایش می‌ماند.`, confirm: "حذف لینک", destructive: true })) return;
+  try {
+    await libraryApi(`/shares/${share.id}`, "DELETE");
+    await openMyLinks();
+    libraryToast("لینک حذف شد.");
   } catch (error) { libraryToast(error.message, true); }
 }
 
