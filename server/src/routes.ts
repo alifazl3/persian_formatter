@@ -10,7 +10,10 @@ export function createApiRouter(
   const router = Router();
 
   router.post("/shares", shareHandler.create);
+  router.get("/shares", shareHandler.list);
   router.get("/shares/:id", shareHandler.get);
+  router.patch("/shares/:id", shareHandler.update);
+  router.delete("/shares/:id", shareHandler.remove);
 
   router.post("/shares/:id/reports", reportHandler.create);
   router.get("/reports", reportHandler.list);
